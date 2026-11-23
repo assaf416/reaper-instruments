@@ -1,0 +1,37 @@
+﻿<REAPER_PROJECT 0.1 "7.78/win64" 0
+  TEMPO 120 4 4
+  LOOP 1
+  <TRACK
+    NAME "Mellotron"
+    NCHAN 2
+    <FXCHAIN
+      <JS "Mellotron/Mellotron.jsfx" ""
+        12 7 15 0.9 0.6 0.5 0 -30 30 0.2 0.3 1 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FLOATPOS 60 60 920 600
+      FXID {7A1B2C3D-0000-4000-8000-000000000001}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      LENGTH 4
+      LOOP 1
+      NAME "Chords"
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 90 3c 60
+        E 0 90 40 60
+        E 0 90 43 60
+        E 3840 80 3c 00
+        E 0 80 40 00
+        E 0 80 43 00
+        E 0 90 41 60
+        E 0 90 45 60
+        E 0 90 48 60
+        E 3840 80 41 00
+        E 0 80 45 00
+        E 0 80 48 00
+      >
+    >
+  >
+>

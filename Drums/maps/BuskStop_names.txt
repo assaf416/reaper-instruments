@@ -1,0 +1,21 @@
+Stick Click
+Cajon Thump
+Finger Snaps
+Cajon Slap Left
+Hand Claps
+Cajon Slap Right
+Large Conga Left
+Shakers
+Large Conga Right
+Shake Tambourine
+Small Conga Left
+Bump Tambourine
+Small Conga Right
+Claves
+Cymbal
+Cymbal Bell
+Cowbell
+Foot Stomp
+Bucket
+Bell Tree Down
+Bell Tree Up

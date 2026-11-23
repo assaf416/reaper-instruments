@@ -1,0 +1,886 @@
+desc:Drums - Five velocity-layered kits with mixer, reverb and MIDI map v1.0
+// Five drum kits (AVL Drumkits: Black Pearl, Red Zeppelin, Blonde Bop sticks / hot rods, Buskman's Holiday)
+// with 5-10 velocity layers per piece, a 7-channel mixer, reverb, and a MIDI map / CC map editor
+// (with Learn) so any e-drum module (Millenium MPS-850, Roland TD, ...) can be matched to each kit.
+// Run Install-Drums.ps1 once to prepare the kit maps. Samples: AVL Drumkits, CC-BY-SA 3.0 (Glen MacArthur).
+
+options:maxmem=24000000
+
+slider1:0<0,4,1{Captain's Kit,Led Head,Goldibops,Goldibops Hot Rods,Busk Stop}>-Kit
+slider2:0.2<0,1,0.01>-Reverb Mix
+slider3:0.5<0,1,0.01>-Reverb Room Size
+slider4:0.5<0,1,0.01>-Reverb Damping
+slider5:1<0,2,0.01>-Master Volume
+slider6:1<0,1.5,0.01>-Level 1
+slider7:1<0,1.5,0.01>-Level 2
+slider8:1<0,1.5,0.01>-Level 3
+slider9:1<0,1.5,0.01>-Level 4
+slider10:1<0,1.5,0.01>-Level 5
+slider11:1<0,1.5,0.01>-Level 6
+slider12:1<0,1.5,0.01>-Level 7
+slider13:0<-100,100,1>-Pan 1
+slider14:0<-100,100,1>-Pan 2
+slider15:15<-100,100,1>-Pan 3
+slider16:-20<-100,100,1>-Pan 4
+slider17:20<-100,100,1>-Pan 5
+slider18:0<-100,100,1>-Pan 6
+slider19:0<-100,100,1>-Pan 7
+slider20:0<0,1,1>-Mute 1
+slider21:0<0,1,1>-Mute 2
+slider22:0<0,1,1>-Mute 3
+slider23:0<0,1,1>-Mute 4
+slider24:0<0,1,1>-Mute 5
+slider25:0<0,1,1>-Mute 6
+slider26:0<0,1,1>-Mute 7
+
+in_pin:none
+out_pin:left output
+out_pin:right output
+
+@init
+NV = 64;            // voices
+MAXZ = 256;         // max velocity zones per kit
+NK = 5;             // kits
+
+// ---- memory map ----
+vact = 0; vpos = 64; vend = 128; vgl = 192; vgr = 256; vch = 320; vex = 384; venv = 448; vchoke = 512;
+zpiece = 1000; zlo = 1256; zhi = 1512; zst = 1768; zln = 2024; zgl = 2280; zgr = 2536;
+zfirst = 2800; zcnt = 2832; pex = 2864; pg = 2896; flash = 2928;
+inmap = 3000;
+pnote = 3200;       // NK x 32 : incoming MIDI note assigned to each piece of each kit (-1 = none)
+ccmap = 3400;       // NK x 3  : CC numbers (master volume, reverb mix, hi-hat pedal)
+kLo = 3420; kN = 3430; kkey = 3440; kname = 3450; ksub = 3460; chn = 3470; chnB = 3480;
+pre_note = 3500; pre_name = 3540;
+bus = 3600; mpk = 3620;
+ctl = 3700; NC = 18;
+cbase = 4000; clen = 4016; cidx = 4032; cst = 4048; abase = 4064; alen = 4072; aidx = 4080;
+ctun = 4100; atun = 4110;
+PP = 4200;
+REV = 8192;
+ARENA = 220000;
+
+kLo[0] = 36; kN[0] = 26;  kLo[1] = 36; kN[1] = 26;  kLo[2] = 35; kN[2] = 27;
+kLo[3] = 35; kN[3] = 27;  kLo[4] = 35; kN[4] = 21;
+kkey[0] = "CaptainsKit"; kkey[1] = "LedHead"; kkey[2] = "Goldibops"; kkey[3] = "GoldibopsHotRods"; kkey[4] = "BuskStop";
+kname[0] = "CAPTAIN'S KIT"; kname[1] = "LED HEAD"; kname[2] = "GOLDIBOPS"; kname[3] = "GOLDIBOPS HR"; kname[4] = "BUSK STOP";
+ksub[0] = "Black Pearl - 4 piece"; ksub[1] = "Red Zeppelin - 4 piece"; ksub[2] = "Blonde Bop - sticks";
+ksub[3] = "Blonde Bop - hot rods"; ksub[4] = "Hand percussion";
+
+chn[0] = "KICK"; chn[1] = "SNARE"; chn[2] = "HI-HAT"; chn[3] = "TOM"; chn[4] = "FLOOR"; chn[5] = "CYMBALS"; chn[6] = "PERC";
+chnB[0] = "THUMP"; chnB[1] = "CAJON"; chnB[2] = "SHAKERS"; chnB[3] = "SM CONGA"; chnB[4] = "LG CONGA"; chnB[5] = "METALS"; chnB[6] = "MISC";
+
+// GM / e-kit preset: incoming note -> kit piece name
+pre_note[0] = 36;  pre_name[0] = "Kick Drum";
+pre_note[1] = 37;  pre_name[1] = "Snare Side-Stick";
+pre_note[2] = 38;  pre_name[2] = "Snare Center";
+pre_note[3] = 40;  pre_name[3] = "Snare Edge";
+pre_note[4] = 39;  pre_name[4] = "Hand Clap";
+pre_note[5] = 41;  pre_name[5] = "Floor Tom Center";
+pre_note[6] = 43;  pre_name[6] = "Floor Tom Edge";
+pre_note[7] = 45;  pre_name[7] = "Tom Center";
+pre_note[8] = 48;  pre_name[8] = "Tom Edge";
+pre_note[9] = 42;  pre_name[9] = "Closed Hi-Hat";
+pre_note[10] = 44; pre_name[10] = "Pedal Hi-Hat";
+pre_note[11] = 46; pre_name[11] = "Semi-Open Hi-Hat";
+pre_note[12] = 49; pre_name[12] = "Crash 1";
+pre_note[13] = 51; pre_name[13] = "Ride Tip";
+pre_note[14] = 53; pre_name[14] = "Ride Bell";
+pre_note[15] = 55; pre_name[15] = "Splash";
+pre_note[16] = 57; pre_name[16] = "Crash 2";
+pre_note[17] = 59; pre_name[17] = "Ride Shank";
+pre_note[18] = 54; pre_name[18] = "Tambourine";
+pre_note[19] = 56; pre_name[19] = "Cowbell";
+pre_note[20] = 52; pre_name[20] = "China";
+pre_note[21] = 35; pre_name[21] = "Stick Click";
+NPRE = 22;
+
+// default note map (each piece answers on its own kit note) and default CCs
+kk = 0;
+loop(NK,
+  pp_ = 0;
+  loop(32, pnote[kk * 32 + pp_] = (pp_ < kN[kk]) ? kLo[kk] + pp_ : -1; pp_ += 1; );
+  ccmap[kk * 3] = 7; ccmap[kk * 3 + 1] = 91; ccmap[kk * 3 + 2] = 4;
+  kk += 1;
+);
+
+// mixer / reverb / master controls: x, y, w, h, min, max, slider#, step, default, vertical
+ci = 0;
+loop(7,
+  co = ctl + ci * 10;
+  co[0] = 25 + ci * 82 + 22; co[1] = 200; co[2] = 30; co[3] = 200;
+  co[4] = 0; co[5] = 1.5; co[6] = 6 + ci; co[7] = 0.01; co[8] = 1; co[9] = 1;
+  co = ctl + (7 + ci) * 10;
+  co[0] = 25 + ci * 82 + 4; co[1] = 438; co[2] = 68; co[3] = 18;
+  co[4] = -100; co[5] = 100; co[6] = 13 + ci; co[7] = 1; co[9] = 0;
+  co[8] = (ci == 2) ? 15 : ((ci == 3) ? -20 : ((ci == 4) ? 20 : 0));
+  ci += 1;
+);
+co = ctl + 14 * 10;  co[0] = 621; co[1] = 200; co[2] = 30;  co[3] = 200; co[4] = 0; co[5] = 2; co[6] = 5; co[7] = 0.01; co[8] = 1;   co[9] = 1;
+co = ctl + 15 * 10;  co[0] = 715; co[1] = 215; co[2] = 150; co[3] = 26;  co[4] = 0; co[5] = 1; co[6] = 2; co[7] = 0.01; co[8] = 0.2; co[9] = 0;
+co = ctl + 16 * 10;  co[0] = 715; co[1] = 285; co[2] = 150; co[3] = 26;  co[4] = 0; co[5] = 1; co[6] = 3; co[7] = 0.01; co[8] = 0.5; co[9] = 0;
+co = ctl + 17 * 10;  co[0] = 715; co[1] = 355; co[2] = 150; co[3] = 26;  co[4] = 0; co[5] = 1; co[6] = 4; co[7] = 0.01; co[8] = 0.5; co[9] = 0;
+
+// ---- reverb (Freeverb layout) ----
+ctun[0] = 1116; ctun[1] = 1188; ctun[2] = 1277; ctun[3] = 1356;
+ctun[4] = 1422; ctun[5] = 1491; ctun[6] = 1557; ctun[7] = 1617;
+atun[0] = 556; atun[1] = 441; atun[2] = 341; atun[3] = 225;
+rsc = srate / 44100;
+rp = REV;
+rj = 0;
+loop(16,
+  clen[rj] = floor((ctun[rj % 8] + (rj >= 8 ? 23 : 0)) * rsc);
+  cbase[rj] = rp; cidx[rj] = 0; cst[rj] = 0;
+  memset(rp, 0, clen[rj]);
+  rp += clen[rj];
+  rj += 1;
+);
+rj = 0;
+loop(8,
+  alen[rj] = floor((atun[rj % 4] + (rj >= 4 ? 23 : 0)) * rsc);
+  abase[rj] = rp; aidx[rj] = 0;
+  memset(rp, 0, alen[rj]);
+  rp += alen[rj];
+  rj += 1;
+);
+
+// ---- state ----
+ii = 0; loop(NV, vact[ii] = 0; venv[ii] = 0; vchoke[ii] = 0; ii += 1; );
+memset(flash, 0, 32);
+memset(bus, 0, 14);
+memset(mpk, 0, 8);
+loaded = -1; kit = 0; kit_ok = 0; keyLo = 36; keyN = 26;
+rr = 0; maps_dirty = 1;
+learn_type = 0; learn_idx = 0;
+lastnote = -1; lastvel = 0; lastpiece = -1; lastcc = -1; lastccv = 0; hhprev = 0;
+smp_rate = 44100 / srate;
+choke_mul = exp(-1 / (0.04 * srate));
+ui_tab = 0;
+gdrag = -1; glmd = 0;
+pkm = 0;
+
+function tanhx(x)
+  local(y, e)
+(
+  y = max(-8, min(8, x));
+  e = exp(2 * y);
+  (e - 1) / (e + 1);
+);
+
+PP = 4200;
+function nextnum(str, pos)
+  local(p, n, c, neg, v, scale)
+(
+  p = pos[0]; n = strlen(str);
+  while (p < n && (c = str_getchar(str, p)) != 45 && (c < 48 || c > 57) && c != 46) ( p += 1; );
+  neg = 0;
+  (p < n && str_getchar(str, p) == 45) ? ( neg = 1; p += 1; );
+  v = 0;
+  while (p < n && (c = str_getchar(str, p)) >= 48 && c <= 57) ( v = v * 10 + (c - 48); p += 1; );
+  (p < n && str_getchar(str, p) == 46) ? (
+    p += 1; scale = 0.1;
+    while (p < n && (c = str_getchar(str, p)) >= 48 && c <= 57) ( v += (c - 48) * scale; scale *= 0.1; p += 1; );
+  );
+  pos[0] = p;
+  neg ? -v : v;
+);
+
+// give `note` to `piece` (taking it away from any other piece of the same kit)
+function assign_note(pb, np, piece, note)
+  local(i)
+(
+  i = 0;
+  note >= 0 ? loop(np, (pb[i] == note && i != piece) ? pb[i] = -1; i += 1; );
+  pb[piece] = note;
+);
+
+@slider
+rv_fb = 0.7 + slider3 * 0.28;
+rv_damp = slider4 * 0.4;
+rv_wet = slider2 * 3;
+
+slider1 != loaded ? (
+  loaded = slider1;
+  kit = slider1;
+  kit_ok = 0;
+  ld_i = 0; loop(NV, vact[ld_i] = 0; ld_i += 1; );
+  memset(zcnt, 0, 32);
+
+  sprintf(#ld_z, "Drums/%s_zones.txt", kkey[kit]);
+  sprintf(#ld_n, "Drums/%s_names.txt", kkey[kit]);
+  sprintf(#ld_f, "Drumkits/%s.flac", kkey[kit]);
+  zh = file_open(#ld_z);
+  nh = file_open(#ld_n);
+  smp_len = 0;
+
+  (zh > 0 && nh > 0) ? (
+    file_string(zh, #ld_l);
+    PP[0] = 0;
+    keyLo = nextnum(#ld_l, PP); keyN = nextnum(#ld_l, PP); smp_len = nextnum(#ld_l, PP); ld_nz = nextnum(#ld_l, PP);
+
+    ld_z_i = 0;
+    while (ld_z_i < ld_nz && ld_z_i < MAXZ) (
+      file_string(zh, #ld_l);
+      PP[0] = 0;
+      ld_pc = nextnum(#ld_l, PP); ld_ex = nextnum(#ld_l, PP); ld_g = nextnum(#ld_l, PP);
+      ld_lo = nextnum(#ld_l, PP); ld_hi = nextnum(#ld_l, PP);
+      ld_st = nextnum(#ld_l, PP); ld_ln = nextnum(#ld_l, PP);
+      ld_pan = nextnum(#ld_l, PP); ld_att = nextnum(#ld_l, PP);
+
+      zpiece[ld_z_i] = ld_pc; zlo[ld_z_i] = ld_lo; zhi[ld_z_i] = ld_hi;
+      zst[ld_z_i] = ld_st; zln[ld_z_i] = ld_ln;
+      ld_amp = 10 ^ (-ld_att / 200);
+      zgl[ld_z_i] = sin(max(0, min(1, (500 - ld_pan) / 1000)) * $pi / 2) * ld_amp;
+      zgr[ld_z_i] = sin(max(0, min(1, (500 + ld_pan) / 1000)) * $pi / 2) * ld_amp;
+      zcnt[ld_pc] == 0 ? zfirst[ld_pc] = ld_z_i;
+      zcnt[ld_pc] += 1;
+      pex[ld_pc] = ld_ex; pg[ld_pc] = ld_g;
+      ld_z_i += 1;
+    );
+
+    ld_p = 0;
+    loop(keyN,
+      file_string(nh, #ld_t);
+      ld_n2 = strlen(#ld_t);
+      while (ld_n2 > 0 && str_getchar(#ld_t, ld_n2 - 1) <= 32) ( ld_n2 -= 1; );
+      strcpy_substr(#ld_p2, #ld_t, 0, ld_n2);
+      strcpy(600 + ld_p, #ld_p2);
+      ld_p += 1;
+    );
+  );
+  zh > 0 ? file_close(zh);
+  nh > 0 ? file_close(nh);
+
+  // load the kit's sample file (one mono FLAC; zones point into it)
+  smp_len > 0 ? (
+    sh = file_open(#ld_f);
+    sh > 0 ? (
+      ld_nch = 0; ld_fsr = 0;
+      file_riff(sh, ld_nch, ld_fsr);
+      ld_nch == 1 ? (
+        ld_got = file_mem(sh, ARENA, smp_len);
+        kit_ok = (ld_got >= smp_len - 1);
+        smp_rate = ld_fsr / srate;
+      );
+      file_close(sh);
+    );
+  );
+  maps_dirty = 1;
+);
+
+@serialize
+// per-kit MIDI note maps and CC maps are saved with the project
+file_mem(0, pnote, 160);
+file_mem(0, ccmap, 15);
+maps_dirty = 1;
+
+@block
+maps_dirty ? (
+  bi = 0; loop(128, inmap[bi] = -1; bi += 1; );
+  bi = 0;
+  loop(keyN,
+    bn = pnote[kit * 32 + bi];
+    (bn >= 0 && bn < 128) ? inmap[bn] = bi;
+    bi += 1;
+  );
+  maps_dirty = 0;
+);
+
+while (midirecv(boffs, m1, m2, m3)) (
+  bst = m1 & 0xF0;
+
+  (bst == 0x90 && m3 > 0) ? (
+    lastnote = m2; lastvel = m3;
+
+    learn_type == 1 ? (
+      assign_note(pnote + kit * 32, keyN, learn_idx, m2);
+      learn_type = 0;
+      maps_dirty = 1;
+      bi = 0; loop(128, inmap[bi] = -1; bi += 1; );
+      bi = 0; loop(keyN, bn = pnote[kit * 32 + bi]; (bn >= 0 && bn < 128) ? inmap[bn] = bi; bi += 1; );
+    );
+
+    bpc = inmap[m2];
+    lastpiece = bpc;
+    (bpc >= 0 && kit_ok) ? (
+      flash[bpc] = 1;
+      bex = pex[bpc];
+      // exclusive group (hi-hat / cymbal chokes)
+      bex > 0 ? ( bv = 0; loop(NV, (vact[bv] && vex[bv] == bex) ? vchoke[bv] = 1; bv += 1; ); );
+      bz = zfirst[bpc];
+      loop(zcnt[bpc],
+        (m3 >= zlo[bz] && m3 <= zhi[bz]) ? (
+          bv = -1; bk = 0;
+          while (bk < NV && bv < 0) ( vact[bk] == 0 ? bv = bk; bk += 1; );
+          bv < 0 ? ( bv = rr; rr = (rr + 1) % NV; );
+          vact[bv] = 1;
+          vpos[bv] = ARENA + zst[bz];
+          vend[bv] = ARENA + zst[bz] + zln[bz] - 2;
+          bva = (m3 / 127) ^ 2;
+          vgl[bv] = zgl[bz] * bva; vgr[bv] = zgr[bz] * bva;
+          vch[bv] = min(pg[bpc], 6);
+          vex[bv] = bex;
+          venv[bv] = 1; vchoke[bv] = 0;
+        );
+        bz += 1;
+      );
+    );
+  ) : (bst == 0xB0) ? (
+    lastcc = m2; lastccv = m3;
+    learn_type == 2 ? (
+      ccmap[kit * 3 + learn_idx] = m2;
+      learn_type = 0;
+    ) : (
+      m2 == ccmap[kit * 3]     ? ( slider5 = m3 / 127 * 2; sliderchange(16); );
+      m2 == ccmap[kit * 3 + 1] ? ( slider2 = m3 / 127;     sliderchange(2); );
+      m2 == ccmap[kit * 3 + 2] ? (
+        // hi-hat foot pedal pressed down: choke the hi-hats that are ringing
+        (m3 >= 64 && hhprev < 64) ? ( bv = 0; loop(NV, (vact[bv] && vch[bv] == 2) ? vchoke[bv] = 1; bv += 1; ); );
+        hhprev = m3;
+      );
+    );
+  ) : (bst == 0xB0 && (m2 == 123 || m2 == 120)) ? (
+    bv = 0; loop(NV, vchoke[bv] = 1; bv += 1; );
+  );
+);
+
+@sample
+memset(bus, 0, 14);
+si = 0;
+loop(NV,
+  vact[si] ? (
+    sp = vpos[si];
+    sip = floor(sp);
+    sfr = sp - sip;
+    ssm = sip[0] + (sip[1] - sip[0]) * sfr;
+
+    vchoke[si] ? (
+      venv[si] *= choke_mul;
+      venv[si] < 0.001 ? vact[si] = 0;
+    );
+    ssm *= venv[si];
+
+    sc = vch[si];
+    bus[sc * 2] += ssm * vgl[si];
+    bus[sc * 2 + 1] += ssm * vgr[si];
+
+    vpos[si] = sp + smp_rate;
+    vpos[si] >= vend[si] ? vact[si] = 0;
+  );
+  si += 1;
+);
+
+l = 0; r = 0;
+sc = 0;
+loop(7,
+  slv = slider(6 + sc) * (slider(20 + sc) < 0.5);
+  sbl = bus[sc * 2]; sbr = bus[sc * 2 + 1];
+  spn = slider(13 + sc) / 100;
+  spn > 0 ? sbl *= (1 - spn) : sbr *= (1 + spn);
+  sbl *= slv; sbr *= slv;
+  l += sbl; r += sbr;
+  mpk[sc] = max(mpk[sc] * 0.9997, max(abs(sbl), abs(sbr)));
+  sc += 1;
+);
+
+// ---- reverb ----
+rin = (l + r) * 0.015;
+rsumL = 0; rsumR = 0;
+rj = 0;
+loop(16,
+  rb = cbase[rj]; rix = cidx[rj];
+  ry = rb[rix];
+  cst[rj] = ry * (1 - rv_damp) + cst[rj] * rv_damp;
+  rb[rix] = rin + cst[rj] * rv_fb;
+  rix += 1; rix >= clen[rj] ? rix = 0;
+  cidx[rj] = rix;
+  rj < 8 ? rsumL += ry : rsumR += ry;
+  rj += 1;
+);
+rj = 0;
+loop(8,
+  rb = abase[rj]; rix = aidx[rj];
+  rbo = rb[rix];
+  rj < 4 ? (
+    rb[rix] = rsumL + rbo * 0.5;
+    rsumL = rbo - rsumL;
+  ) : (
+    rb[rix] = rsumR + rbo * 0.5;
+    rsumR = rbo - rsumR;
+  );
+  rix += 1; rix >= alen[rj] ? rix = 0;
+  aidx[rj] = rix;
+  rj += 1;
+);
+
+outL = tanhx((l + rsumL * rv_wet) * 0.9) * slider5;
+outR = tanhx((r + rsumR * rv_wet) * 0.9) * slider5;
+spl0 = outL;
+spl1 = outR;
+pkm = max(pkm * 0.9997, max(abs(outL), abs(outR)));
+
+@gfx 900 600
+gfx_clear = 0x1a1a1a;
+
+// ====================== mouse ======================
+gmd = mouse_cap & 1;
+gmd && !glmd ? (
+  gdrag = -1;
+
+  // kit cards
+  gt = 0;
+  loop(5,
+    (mouse_x >= 20 + gt * 178 && mouse_x < 188 + gt * 178 && mouse_y >= 56 && mouse_y < 108) ? (
+      slider1 = gt; sliderchange(1); slider_automate(1);
+    );
+    gt += 1;
+  );
+
+  // tabs
+  (mouse_y >= 118 && mouse_y < 144) ? (
+    (mouse_x >= 20 && mouse_x < 130) ? ui_tab = 0;
+    (mouse_x >= 136 && mouse_x < 246) ? ui_tab = 1;
+  );
+
+  ui_tab == 0 ? (
+    // faders / pan / reverb bars
+    gci = 0;
+    loop(NC,
+      gco = ctl + gci * 10;
+      (mouse_x >= gco[0] && mouse_x < gco[0] + gco[2] && mouse_y >= gco[1] && mouse_y < gco[1] + gco[3]) ? (
+        gdrag = gci;
+        (mouse_cap & 4) ? (
+          slider(gco[6]) = gco[8];
+          sliderchange(2 ^ (gco[6] - 1)); slider_automate(2 ^ (gco[6] - 1));
+          gdrag = -1;
+        );
+      );
+      gci += 1;
+    );
+    // mute buttons
+    gc = 0;
+    loop(7,
+      (mouse_x >= 25 + gc * 82 + 4 && mouse_x < 25 + gc * 82 + 72 && mouse_y >= 470 && mouse_y < 494) ? (
+        slider(20 + gc) = 1 - slider(20 + gc);
+        sliderchange(2 ^ (19 + gc)); slider_automate(2 ^ (19 + gc));
+      );
+      gc += 1;
+    );
+  ) : (
+    // ---- MIDI map tab ----
+    // per-piece rows
+    gp = 0;
+    loop(keyN,
+      gbx = 25 + floor(gp / 14) * 290; gby = 190 + (gp % 14) * 24;
+      gcur = pnote[kit * 32 + gp];
+      (mouse_y >= gby && mouse_y < gby + 20) ? (
+        (mouse_x >= gbx + 176 && mouse_x < gbx + 222) ? (       // Learn
+          (learn_type == 1 && learn_idx == gp) ? learn_type = 0 : ( learn_type = 1; learn_idx = gp; );
+        );
+        (mouse_x >= gbx + 226 && mouse_x < gbx + 244) ? (       // -
+          assign_note(pnote + kit * 32, keyN, gp, max(0, (gcur < 0 ? keyLo + gp : gcur) - 1));
+          maps_dirty = 1;
+        );
+        (mouse_x >= gbx + 246 && mouse_x < gbx + 264) ? (       // +
+          assign_note(pnote + kit * 32, keyN, gp, min(127, (gcur < 0 ? keyLo + gp : gcur) + 1));
+          maps_dirty = 1;
+        );
+      );
+      gp += 1;
+    );
+
+    // preset / reset / clear buttons
+    (mouse_y >= 156 && mouse_y < 178) ? (
+      (mouse_x >= 300 && mouse_x < 440) ? (                      // e-kit GM preset
+        gp = 0; loop(32, pnote[kit * 32 + gp] = -1; gp += 1; );
+        gq = 0;
+        loop(NPRE,
+          gp = 0;
+          loop(keyN,
+            strcmp(600 + gp, pre_name[gq]) == 0 ? assign_note(pnote + kit * 32, keyN, gp, pre_note[gq]);
+            gp += 1;
+          );
+          gq += 1;
+        );
+        maps_dirty = 1;
+      );
+      (mouse_x >= 446 && mouse_x < 516) ? (                      // reset to kit defaults
+        gp = 0; loop(32, pnote[kit * 32 + gp] = (gp < keyN) ? keyLo + gp : -1; gp += 1; );
+        maps_dirty = 1;
+      );
+      (mouse_x >= 522 && mouse_x < 582) ? (                      // clear all
+        gp = 0; loop(32, pnote[kit * 32 + gp] = -1; gp += 1; );
+        maps_dirty = 1;
+      );
+    );
+
+    // CC rows
+    gr = 0;
+    loop(3,
+      gry = 214 + gr * 50;
+      (mouse_y >= gry + 18 && mouse_y < gry + 38) ? (
+        (mouse_x >= 678 && mouse_x < 742) ? (
+          (learn_type == 2 && learn_idx == gr) ? learn_type = 0 : ( learn_type = 2; learn_idx = gr; );
+        );
+        (mouse_x >= 748 && mouse_x < 768) ? ccmap[kit * 3 + gr] = max(0, ccmap[kit * 3 + gr] - 1);
+        (mouse_x >= 772 && mouse_x < 792) ? ccmap[kit * 3 + gr] = min(127, ccmap[kit * 3 + gr] + 1);
+      );
+      gr += 1;
+    );
+  );
+);
+
+gmd && gdrag >= 0 && ui_tab == 0 ? (
+  gco = ctl + gdrag * 10;
+  gfrac = gco[9] ? 1 - (mouse_y - gco[1]) / gco[3] : (mouse_x - gco[0]) / gco[2];
+  gv = gco[4] + (gco[5] - gco[4]) * max(0, min(1, gfrac));
+  gv = floor(gv / gco[7] + 0.5) * gco[7];
+  gv != slider(gco[6]) ? (
+    slider(gco[6]) = gv;
+    sliderchange(2 ^ (gco[6] - 1)); slider_automate(2 ^ (gco[6] - 1));
+  );
+);
+!gmd ? gdrag = -1;
+glmd = gmd;
+
+// ====================== header ======================
+gfx_setfont(1, "Arial", 28);
+gfx_set(1, 1, 1, 1);
+gfx_x = 20; gfx_y = 12;
+gfx_drawstr("DRUMS");
+gfx_setfont(1, "Arial", 13);
+gfx_set(0.65, 0.65, 0.65, 1);
+gfx_x = 130; gfx_y = 24;
+gfx_drawstr("velocity-layered kits - mixer - reverb - MIDI map");
+
+// kit cards
+gt = 0;
+loop(5,
+  gbx = 20 + gt * 178;
+  gsel = (kit == gt);
+  ghov = (mouse_x >= gbx && mouse_x < gbx + 168 && mouse_y >= 56 && mouse_y < 108);
+  gsel ? gfx_set(0.27, 0.27, 0.27, 1) : gfx_set(0.18, 0.18, 0.18, 1);
+  gfx_rect(gbx, 56, 168, 52);
+  (gsel || ghov) ? gfx_set(0.95, 0.65, 0.2, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(gbx, 56, 168, 52, 0);
+  gsel ? ( gfx_set(0.95, 0.65, 0.2, 1); gfx_rect(gbx, 56, 168, 4); );
+  gfx_setfont(1, "Arial", 15);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gbx + 10; gfx_y = 66;
+  gfx_drawstr(kname[gt]);
+  gfx_setfont(1, "Arial", 12);
+  gfx_set(0.65, 0.65, 0.65, 1);
+  gfx_x = gbx + 10; gfx_y = 88;
+  gfx_drawstr(ksub[gt]);
+  gt += 1;
+);
+
+// tabs
+gt = 0;
+loop(2,
+  gbx = 20 + gt * 116;
+  gfx_set(0.18, 0.18, 0.18, 1);
+  ui_tab == gt ? gfx_set(0.3, 0.3, 0.3, 1);
+  gfx_rect(gbx, 118, 110, 26);
+  ui_tab == gt ? gfx_set(0.95, 0.65, 0.2, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(gbx, 118, 110, 26, 0);
+  gfx_setfont(1, "Arial", 13);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gbx + (gt == 0 ? 36 : 28); gfx_y = 124;
+  gt == 0 ? gfx_drawstr("MIXER") : gfx_drawstr("MIDI MAP");
+  gt += 1;
+);
+// kit status
+gfx_setfont(1, "Arial", 12);
+kit_ok ? ( gfx_set(0.4, 0.8, 0.4, 1); sprintf(#gs, "kit loaded - %d pieces", keyN); ) : ( gfx_set(1, 0.4, 0.4, 1); sprintf(#gs, "kit NOT loaded - run Install-Drums.ps1"); );
+gfx_x = 700; gfx_y = 126;
+gfx_drawstr(#gs);
+
+// ====================== MIXER ======================
+ui_tab == 0 ? (
+  gfx_setfont(1, "Arial", 12);
+  gc = 0;
+  loop(7,
+    gx0 = 25 + gc * 82;
+    gc == 0 ? ( gcr = 0.95; gcg = 0.35; gcb = 0.3; );
+    gc == 1 ? ( gcr = 0.95; gcg = 0.65; gcb = 0.2; );
+    gc == 2 ? ( gcr = 0.95; gcg = 0.9;  gcb = 0.3; );
+    gc == 3 ? ( gcr = 0.4;  gcg = 0.85; gcb = 0.4; );
+    gc == 4 ? ( gcr = 0.3;  gcg = 0.8;  gcb = 0.8; );
+    gc == 5 ? ( gcr = 0.4;  gcg = 0.6;  gcb = 0.95; );
+    gc == 6 ? ( gcr = 0.75; gcg = 0.5;  gcb = 0.95; );
+
+    gfx_set(0.2, 0.2, 0.2, 1);
+    gfx_rect(gx0, 156, 76, 346);
+    gfx_set(0.4, 0.4, 0.4, 1);
+    gfx_rect(gx0, 156, 76, 346, 0);
+    gfx_set(gcr, gcg, gcb, 1);
+    gfx_rect(gx0, 156, 76, 4);
+
+    gfx_set(1, 1, 1, 1);
+    gfx_x = gx0 + 8; gfx_y = 170;
+    gfx_drawstr(kit == 4 ? chnB[gc] : chn[gc]);
+
+    // meter
+    gfx_set(0.1, 0.1, 0.1, 1);
+    gfx_rect(gx0 + 8, 200, 8, 200);
+    gpkv = min(1, mpk[gc] * 2.5);
+    gfx_set(gcr, gcg, gcb, 1);
+    gfx_rect(gx0 + 8, 200 + 200 * (1 - gpkv), 8, 200 * gpkv);
+
+    // fader
+    gv = slider(6 + gc);
+    gfx_set(0.1, 0.1, 0.1, 1);
+    gfx_rect(gx0 + 22, 200, 30, 200);
+    gfx_set(gcr * 0.8, gcg * 0.8, gcb * 0.8, 1);
+    gfx_rect(gx0 + 22, 200 + 200 * (1 - gv / 1.5), 30, 200 * gv / 1.5);
+    gfx_set(0.95, 0.95, 0.95, 1);
+    gfx_rect(gx0 + 20, 200 + 200 * (1 - gv / 1.5) - 2, 34, 4);
+    gfx_set(0.45, 0.45, 0.45, 1);
+    gfx_rect(gx0 + 22, 200, 30, 200, 0);
+    gfx_set(0.8, 0.8, 0.8, 1);
+    gfx_x = gx0 + 22; gfx_y = 404;
+    sprintf(#gs, "%d%%", floor(gv / 1 * 100 + 0.5));
+    gfx_drawstr(#gs);
+
+    // pan
+    gfx_set(0.55, 0.55, 0.55, 1);
+    gfx_x = gx0 + 4; gfx_y = 422;
+    gfx_drawstr("Pan");
+    gpn = slider(13 + gc);
+    gfx_set(0.1, 0.1, 0.1, 1);
+    gfx_rect(gx0 + 4, 438, 68, 18);
+    gfx_set(0.9, 0.9, 0.9, 1);
+    gfx_rect(gx0 + 4 + (gpn + 100) / 200 * 68 - 2, 436, 4, 22);
+    gfx_set(0.45, 0.45, 0.45, 1);
+    gfx_rect(gx0 + 4, 438, 68, 18, 0);
+    gfx_set(0.8, 0.8, 0.8, 1);
+    gfx_x = gx0 + 36; gfx_y = 422;
+    sprintf(#gs, "%d", gpn);
+    gfx_drawstr(#gs);
+
+    // mute
+    gmu = slider(20 + gc) > 0.5;
+    gmu ? gfx_set(0.85, 0.25, 0.25, 1) : gfx_set(0.28, 0.28, 0.28, 1);
+    gfx_rect(gx0 + 4, 470, 68, 24);
+    gfx_set(0.5, 0.5, 0.5, 1);
+    gfx_rect(gx0 + 4, 470, 68, 24, 0);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = gx0 + 24; gfx_y = 476;
+    gfx_drawstr("MUTE");
+    gc += 1;
+  );
+
+  // master strip
+  gx0 = 599;
+  gfx_set(0.2, 0.2, 0.2, 1);
+  gfx_rect(gx0, 156, 76, 346);
+  gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(gx0, 156, 76, 346, 0);
+  gfx_set(0.9, 0.9, 0.9, 1);
+  gfx_rect(gx0, 156, 76, 4);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gx0 + 8; gfx_y = 170;
+  gfx_drawstr("MASTER");
+  gfx_set(0.1, 0.1, 0.1, 1);
+  gfx_rect(gx0 + 8, 200, 8, 200);
+  gpkv = min(1, pkm);
+  gfx_set(0.9, 0.9, 0.3, 1);
+  gfx_rect(gx0 + 8, 200 + 200 * (1 - gpkv), 8, 200 * gpkv);
+  gv = slider5;
+  gfx_set(0.1, 0.1, 0.1, 1);
+  gfx_rect(gx0 + 22, 200, 30, 200);
+  gfx_set(0.7, 0.7, 0.7, 1);
+  gfx_rect(gx0 + 22, 200 + 200 * (1 - gv / 2), 30, 200 * gv / 2);
+  gfx_set(0.95, 0.95, 0.95, 1);
+  gfx_rect(gx0 + 20, 200 + 200 * (1 - gv / 2) - 2, 34, 4);
+  gfx_set(0.45, 0.45, 0.45, 1);
+  gfx_rect(gx0 + 22, 200, 30, 200, 0);
+  gfx_set(0.8, 0.8, 0.8, 1);
+  gfx_x = gx0 + 22; gfx_y = 404;
+  sprintf(#gs, "%d%%", floor(gv * 100 + 0.5));
+  gfx_drawstr(#gs);
+
+  // reverb panel
+  gfx_set(0.2, 0.2, 0.2, 1);
+  gfx_rect(690, 156, 190, 346);
+  gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(690, 156, 190, 346, 0);
+  gfx_set(0.35, 0.65, 0.95, 1);
+  gfx_rect(690, 156, 190, 4);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = 705; gfx_y = 170;
+  gfx_drawstr("REVERB");
+  gci = 15;
+  loop(3,
+    gco = ctl + gci * 10;
+    gv = slider(gco[6]);
+    gfx_set(0.7, 0.7, 0.7, 1);
+    gfx_x = gco[0]; gfx_y = gco[1] - 18;
+    gci == 15 ? gfx_drawstr("Mix") : ( gci == 16 ? gfx_drawstr("Room Size") : gfx_drawstr("Damping") );
+    gfx_x = gco[0] + 120; gfx_y = gco[1] - 18;
+    sprintf(#gs, "%d%%", floor(gv * 100 + 0.5));
+    gfx_drawstr(#gs);
+    gfx_set(0.1, 0.1, 0.1, 1);
+    gfx_rect(gco[0], gco[1], gco[2], gco[3]);
+    gfx_set(0.35, 0.65, 0.95, 1);
+    gfx_rect(gco[0], gco[1], gv * gco[2], gco[3]);
+    gfx_set(0.45, 0.45, 0.45, 1);
+    gfx_rect(gco[0], gco[1], gco[2], gco[3], 0);
+    gci += 1;
+  );
+
+  // last hit + hint
+  gfx_set(0.7, 0.7, 0.7, 1);
+  gfx_x = 25; gfx_y = 512;
+  lastpiece >= 0 ? (
+    sprintf(#gs, "Last hit: %s   (MIDI note %d, velocity %d)", 600 + lastpiece, lastnote, lastvel);
+  ) : (
+    lastnote >= 0 ? sprintf(#gs, "Last MIDI note %d (velocity %d) is not mapped - see the MIDI MAP tab", lastnote, lastvel)
+                  : sprintf(#gs, "Play a pad or a MIDI item to see which piece and velocity layer you hit");
+  );
+  gfx_drawstr(#gs);
+  gfx_set(0.5, 0.5, 0.5, 1);
+  gfx_x = 25; gfx_y = 532;
+  gfx_drawstr("Drag the faders, pan and reverb bars. Ctrl+click resets a control. Hi-hats and cymbals choke each other like the real kit.");
+);
+
+// ====================== MIDI MAP ======================
+ui_tab == 1 ? (
+  gfx_setfont(1, "Arial", 13);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = 25; gfx_y = 160;
+  gfx_drawstr("MIDI NOTE MAP");
+  gfx_set(0.6, 0.6, 0.6, 1);
+  gfx_x = 130; gfx_y = 160;
+  gfx_drawstr(kname[kit]);
+
+  // buttons
+  gt = 0;
+  loop(3,
+    gbx = (gt == 0) ? 300 : ((gt == 1) ? 446 : 522);
+    gbw = (gt == 0) ? 140 : ((gt == 1) ? 70 : 60);
+    gfx_set(0.28, 0.28, 0.28, 1);
+    gfx_rect(gbx, 156, gbw, 22);
+    gfx_set(0.5, 0.5, 0.5, 1);
+    gfx_rect(gbx, 156, gbw, 22, 0);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = gbx + 8; gfx_y = 161;
+    gt == 0 ? gfx_drawstr("E-kit GM preset") : ( gt == 1 ? gfx_drawstr("Default") : gfx_drawstr("Clear") );
+    gt += 1;
+  );
+
+  gp = 0;
+  loop(keyN,
+    gbx = 25 + floor(gp / 14) * 290; gby = 190 + (gp % 14) * 24;
+    gcur = pnote[kit * 32 + gp];
+    gfx_set(0.2, 0.2, 0.2, 1);
+    gfx_rect(gbx, gby, 264, 20);
+    flash[gp] > 0.02 ? ( gfx_set(0.95, 0.65, 0.2, flash[gp]); gfx_rect(gbx, gby, 264, 20); flash[gp] *= 0.85; );
+    gfx_set(0.4, 0.4, 0.4, 1);
+    gfx_rect(gbx, gby, 264, 20, 0);
+    gfx_setfont(1, "Arial", 12);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = gbx + 6; gfx_y = gby + 4;
+    gfx_drawstr(600 + gp);
+
+    // note number
+    gfx_set(0.1, 0.1, 0.1, 1);
+    gfx_rect(gbx + 134, gby + 1, 36, 18);
+    gfx_set(0.95, 0.9, 0.5, 1);
+    gfx_x = gbx + 142; gfx_y = gby + 4;
+    gcur >= 0 ? sprintf(#gs, "%d", gcur) : sprintf(#gs, "--");
+    gfx_drawstr(#gs);
+
+    // learn
+    glw = (learn_type == 1 && learn_idx == gp);
+    glw ? gfx_set(0.9, 0.3, 0.3, 1) : gfx_set(0.3, 0.3, 0.3, 1);
+    gfx_rect(gbx + 176, gby + 1, 46, 18);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = gbx + 182; gfx_y = gby + 4;
+    glw ? gfx_drawstr("wait..") : gfx_drawstr("Learn");
+
+    // - / +
+    gfx_set(0.3, 0.3, 0.3, 1);
+    gfx_rect(gbx + 226, gby + 1, 18, 18);
+    gfx_rect(gbx + 246, gby + 1, 18, 18);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = gbx + 232; gfx_y = gby + 4; gfx_drawstr("-");
+    gfx_x = gbx + 251; gfx_y = gby + 4; gfx_drawstr("+");
+    gp += 1;
+  );
+
+  // CC map
+  gfx_set(0.2, 0.2, 0.2, 1);
+  gfx_rect(600, 156, 280, 170);
+  gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(600, 156, 280, 170, 0);
+  gfx_set(0.35, 0.65, 0.95, 1);
+  gfx_rect(600, 156, 280, 4);
+  gfx_setfont(1, "Arial", 13);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = 612; gfx_y = 168;
+  gfx_drawstr("MIDI CC MAP (this kit)");
+
+  gr = 0;
+  loop(3,
+    gry = 214 + gr * 50;
+    gfx_setfont(1, "Arial", 12);
+    gfx_set(0.75, 0.75, 0.75, 1);
+    gfx_x = 612; gfx_y = gry - 2;
+    gr == 0 ? gfx_drawstr("Master Volume") : ( gr == 1 ? gfx_drawstr("Reverb Mix") : gfx_drawstr("Hi-Hat Pedal (chokes hats)") );
+    gfx_set(0.1, 0.1, 0.1, 1);
+    gfx_rect(612, gry + 18, 60, 20);
+    gfx_set(0.95, 0.9, 0.5, 1);
+    gfx_x = 620; gfx_y = gry + 22;
+    sprintf(#gs, "CC %d", ccmap[kit * 3 + gr]);
+    gfx_drawstr(#gs);
+    glw = (learn_type == 2 && learn_idx == gr);
+    glw ? gfx_set(0.9, 0.3, 0.3, 1) : gfx_set(0.3, 0.3, 0.3, 1);
+    gfx_rect(678, gry + 18, 64, 20);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = 688; gfx_y = gry + 22;
+    glw ? gfx_drawstr("waiting..") : gfx_drawstr("Learn");
+    gfx_set(0.3, 0.3, 0.3, 1);
+    gfx_rect(748, gry + 18, 20, 20);
+    gfx_rect(772, gry + 18, 20, 20);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = 755; gfx_y = gry + 22; gfx_drawstr("-");
+    gfx_x = 779; gfx_y = gry + 22; gfx_drawstr("+");
+    gr += 1;
+  );
+
+  // monitor
+  gfx_set(0.2, 0.2, 0.2, 1);
+  gfx_rect(600, 340, 280, 150);
+  gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(600, 340, 280, 150, 0);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = 612; gfx_y = 350;
+  gfx_drawstr("MIDI MONITOR");
+  gfx_setfont(1, "Arial", 12);
+  gfx_set(0.8, 0.8, 0.8, 1);
+  gfx_x = 612; gfx_y = 376;
+  lastnote >= 0 ? sprintf(#gs, "Last note: %d   velocity %d", lastnote, lastvel) : sprintf(#gs, "Last note: -");
+  gfx_drawstr(#gs);
+  gfx_x = 612; gfx_y = 396;
+  lastpiece >= 0 ? sprintf(#gs, "Plays: %s", 600 + lastpiece) : sprintf(#gs, "Plays: (not mapped)");
+  gfx_drawstr(#gs);
+  gfx_x = 612; gfx_y = 416;
+  lastcc >= 0 ? sprintf(#gs, "Last CC: %d = %d", lastcc, lastccv) : sprintf(#gs, "Last CC: -");
+  gfx_drawstr(#gs);
+  learn_type > 0 ? (
+    gfx_set(1, 0.5, 0.4, 1);
+    gfx_x = 612; gfx_y = 446;
+    learn_type == 1 ? gfx_drawstr("Hit the pad you want for this piece...") : gfx_drawstr("Move the knob / pedal you want to use...");
+  ) : (
+    gfx_set(0.5, 0.5, 0.5, 1);
+    gfx_x = 612; gfx_y = 446;
+    gfx_drawstr("Click Learn, then hit a pad / move a control");
+    gfx_x = 612; gfx_y = 464;
+    gfx_drawstr("or use - / + to set the note by hand.");
+  );
+
+  gfx_set(0.5, 0.5, 0.5, 1);
+  gfx_x = 25; gfx_y = 534;
+  gfx_drawstr("Each kit keeps its own map. Notes your e-drum module sends -> the kit piece they should play. Saved with the project.");
+);

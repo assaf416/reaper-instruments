@@ -24,3 +24,8 @@ Thumbs.db
 # Python
 __pycache__/
 *.pyc
+
+# Reaper backups and third-party library resources (skins, presets) - not redistributed
+Backups/
+*.rpp-bak
+*/resources/

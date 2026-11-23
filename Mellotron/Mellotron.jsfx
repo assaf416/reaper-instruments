@@ -1,0 +1,443 @@
+﻿desc:Mellotron - Three Tape Sampler (DecenTron) v2.0
+// Real Mellotron tape sounds from the DecenTron library (24 tape sets), three tapes at once.
+// Samples are read from  <REAPER resource path>/Data/DecenTron/<TapeSet>/<Note>.wav
+// (a folder junction to "Documents\DecentSampler\DecenTron 1.0.0\Samples").
+// Like the real instrument: 35 keys (G2..F5 = MIDI 55..89), each tape plays ~8 s then runs out.
+// Keys outside that range are pitch-shifted from the nearest tape note.
+
+options:maxmem=40000000
+
+slider1:12<0,23,1{8 Choir,Bassoon,Cello,Church Organ,CombinedChoir,GC3Brass,ItalianAccordion,M300A,M300B,Mixed Brass B,MkII Combined Brass,MkIIBrass,MkIIFlute,MKIIViolins,Orchestra,StringSection,StringSession,Tenor Sax,Tenor_Alto Sax,Trombone,Trombone_Trumpet,Trumpet,Vibes,Woodwind2}>-Tape 1 Selection
+slider2:7<0,23,1{8 Choir,Bassoon,Cello,Church Organ,CombinedChoir,GC3Brass,ItalianAccordion,M300A,M300B,Mixed Brass B,MkII Combined Brass,MkIIBrass,MkIIFlute,MKIIViolins,Orchestra,StringSection,StringSession,Tenor Sax,Tenor_Alto Sax,Trombone,Trombone_Trumpet,Trumpet,Vibes,Woodwind2}>-Tape 2 Selection
+slider3:15<0,23,1{8 Choir,Bassoon,Cello,Church Organ,CombinedChoir,GC3Brass,ItalianAccordion,M300A,M300B,Mixed Brass B,MkII Combined Brass,MkIIBrass,MkIIFlute,MKIIViolins,Orchestra,StringSection,StringSession,Tenor Sax,Tenor_Alto Sax,Trombone,Trombone_Trumpet,Trumpet,Vibes,Woodwind2}>-Tape 3 Selection
+slider4:0.9<0,1,0.01>-Tape 1 Level
+slider5:0.6<0,1,0.01>-Tape 2 Level
+slider6:0.5<0,1,0.01>-Tape 3 Level
+slider7:0<-100,100,1>-Pan 1
+slider8:-30<-100,100,1>-Pan 2
+slider9:30<-100,100,1>-Pan 3
+slider10:0.2<0,1,0.01>-Tape Wow & Flutter
+slider11:0.3<0,1,0.01>-Tape Saturation
+slider12:1<0,2,0.01>-Master Volume
+in_pin:none
+out_pin:left output
+out_pin:right output
+
+@init
+NVV = 96;        // voices (32 notes x 3 tapes)
+NS = 35;         // samples per tape set
+ROOT0 = 55;      // lowest sample note (G2)
+CAP = 360000;    // max samples read per file (~8.2 s @ 44.1k)
+
+// small tables
+vact = 0;  vgate = NVV; vhold = NVV*2; venv = NVV*3; vpos = NVV*4; vrate = NVV*5;
+vbase = NVV*6; vlen = NVV*7; vnote = NVV*8; vvel = NVV*9; vnch = NVV*10; vtape = NVV*11;
+sbase = 1200; slen = 1320; snch = 1440; sfs = 1560;
+loaded = 1680; lcount = 1690; folders = 1700; pcs = 1740;
+ARENA = 4096;
+ATAPE = NS * CAP;
+
+folders[0]  = "8 Choir";          folders[1]  = "Bassoon";
+folders[2]  = "Cello";            folders[3]  = "Church Organ";
+folders[4]  = "CombinedChoir";    folders[5]  = "GC3Brass";
+folders[6]  = "ItalianAccordion"; folders[7]  = "M300A";
+folders[8]  = "M300B";            folders[9]  = "Mixed Brass B";
+folders[10] = "MkII Combined Brass"; folders[11] = "MkIIBrass";
+folders[12] = "MkIIFlute";        folders[13] = "MKIIViolins";
+folders[14] = "Orchestra";        folders[15] = "StringSection";
+folders[16] = "StringSession";    folders[17] = "Tenor Sax";
+folders[18] = "Tenor_Alto Sax";   folders[19] = "Trombone";
+folders[20] = "Trombone_Trumpet"; folders[21] = "Trumpet";
+folders[22] = "Vibes";            folders[23] = "Woodwind2";
+
+pcs[0] = "C";  pcs[1] = "C#"; pcs[2] = "D";  pcs[3] = "D#";
+pcs[4] = "E";  pcs[5] = "F";  pcs[6] = "F#"; pcs[7] = "G";
+pcs[8] = "G#"; pcs[9] = "A";  pcs[10] = "A#"; pcs[11] = "B";
+
+i = 0;
+loop(NVV, vact[i] = 0; vgate[i] = 0; vhold[i] = 0; venv[i] = 0; i += 1; );
+i = 0;
+loop(NS * 3, sbase[i] = -1; i += 1; );
+loaded[0] = loaded[1] = loaded[2] = -1;
+lcount[0] = lcount[1] = lcount[2] = 0;
+
+rr = 0;
+sustain = 0;
+wob_ph = 0; wob_ph2 = 0;
+atk_inc = 1 / (0.004 * srate);
+rel_dec = 1 / (0.15  * srate);
+o1 = o2 = o3 = 0;
+pk1 = pk2 = pk3 = pkm = 0;
+
+// --- clickable controls for the graphic UI (hit rect + value range) ---
+// layout per control (9 values): x, y, w, h, min, max, slider#, step, default
+ctl = 1800; NC = 9;
+gdrag = -1; glmd = 0;
+cn = 0;
+cb = 0;
+loop(3,
+  cx = 20 + cn * 300;
+  co = ctl + (cn * 2) * 9;       // level bar
+  co[0] = cx + 15; co[1] = 90 + 78; co[2] = 200; co[3] = 26;
+  co[4] = 0; co[5] = 1; co[6] = 4 + cn; co[7] = 0.01; co[8] = (cn == 0) ? 0.9 : ((cn == 1) ? 0.6 : 0.5);
+  co = ctl + (cn * 2 + 1) * 9;   // pan bar
+  co[0] = cx + 15; co[1] = 90 + 118; co[2] = 200; co[3] = 28;
+  co[4] = -100; co[5] = 100; co[6] = 7 + cn; co[7] = 1; co[8] = (cn == 0) ? 0 : ((cn == 1) ? -30 : 30);
+  cn += 1;
+);
+co = ctl + 6 * 9;   // wow & flutter
+co[0] = 35;  co[1] = 358; co[2] = 240; co[3] = 24; co[4] = 0; co[5] = 1; co[6] = 10; co[7] = 0.01; co[8] = 0.2;
+co = ctl + 7 * 9;   // saturation
+co[0] = 320; co[1] = 358; co[2] = 240; co[3] = 24; co[4] = 0; co[5] = 1; co[6] = 11; co[7] = 0.01; co[8] = 0.3;
+co = ctl + 8 * 9;   // master volume
+co[0] = 605; co[1] = 358; co[2] = 250; co[3] = 24; co[4] = 0; co[5] = 2; co[6] = 12; co[7] = 0.01; co[8] = 1;
+
+// soft saturation (tanh)
+function sat(x, a)
+  local(y, e)
+(
+  y = max(-8, min(8, x * (1 + a * 3)));
+  e = exp(2 * y);
+  (e - 1) / (e + 1);
+);
+
+@slider
+// equal-power pan gains
+pn = slider7 / 100; pl1 = cos((pn + 1) * $pi / 4) * 1.414; pr1 = sin((pn + 1) * $pi / 4) * 1.414;
+pn = slider8 / 100; pl2 = cos((pn + 1) * $pi / 4) * 1.414; pr2 = sin((pn + 1) * $pi / 4) * 1.414;
+pn = slider9 / 100; pl3 = cos((pn + 1) * $pi / 4) * 1.414; pr3 = sin((pn + 1) * $pi / 4) * 1.414;
+
+// (re)load a tape set whenever its selection changes
+ti = 0;
+loop(3,
+  sel = slider(ti + 1);
+  sel != loaded[ti] ? (
+    loaded[ti] = sel;
+    lcount[ti] = 0;
+
+    // stop any voices still playing the old tape
+    i = 0;
+    loop(NVV, (vact[i] && vtape[i] == ti) ? vact[i] = 0; i += 1; );
+
+    ptr = ARENA + ti * ATAPE;
+    n = 0;
+    loop(NS,
+      nt = ROOT0 + n;
+      k = ti * NS + n;
+      sbase[k] = -1;
+      sprintf(#path, "DecenTron/%s/%s%d.wav", folders[sel], pcs[nt % 12], floor(nt / 12) - 2);
+      fh = file_open(#path);
+      fh > 0 ? (
+        nch = 0; fsr = 0;
+        file_riff(fh, nch, fsr);
+        nch > 0 ? (
+          len = min(file_avail(fh), CAP);
+          len > 0 ? (
+            file_mem(fh, ptr, len);
+            sbase[k] = ptr;
+            slen[k]  = floor(len / nch);
+            snch[k]  = nch;
+            sfs[k]   = fsr;
+            ptr += len;
+            lcount[ti] += 1;
+          );
+        );
+        file_close(fh);
+      );
+      n += 1;
+    );
+  );
+  ti += 1;
+);
+
+@block
+while (midirecv(offs, m1, m2, m3)) (
+  st = m1 & 0xF0;
+
+  (st == 0x90 && m3 > 0) ? (
+    // note on: trigger the same key on all three tapes
+    r = max(ROOT0, min(ROOT0 + NS - 1, m2));
+    ti = 0;
+    loop(3,
+      k = ti * NS + (r - ROOT0);
+      sbase[k] >= 0 ? (
+        v = -1;
+        i = 0;
+        while (i < NVV && v < 0) ( vact[i] == 0 ? v = i; i += 1; );
+        v < 0 ? ( v = rr; rr = (rr + 1) % NVV; );
+
+        vtape[v] = ti;
+        vbase[v] = sbase[k];
+        vlen[v]  = slen[k];
+        vnch[v]  = snch[k];
+        vrate[v] = 2 ^ ((m2 - r) / 12) * sfs[k] / srate;
+        vpos[v]  = 0;
+        venv[v]  = 0;
+        vnote[v] = m2;
+        vvel[v]  = m3 / 127;
+        vact[v]  = 1;
+        vgate[v] = 1;
+        vhold[v] = 0;
+      );
+      ti += 1;
+    );
+  ) : (st == 0x80 || (st == 0x90 && m3 == 0)) ? (
+    i = 0;
+    loop(NVV,
+      (vact[i] && vgate[i] && vnote[i] == m2) ? (
+        sustain ? vhold[i] = 1 : vgate[i] = 0;
+      );
+      i += 1;
+    );
+  ) : (st == 0xB0 && m2 == 64) ? (
+    sustain = (m3 >= 64);
+    !sustain ? (
+      i = 0;
+      loop(NVV, vhold[i] ? ( vhold[i] = 0; vgate[i] = 0; ); i += 1; );
+    );
+  ) : (st == 0xB0 && (m2 == 123 || m2 == 120)) ? (
+    i = 0;
+    loop(NVV, vgate[i] = 0; vhold[i] = 0; i += 1; );
+  );
+);
+
+@sample
+// tape wow (slow) + flutter (fast)
+wob_ph  += 0.6 / srate; wob_ph  >= 1 ? wob_ph  -= 1;
+wob_ph2 += 7.3 / srate; wob_ph2 >= 1 ? wob_ph2 -= 1;
+wob = 1 + slider10 * (0.010 * sin(wob_ph * 2 * $pi) + 0.004 * sin(wob_ph2 * 2 * $pi));
+
+o1 = o2 = o3 = 0;
+
+i = 0;
+loop(NVV,
+  vact[i] ? (
+    vgate[i] ? (
+      venv[i] < 1 ? venv[i] = min(1, venv[i] + atk_inc);
+    ) : (
+      venv[i] -= rel_dec;
+      venv[i] <= 0 ? ( venv[i] = 0; vact[i] = 0; );
+    );
+
+    pos = vpos[i];
+    ip  = floor(pos);
+    fr  = pos - ip;
+    nc  = vnch[i];
+    bb  = vbase[i] + ip * nc;
+    smp = bb[0] + (bb[nc] - bb[0]) * fr;   // linear interpolation
+    smp *= vvel[i] * venv[i] * 0.5;
+
+    tt = vtape[i];
+    tt == 0 ? ( o1 += smp; ) : ( tt == 1 ? ( o2 += smp; ) : ( o3 += smp; ) );
+
+    vpos[i] = pos + vrate[i] * wob;
+    vpos[i] >= vlen[i] - 2 ? vact[i] = 0;   // tape has run out
+  );
+  i += 1;
+);
+
+o1 *= slider4; o2 *= slider5; o3 *= slider6;
+
+l = o1 * pl1 + o2 * pl2 + o3 * pl3;
+r = o1 * pr1 + o2 * pr2 + o3 * pr3;
+
+l = sat(l, slider11) * slider12;
+r = sat(r, slider11) * slider12;
+
+spl0 = l;
+spl1 = r;
+
+pk1 = max(pk1 * 0.9998, abs(o1));
+pk2 = max(pk2 * 0.9998, abs(o2));
+pk3 = max(pk3 * 0.9998, abs(o3));
+pkm = max(pkm * 0.9998, max(abs(l), abs(r)));
+
+@gfx 900 480
+gfx_clear = 0x1a1a1a;
+
+// ---------- mouse handling ----------
+gmd = mouse_cap & 1;
+gmd && !glmd ? (
+  // button just pressed: find a bar under the cursor
+  gdrag = -1;
+  gci = 0;
+  loop(NC,
+    gco = ctl + gci * 9;
+    (mouse_x >= gco[0] && mouse_x < gco[0] + gco[2] && mouse_y >= gco[1] && mouse_y < gco[1] + gco[3]) ? (
+      gdrag = gci;
+      (mouse_cap & 4) ? (        // Ctrl+click resets to default
+        slider(gco[6]) = gco[8];
+        sliderchange(2 ^ (gco[6] - 1));
+        slider_automate(2 ^ (gco[6] - 1));
+        gdrag = -1;
+      );
+    );
+    gci += 1;
+  );
+
+  // click on a tape's name box: pick an instrument from a menu
+  gt = 0;
+  loop(3,
+    gbx = 20 + gt * 300;
+    (mouse_x >= gbx + 15 && mouse_x < gbx + 265 && mouse_y >= 124 && mouse_y < 148) ? (
+      strcpy(#gm, "");
+      gk = 0;
+      loop(24,
+        gk == slider(gt + 1) ? strcat(#gm, "!");
+        strcat(#gm, folders[gk]);
+        gk < 23 ? strcat(#gm, "|");
+        gk += 1;
+      );
+      gfx_x = gbx + 15; gfx_y = 148;
+      gsel = gfx_showmenu(#gm);
+      gsel > 0 ? (
+        slider(gt + 1) = gsel - 1;
+        sliderchange(2 ^ gt);
+        slider_automate(2 ^ gt);
+      );
+      gmd = 1;   // swallow the click so it does not re-trigger
+    );
+    gt += 1;
+  );
+);
+
+gmd && gdrag >= 0 ? (
+  gco = ctl + gdrag * 9;
+  gv = gco[4] + (gco[5] - gco[4]) * max(0, min(1, (mouse_x - gco[0]) / gco[2]));
+  gv = floor(gv / gco[7] + 0.5) * gco[7];
+  gv != slider(gco[6]) ? (
+    slider(gco[6]) = gv;
+    sliderchange(2 ^ (gco[6] - 1));
+    slider_automate(2 ^ (gco[6] - 1));
+  );
+);
+!gmd ? gdrag = -1;
+glmd = gmd;
+
+gfx_setfont(1, "Arial", 30);
+gfx_set(1, 1, 1, 1);
+gfx_x = 20; gfx_y = 14;
+gfx_drawstr("MELLOTRON");
+gfx_setfont(1, "Arial", 14);
+gfx_set(0.7, 0.7, 0.7, 1);
+gfx_x = 20; gfx_y = 54;
+gfx_drawstr("Three Tape Sampler - click a tape name to choose its instrument, drag the bars to mix (Ctrl+click resets)");
+
+gbw = 280; gbh = 190; gby = 90;
+gt = 0;
+loop(3,
+  gbx = 20 + gt * (gbw + 20);
+
+  gt == 0 ? ( gcr = 0.12; gcg = 0.56; gcb = 0.0;  gidx = slider1; glev = slider4; gpan = slider7; gpk = pk1; );
+  gt == 1 ? ( gcr = 1.0;  gcg = 0.2;  gcb = 0.2;  gidx = slider2; glev = slider5; gpan = slider8; gpk = pk2; );
+  gt == 2 ? ( gcr = 0.0;  gcg = 0.4;  gcb = 1.0;  gidx = slider3; glev = slider6; gpan = slider9; gpk = pk3; );
+
+  gfx_set(0.2, 0.2, 0.2, 1);
+  gfx_rect(gbx, gby, gbw, gbh);
+  gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(gbx, gby, gbw, gbh, 0);
+  gfx_set(gcr, gcg, gcb, 1);
+  gfx_rect(gbx, gby, gbw, 4);
+
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gbx + 15; gfx_y = gby + 14;
+  sprintf(#gs, "TAPE %d", gt + 1);
+  gfx_drawstr(#gs);
+
+  // instrument selector button
+  ghov = (mouse_x >= gbx + 15 && mouse_x < gbx + 265 && mouse_y >= gby + 34 && mouse_y < gby + 58);
+  gfx_set(0.12, 0.12, 0.12, 1);
+  gfx_rect(gbx + 15, gby + 34, 250, 24);
+  ghov ? gfx_set(gcr, gcg, gcb, 1) : gfx_set(0.45, 0.45, 0.45, 1);
+  gfx_rect(gbx + 15, gby + 34, 250, 24, 0);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gbx + 25; gfx_y = gby + 39;
+  gfx_drawstr(folders[gidx]);
+  gfx_set(0.6, 0.6, 0.6, 1);
+  gfx_x = gbx + 248; gfx_y = gby + 39;
+  gfx_drawstr("v");
+  gfx_set(0.5, 0.5, 0.5, 1);
+  gfx_x = gbx + 170; gfx_y = gby + 14;
+  sprintf(#gs, "%d/%d samples", lcount[gt], NS);
+  gfx_drawstr(#gs);
+
+  gfx_set(0.55, 0.55, 0.55, 1);
+  gfx_x = gbx + 15; gfx_y = gby + 66;
+  gfx_drawstr("Level");
+  gfx_set(gcr, gcg, gcb, 0.8);
+  gfx_rect(gbx + 15, gby + 84, glev * 200, 14);
+  gfx_set(0.35, 0.35, 0.35, 1);
+  gfx_rect(gbx + 15, gby + 84, 200, 14, 0);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gbx + 225; gfx_y = gby + 84;
+  sprintf(#gs, "%d%%", floor(glev * 100 + 0.5));
+  gfx_drawstr(#gs);
+
+  gfx_set(0.55, 0.55, 0.55, 1);
+  gfx_x = gbx + 15; gfx_y = gby + 108;
+  gfx_drawstr("Pan");
+  gfx_set(0.35, 0.35, 0.35, 1);
+  gfx_rect(gbx + 15, gby + 128, 200, 8, 0);
+  gfx_set(0.9, 0.9, 0.9, 1);
+  gfx_rect(gbx + 15 + (gpan + 100) / 200 * 200 - 2, gby + 122, 4, 20);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gbx + 225; gfx_y = gby + 124;
+  sprintf(#gs, "%d", gpan);
+  gfx_drawstr(#gs);
+
+  gfx_set(0.55, 0.55, 0.55, 1);
+  gfx_x = gbx + 15; gfx_y = gby + 150;
+  gfx_drawstr("Activity");
+  gfx_set(0.3, 0.75, 0.3, 1);
+  gfx_rect(gbx + 15, gby + 168, min(1, gpk * 3) * 200, 10);
+  gfx_set(0.35, 0.35, 0.35, 1);
+  gfx_rect(gbx + 15, gby + 168, 200, 10, 0);
+
+  gt += 1;
+);
+
+gfy = 300; gfh = 110; gfw = 860;
+gfx_set(0.2, 0.2, 0.2, 1);
+gfx_rect(20, gfy, gfw, gfh);
+gfx_set(0.4, 0.4, 0.4, 1);
+gfx_rect(20, gfy, gfw, gfh, 0);
+gfx_set(0.8, 0.6, 0.3, 1);
+gfx_rect(20, gfy, gfw, 4);
+
+gfx_set(1, 1, 1, 1);
+gfx_x = 35; gfx_y = gfy + 12;
+gfx_drawstr("TAPE CHARACTERISTICS");
+
+gfx_set(0.7, 0.7, 0.7, 1);
+gfx_x = 35; gfx_y = gfy + 40;
+sprintf(#gs, "Wow & Flutter  %d%%", floor(slider10 * 100 + 0.5));
+gfx_drawstr(#gs);
+gfx_set(0.35, 0.35, 0.35, 1);
+gfx_rect(35, gfy + 62, 240, 10, 0);
+gfx_set(0.8, 0.6, 0.3, 1);
+gfx_rect(35, gfy + 62, slider10 * 240, 10);
+
+gfx_set(0.7, 0.7, 0.7, 1);
+gfx_x = 320; gfx_y = gfy + 40;
+sprintf(#gs, "Tape Saturation  %d%%", floor(slider11 * 100 + 0.5));
+gfx_drawstr(#gs);
+gfx_set(0.35, 0.35, 0.35, 1);
+gfx_rect(320, gfy + 62, 240, 10, 0);
+gfx_set(0.8, 0.4, 0.2, 1);
+gfx_rect(320, gfy + 62, slider11 * 240, 10);
+
+gfx_set(0.7, 0.7, 0.7, 1);
+gfx_x = 605; gfx_y = gfy + 40;
+sprintf(#gs, "Master Volume  %d%%", floor(slider12 * 100 + 0.5));
+gfx_drawstr(#gs);
+gfx_set(0.35, 0.35, 0.35, 1);
+gfx_rect(605, gfy + 62, 250, 10, 0);
+gfx_set(0.4, 0.8, 0.4, 1);
+gfx_rect(605, gfy + 62, slider12 / 2 * 250, 10);
+gfx_set(0.9, 0.9, 0.3, 1);
+gfx_rect(605, gfy + 80, min(1, pkm) * 250, 6);
+
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.5, 0.5, 0.5, 1);
+gfx_x = 20; gfx_y = 430;
+gfx_drawstr("Each key plays the same note on all three tapes (G2-F5 are the real tape notes). Mix them with level and pan.");

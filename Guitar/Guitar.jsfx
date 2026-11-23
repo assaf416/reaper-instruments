@@ -1,0 +1,589 @@
+desc:Guitar - Three Electric Guitars with Chorus and Delay (Decent Sampler library) v1.0
+// Electric guitars from the Decent Sampler library, played from sample maps:
+//   62 Reissue Stratocaster (3 velocity layers), ASAT Clean and ASAT DI (3 round-robins each)
+// plus a stereo CHORUS and a stereo / ping-pong DELAY (free time or tempo-synced).
+// Run Install-Guitar.ps1 once to install the sample links and maps.
+// Samples are read from  <REAPER resource path>/Data/Guitars/...  (folder links + map files).
+
+options:maxmem=32000000
+
+slider1:0<0,2,1{62 Reissue Strat,ASAT Clean,ASAT DI}>-Guitar
+slider2:0.4<0,1,0.01>-Chorus Mix
+slider3:0.8<0.1,5,0.05>-Chorus Rate (Hz)
+slider4:0.5<0,1,0.01>-Chorus Depth
+slider5:0.25<0,1,0.01>-Delay Mix
+slider6:380<20,1200,1>-Delay Time (ms)
+slider7:0.35<0,0.9,0.01>-Delay Feedback
+slider8:0<0,1,1>-Delay Tempo Sync
+slider9:2<0,6,1>-Delay Sync Division
+slider10:1<0,1,1>-Delay Ping-Pong
+slider11:0.5<0,1,0.01>-Delay Tone
+slider12:1<0,2,0.01>-Output Volume
+
+in_pin:none
+out_pin:left output
+out_pin:right output
+
+@init
+NV = 64;          // voices
+MAXS = 96;        // max samples per guitar
+
+// voice tables
+vact = 0; vgate = NV; vhold = NV*2; venv = NV*3; vpos = NV*4; vrate = NV*5;
+vbase = NV*6; vlen = NV*7; vnch = NV*8; vnote = NV*9; vgain = NV*10;
+
+// text / UI tables
+pkey = 800; pname = 810; psub = 820;
+PP = 790;
+ctl = 900; NC = 9;
+keys = 1000;      // 128 slots: velocity of the key currently down (for the keyboard display)
+cand = 1150;      // up to 16 round-robin / layer candidates for the current note
+divb = 1170;      // delay sync divisions in beats
+divn = 1180;      // delay sync division names
+
+// sample tables (one entry per loaded sample)
+sroot = 1200; slo = sroot + MAXS; shi = slo + MAXS; slv = shi + MAXS; shv = slv + MAXS;
+sbase = shv + MAXS; slen = sbase + MAXS; snch = slen + MAXS; sfs = snch + MAXS;
+sgain = sfs + MAXS; stune = sgain + MAXS;      // ends around 2200
+
+SCR = 4096;               // scratch (4096 slots) used to skip sample start offsets
+FXM = 8192;               // chorus + delay buffers
+ARENA = 1300000;          // sample memory
+ARENASZ = 30000000;
+
+pkey[0] = "Strat62"; pkey[1] = "AsatClean"; pkey[2] = "AsatDI";
+pname[0] = "62 REISSUE STRAT"; pname[1] = "ASAT CLEAN"; pname[2] = "ASAT DI";
+psub[0] = "Stratocaster - 3 velocity layers";
+psub[1] = "Tele-style clean - 3 round-robins";
+psub[2] = "Tele-style DI - 3 round-robins";
+
+divb[0] = 0.25; divb[1] = 1/3; divb[2] = 0.5; divb[3] = 0.75; divb[4] = 1; divb[5] = 1.5; divb[6] = 2;
+divn[0] = "1/16"; divn[1] = "1/8T"; divn[2] = "1/8"; divn[3] = "1/8."; divn[4] = "1/4"; divn[5] = "1/4."; divn[6] = "1/2";
+
+// clickable bars: x, y, w, h, min, max, slider#, step, default
+// chorus
+co = ctl;      co[0] = 35;  co[1] = 244; co[2] = 235; co[3] = 24; co[4] = 0;   co[5] = 1; co[6] = 2;  co[7] = 0.01; co[8] = 0.4;
+co = ctl + 9;  co[0] = 35;  co[1] = 294; co[2] = 235; co[3] = 24; co[4] = 0.1; co[5] = 5; co[6] = 3;  co[7] = 0.05; co[8] = 0.8;
+co = ctl + 18; co[0] = 35;  co[1] = 344; co[2] = 235; co[3] = 24; co[4] = 0;   co[5] = 1; co[6] = 4;  co[7] = 0.01; co[8] = 0.5;
+// delay
+co = ctl + 27; co[0] = 315; co[1] = 244; co[2] = 170; co[3] = 24; co[4] = 0;   co[5] = 1;    co[6] = 5;  co[7] = 0.01; co[8] = 0.25;
+co = ctl + 36; co[0] = 315; co[1] = 294; co[2] = 170; co[3] = 24; co[4] = 20;  co[5] = 1200; co[6] = 6;  co[7] = 1;    co[8] = 380;
+co = ctl + 45; co[0] = 315; co[1] = 344; co[2] = 170; co[3] = 24; co[4] = 0;   co[5] = 0.9;  co[6] = 7;  co[7] = 0.01; co[8] = 0.35;
+co = ctl + 54; co[0] = 500; co[1] = 244; co[2] = 170; co[3] = 24; co[4] = 0;   co[5] = 1;    co[6] = 11; co[7] = 0.01; co[8] = 0.5;
+// output
+co = ctl + 63; co[0] = 705; co[1] = 244; co[2] = 160; co[3] = 24; co[4] = 0;   co[5] = 2;    co[6] = 12; co[7] = 0.01; co[8] = 1;
+// delay time bar doubles as the division picker when tempo sync is on (entry 7 is unused slot, kept for layout symmetry)
+co = ctl + 72; co[0] = 500; co[1] = 294; co[2] = 0;   co[3] = 0;  co[4] = 0;   co[5] = 1; co[6] = 1;  co[7] = 1;    co[8] = 0;
+gdrag = -1; glmd = 0;
+
+// --- effect buffers ---
+chlen = floor(0.04 * srate) + 4;
+dlen  = floor(2.6 * srate);
+cbL = FXM; cbR = cbL + chlen; dbL = cbR + chlen; dbR = dbL + dlen;
+memset(cbL, 0, chlen * 2);
+memset(dbL, 0, dlen * 2);
+cw = 0; dw = 0; cph = 0;
+dtc = 0.38 * srate;
+fbLf = 0; fbRf = 0;
+
+// --- voices / state ---
+memset(keys, 0, 128);
+i = 0;
+loop(NV, vact[i] = 0; vgate[i] = 0; vhold[i] = 0; venv[i] = 0; i += 1; );
+loaded = -1;
+ns = 0;
+guitar_norm = 1;
+rr = 0; rrc = 0;
+sustain = 0;
+lastvel = 0; lastlv = 0; lasthv = 0; lastnote = -1;
+atk_inc = 1 / (0.002 * srate);
+rel_mul = exp(-1 / (0.25 * srate));
+pkm = 0;
+
+// parse the next number (digits, '-', '.') out of a string, starting at PP[0]
+function nextnum(str, pos)
+  local(p, n, c, neg, v, scale)
+(
+  p = pos[0]; n = strlen(str);
+  while (p < n && (c = str_getchar(str, p)) != 45 && (c < 48 || c > 57) && c != 46) ( p += 1; );
+  neg = 0;
+  (p < n && str_getchar(str, p) == 45) ? ( neg = 1; p += 1; );
+  v = 0;
+  while (p < n && (c = str_getchar(str, p)) >= 48 && c <= 57) ( v = v * 10 + (c - 48); p += 1; );
+  (p < n && str_getchar(str, p) == 46) ? (
+    p += 1; scale = 0.1;
+    while (p < n && (c = str_getchar(str, p)) >= 48 && c <= 57) ( v += (c - 48) * scale; scale *= 0.1; p += 1; );
+  );
+  pos[0] = p;
+  neg ? -v : v;
+);
+
+function tanhx(x)
+  local(y, e)
+(
+  y = max(-8, min(8, x));
+  e = exp(2 * y);
+  (e - 1) / (e + 1);
+);
+
+@slider
+// (re)load the sample set when the guitar changes
+slider1 != loaded ? (
+  loaded = slider1;
+  ld_i = 0; loop(NV, vact[ld_i] = 0; ld_i += 1; );
+  memset(keys, 0, 128);
+  ns = 0;
+  ptr = ARENA;
+  norm_peak = 0.000001;
+
+  sprintf(#ld_m, "Guitars/%s_map.txt", pkey[loaded]);
+  sprintf(#ld_f, "Guitars/%s_files.txt", pkey[loaded]);
+  mh = file_open(#ld_m);
+  fh = file_open(#ld_f);
+
+  (mh > 0 && fh > 0) ? (
+    file_string(mh, #ld_l);
+    PP[0] = 0;
+    ld_cnt = nextnum(#ld_l, PP);
+    ld_k = 0;
+    while (ld_k < ld_cnt && ld_k < MAXS) (
+      // one line of numbers: root lo hi loVel hiVel start len gainDb tune mono
+      file_string(mh, #ld_l);
+      PP[0] = 0;
+      ld_root = nextnum(#ld_l, PP); ld_lo = nextnum(#ld_l, PP); ld_hi = nextnum(#ld_l, PP);
+      ld_lv = nextnum(#ld_l, PP);   ld_hv = nextnum(#ld_l, PP); ld_start = nextnum(#ld_l, PP);
+      ld_len = nextnum(#ld_l, PP);  ld_gdb = nextnum(#ld_l, PP); ld_tune = nextnum(#ld_l, PP);
+      ld_mono = nextnum(#ld_l, PP);
+
+      // one line with the sample path (strip any trailing line-break characters)
+      file_string(fh, #ld_p);
+      ld_n = strlen(#ld_p);
+      while (ld_n > 0 && str_getchar(#ld_p, ld_n - 1) <= 32) ( ld_n -= 1; );
+      strcpy_substr(#ld_t, #ld_p, 0, ld_n);
+      strcpy(#ld_p, #ld_t);
+
+      sh = file_open(#ld_p);
+      sh > 0 ? (
+        ld_nch = 0; ld_fsr = 0;
+        file_riff(sh, ld_nch, ld_fsr);
+        ld_nch > 0 ? (
+          // skip the silent lead-in
+          ld_sk = ld_start * ld_nch;
+          while (ld_sk > 0) (
+            ld_n = min(ld_sk, 4096);
+            file_mem(sh, SCR, ld_n);
+            ld_sk -= ld_n;
+          );
+          ld_fr = min(ld_len, floor(file_avail(sh) / ld_nch));
+          ld_fold = (ld_mono > 0.5 && ld_nch == 2);
+          ld_outch = ld_fold ? 1 : ld_nch;
+          ld_items = ld_fr * ld_outch;
+          (ld_fr > 1000 && ptr + ld_items <= ARENA + ARENASZ) ? (
+            ld_fold ? (
+              ld_done = 0;
+              while (ld_done < ld_fr) (
+                ld_c = min(2048, ld_fr - ld_done);
+                file_mem(sh, SCR, ld_c * 2);
+                ld_j = 0;
+                loop(ld_c, ptr[ld_done + ld_j] = (SCR[ld_j * 2] + SCR[ld_j * 2 + 1]) * 0.5; ld_j += 1; );
+                ld_done += ld_c;
+              );
+            ) : (
+              file_mem(sh, ptr, ld_items);
+            );
+
+            ld_pk = 0; ld_j = 0;
+            loop(floor(ld_items / 2), ld_pk = max(ld_pk, abs(ptr[ld_j])); ld_j += 2; );
+
+            sroot[ns] = ld_root; slo[ns] = ld_lo; shi[ns] = ld_hi;
+            slv[ns] = ld_lv;     shv[ns] = ld_hv;
+            sbase[ns] = ptr;     slen[ns] = ld_fr;
+            snch[ns] = ld_outch; sfs[ns] = ld_fsr;
+            sgain[ns] = 10 ^ (ld_gdb / 20);
+            stune[ns] = ld_tune;
+            norm_peak = max(norm_peak, ld_pk * sgain[ns]);
+            ptr += ld_items;
+            ns += 1;
+          );
+        );
+        file_close(sh);
+      );
+      ld_k += 1;
+    );
+  );
+  mh > 0 ? file_close(mh);
+  fh > 0 ? file_close(fh);
+  guitar_norm = 0.8 / norm_peak;
+);
+
+@block
+while (midirecv(offs, m1, m2, m3)) (
+  st = m1 & 0xF0;
+
+  (st == 0x90 && m3 > 0) ? (
+    keys[m2] = m3;
+
+    // collect every sample that matches the note and velocity (round-robins / layers), then rotate through them
+    nc = 0;
+    i = 0;
+    loop(ns,
+      (m2 >= slo[i] && m2 <= shi[i] && m3 >= slv[i] && m3 <= shv[i]) ? (
+        nc < 16 ? ( cand[nc] = i; nc += 1; );
+      );
+      i += 1;
+    );
+    bk = (nc > 0) ? cand[rrc % nc] : -1;
+    rrc += 1;
+
+    bk >= 0 ? (
+      v = -1;
+      i = 0;
+      while (i < NV && v < 0) ( vact[i] == 0 ? v = i; i += 1; );
+      v < 0 ? ( v = rr; rr = (rr + 1) % NV; );
+
+      vbase[v] = sbase[bk];
+      vlen[v]  = slen[bk];
+      vnch[v]  = snch[bk];
+      vrate[v] = 2 ^ ((m2 - sroot[bk] + stune[bk]) / 12) * sfs[bk] / srate;
+      vgain[v] = sgain[bk] * guitar_norm * (0.55 + 0.45 * m3 / 127);
+      vpos[v]  = 0;
+      venv[v]  = 0;
+      vnote[v] = m2;
+      vact[v]  = 1;
+      vgate[v] = 1;
+      vhold[v] = 0;
+
+      lastvel = m3; lastlv = slv[bk]; lasthv = shv[bk]; lastnote = m2;
+    );
+  ) : (st == 0x80 || (st == 0x90 && m3 == 0)) ? (
+    keys[m2] = 0;
+    i = 0;
+    loop(NV,
+      (vact[i] && vgate[i] && vnote[i] == m2) ? (
+        sustain ? vhold[i] = 1 : vgate[i] = 0;
+      );
+      i += 1;
+    );
+  ) : (st == 0xB0 && m2 == 64) ? (
+    sustain = (m3 >= 64);
+    !sustain ? (
+      i = 0;
+      loop(NV, vhold[i] ? ( vhold[i] = 0; vgate[i] = 0; ); i += 1; );
+    );
+  ) : (st == 0xB0 && (m2 == 123 || m2 == 120)) ? (
+    i = 0;
+    loop(NV, vgate[i] = 0; vhold[i] = 0; i += 1; );
+    memset(keys, 0, 128);
+  );
+);
+
+@sample
+l = r = 0;
+i = 0;
+loop(NV,
+  vact[i] ? (
+    vgate[i] ? (
+      venv[i] < 1 ? venv[i] = min(1, venv[i] + atk_inc);
+    ) : (
+      venv[i] *= rel_mul;
+      venv[i] < 0.0005 ? ( venv[i] = 0; vact[i] = 0; );
+    );
+
+    pos = vpos[i];
+    ip  = floor(pos);
+    fr  = pos - ip;
+    nc2 = vnch[i];
+    bb  = vbase[i] + ip * nc2;
+
+    sleft = bb[0] + (bb[nc2] - bb[0]) * fr;
+    sright = (nc2 == 2) ? (bb[1] + (bb[nc2 + 1] - bb[1]) * fr) : sleft;
+
+    g = vgain[i] * venv[i];
+    rem = vlen[i] - pos;
+    rem < 19200 ? g *= rem / 19200;        // fade out where the sample was cut
+
+    l += sleft * g;
+    r += sright * g;
+
+    vpos[i] = pos + vrate[i];
+    vpos[i] >= vlen[i] - 2 ? vact[i] = 0;
+  );
+  i += 1;
+);
+
+// ---------------- chorus: two modulated taps per channel ----------------
+cph += slider3 / srate; cph >= 1 ? cph -= 1;
+cbase_s = 0.012 * srate;
+cdep_s = (0.001 + slider4 * 0.007) * srate;
+
+cwp = cw;
+cbL[cwp] = l; cbR[cwp] = r;
+
+ct = cbase_s + cdep_s * sin(2 * $pi * cph);
+crd = cwp - ct; crd < 0 ? crd += chlen; ci0 = floor(crd); cf = crd - ci0; ci1 = ci0 + 1; ci1 >= chlen ? ci1 -= chlen;
+cL1 = cbL[ci0] + (cbL[ci1] - cbL[ci0]) * cf;
+
+ct = cbase_s + cdep_s * sin(2 * $pi * (cph + 0.33));
+crd = cwp - ct; crd < 0 ? crd += chlen; ci0 = floor(crd); cf = crd - ci0; ci1 = ci0 + 1; ci1 >= chlen ? ci1 -= chlen;
+cL2 = cbL[ci0] + (cbL[ci1] - cbL[ci0]) * cf;
+
+ct = cbase_s + cdep_s * sin(2 * $pi * (cph + 0.5));
+crd = cwp - ct; crd < 0 ? crd += chlen; ci0 = floor(crd); cf = crd - ci0; ci1 = ci0 + 1; ci1 >= chlen ? ci1 -= chlen;
+cR1 = cbR[ci0] + (cbR[ci1] - cbR[ci0]) * cf;
+
+ct = cbase_s + cdep_s * sin(2 * $pi * (cph + 0.83));
+crd = cwp - ct; crd < 0 ? crd += chlen; ci0 = floor(crd); cf = crd - ci0; ci1 = ci0 + 1; ci1 >= chlen ? ci1 -= chlen;
+cR2 = cbR[ci0] + (cbR[ci1] - cbR[ci0]) * cf;
+
+cw += 1; cw >= chlen ? cw = 0;
+
+l = l * (1 - 0.35 * slider2) + (cL1 + cL2) * 0.5 * slider2 * 0.8;
+r = r * (1 - 0.35 * slider2) + (cR1 + cR2) * 0.5 * slider2 * 0.8;
+
+// ---------------- delay: stereo or ping-pong, free time or tempo sync ----------------
+dtarget = slider8 > 0.5 ? (60 / max(20, tempo)) * divb[slider9] * srate : slider6 * 0.001 * srate;
+dtarget = max(8, min(dlen - 4, dtarget));
+dtc += (dtarget - dtc) * 0.0008;
+
+drd = dw - dtc; drd < 0 ? drd += dlen;
+di0 = floor(drd); df = drd - di0; di1 = di0 + 1; di1 >= dlen ? di1 -= dlen;
+dL = dbL[di0] + (dbL[di1] - dbL[di0]) * df;
+dR = dbR[di0] + (dbR[di1] - dbR[di0]) * df;
+
+dlp = 0.12 + 0.85 * slider11;          // tone: darker repeats at low values
+fbLf += (dL - fbLf) * dlp;
+fbRf += (dR - fbRf) * dlp;
+
+slider10 > 0.5 ? (
+  // ping-pong: the dry signal enters the left line, repeats bounce left -> right -> left
+  dbL[dw] = (l + r) * 0.5 + fbRf * slider7;
+  dbR[dw] = fbLf * slider7;
+) : (
+  dbL[dw] = l + fbLf * slider7;
+  dbR[dw] = r + fbRf * slider7;
+);
+dw += 1; dw >= dlen ? dw = 0;
+
+outL = tanhx(l + dL * slider5) * slider12;
+outR = tanhx(r + dR * slider5) * slider12;
+spl0 = outL;
+spl1 = outR;
+pkm = max(pkm * 0.9998, max(abs(outL), abs(outR)));
+
+@gfx 900 540
+gfx_clear = 0x1a1a1a;
+
+// ---------- mouse ----------
+gmd = mouse_cap & 1;
+gmd && !glmd ? (
+  gdrag = -1;
+
+  // guitar cards
+  gt = 0;
+  loop(3,
+    (mouse_x >= 20 + gt * 300 && mouse_x < 300 + gt * 300 && mouse_y >= 80 && mouse_y < 180) ? (
+      slider1 = gt;
+      sliderchange(1);
+      slider_automate(1);
+    );
+    gt += 1;
+  );
+
+  // bars
+  gci = 0;
+  loop(NC - 1,
+    gco = ctl + gci * 9;
+    (mouse_x >= gco[0] && mouse_x < gco[0] + gco[2] && mouse_y >= gco[1] && mouse_y < gco[1] + gco[3]) ? (
+      gdrag = gci;
+      (mouse_cap & 4) ? (
+        slider(gco[6]) = gco[8];
+        sliderchange(2 ^ (gco[6] - 1));
+        slider_automate(2 ^ (gco[6] - 1));
+        gdrag = -1;
+      );
+    );
+    gci += 1;
+  );
+
+  // toggles: tempo sync, ping-pong
+  (mouse_y >= 394 - 20 && mouse_y < 394 + 4) ? (
+    (mouse_x >= 500 && mouse_x < 580) ? ( slider8 = 1 - slider8; sliderchange(128); slider_automate(128); );
+    (mouse_x >= 590 && mouse_x < 670) ? ( slider10 = 1 - slider10; sliderchange(512); slider_automate(512); );
+  );
+);
+gmd && gdrag >= 0 ? (
+  gco = ctl + gdrag * 9;
+  gslot = gco[6]; gmin = gco[4]; gmax = gco[5]; gstp = gco[7];
+  // while tempo sync is on, the delay-time bar picks the note division instead
+  (gslot == 6 && slider8 > 0.5) ? ( gslot = 9; gmin = 0; gmax = 6; gstp = 1; );
+  gv = gmin + (gmax - gmin) * max(0, min(1, (mouse_x - gco[0]) / gco[2]));
+  gv = floor(gv / gstp + 0.5) * gstp;
+  gv != slider(gslot) ? (
+    slider(gslot) = gv;
+    sliderchange(2 ^ (gslot - 1));
+    slider_automate(2 ^ (gslot - 1));
+  );
+);
+!gmd ? gdrag = -1;
+glmd = gmd;
+
+// ---------- title ----------
+gfx_setfont(1, "Arial", 30);
+gfx_set(1, 1, 1, 1);
+gfx_x = 20; gfx_y = 14;
+gfx_drawstr("GUITAR");
+gfx_setfont(1, "Arial", 14);
+gfx_set(0.7, 0.7, 0.7, 1);
+gfx_x = 20; gfx_y = 54;
+gfx_drawstr("Click a guitar to load it - drag the bars to adjust (Ctrl+click resets)");
+
+// ---------- guitar cards ----------
+gt = 0;
+loop(3,
+  gbx = 20 + gt * 300;
+  gsel = (slider1 == gt);
+  gt == 0 ? ( gcr = 0.95; gcg = 0.6;  gcb = 0.2; );
+  gt == 1 ? ( gcr = 0.35; gcg = 0.8;  gcb = 0.8; );
+  gt == 2 ? ( gcr = 0.75; gcg = 0.5;  gcb = 0.95; );
+  ghov = (mouse_x >= gbx && mouse_x < gbx + 280 && mouse_y >= 80 && mouse_y < 180);
+
+  gsel ? gfx_set(0.26, 0.26, 0.26, 1) : gfx_set(0.18, 0.18, 0.18, 1);
+  gfx_rect(gbx, 80, 280, 100);
+  (gsel || ghov) ? gfx_set(gcr, gcg, gcb, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(gbx, 80, 280, 100, 0);
+  gsel ? ( gfx_set(gcr, gcg, gcb, 1); gfx_rect(gbx, 80, 280, 5); );
+
+  gfx_setfont(1, "Arial", 20);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gbx + 16; gfx_y = 98;
+  gfx_drawstr(pname[gt]);
+  gfx_setfont(1, "Arial", 13);
+  gfx_set(0.7, 0.7, 0.7, 1);
+  gfx_x = gbx + 16; gfx_y = 130;
+  gfx_drawstr(psub[gt]);
+  gfx_x = gbx + 16; gfx_y = 152;
+  gsel ? (
+    gfx_set(gcr, gcg, gcb, 1);
+    sprintf(#gs, "LOADED  -  %d samples", ns);
+  ) : (
+    gfx_set(0.5, 0.5, 0.5, 1);
+    sprintf(#gs, "click to load");
+  );
+  gfx_drawstr(#gs);
+  gt += 1;
+);
+
+// ---------- effect panels ----------
+gp = 0;
+loop(3,
+  gpx = (gp == 0) ? 20 : ((gp == 1) ? 300 : 690);
+  gpw = (gp == 0) ? 270 : ((gp == 1) ? 380 : 190);
+  gfx_set(0.2, 0.2, 0.2, 1);
+  gfx_rect(gpx, 200, gpw, 204);
+  gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(gpx, 200, gpw, 204, 0);
+  gp == 0 ? gfx_set(0.35, 0.65, 0.95, 1) : ( gp == 1 ? gfx_set(0.95, 0.65, 0.25, 1) : gfx_set(0.4, 0.8, 0.4, 1) );
+  gfx_rect(gpx, 200, gpw, 4);
+  gfx_setfont(1, "Arial", 14);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gpx + 15; gfx_y = 212;
+  gp == 0 ? gfx_drawstr("CHORUS") : ( gp == 1 ? gfx_drawstr("DELAY") : gfx_drawstr("OUTPUT") );
+  gp += 1;
+);
+
+gci = 0;
+loop(NC - 1,
+  gco = ctl + gci * 9;
+  gslot = gco[6];
+  gmin = gco[4]; gmax = gco[5];
+  gv = slider(gslot);
+  gci == 0 ? ( gnm = "Mix";       sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.35, 0.65, 0.95, 1); );
+  gci == 1 ? ( gnm = "Rate";      sprintf(#gs, "%.2f Hz", gv);                 gfx_set(0.35, 0.65, 0.95, 1); );
+  gci == 2 ? ( gnm = "Depth";     sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.35, 0.65, 0.95, 1); );
+  gci == 3 ? ( gnm = "Mix";       sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.95, 0.65, 0.25, 1); );
+  gci == 4 ? (
+    gfx_set(0.95, 0.65, 0.25, 1);
+    slider8 > 0.5 ? (
+      gnm = "Time (tempo sync)"; gv = slider9; gmin = 0; gmax = 6;
+      sprintf(#gs, "%s", divn[slider9]);
+    ) : (
+      gnm = "Time";
+      sprintf(#gs, "%d ms", floor(gv + 0.5));
+    );
+  );
+  gci == 5 ? ( gnm = "Feedback";  sprintf(#gs, "%d%%", floor(gv * 100 / 0.9 + 0.5)); gfx_set(0.95, 0.65, 0.25, 1); );
+  gci == 6 ? ( gnm = "Tone";      sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.95, 0.65, 0.25, 1); );
+  gci == 7 ? ( gnm = "Volume";    sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.4, 0.8, 0.4, 1); );
+  gcr = gfx_r; gcg = gfx_g; gcb = gfx_b;
+
+  gfx_setfont(1, "Arial", 13);
+  gfx_set(0.7, 0.7, 0.7, 1);
+  gfx_x = gco[0]; gfx_y = gco[1] - 18;
+  gfx_drawstr(gnm);
+  gfx_x = gco[0] + gco[2] - 60; gfx_y = gco[1] - 18;
+  gfx_drawstr(#gs);
+
+  gfx_set(0.1, 0.1, 0.1, 1);
+  gfx_rect(gco[0], gco[1], gco[2], gco[3]);
+  gfx_set(gcr, gcg, gcb, 1);
+  gfx_rect(gco[0], gco[1], (gv - gmin) / (gmax - gmin) * gco[2], gco[3]);
+  gfx_set(0.45, 0.45, 0.45, 1);
+  gfx_rect(gco[0], gco[1], gco[2], gco[3], 0);
+  gci += 1;
+);
+
+// toggle buttons (tempo sync / ping-pong)
+gt = 0;
+loop(2,
+  gbx = (gt == 0) ? 500 : 590;
+  gon = (gt == 0) ? (slider8 > 0.5) : (slider10 > 0.5);
+  gon ? gfx_set(0.95, 0.65, 0.25, 1) : gfx_set(0.28, 0.28, 0.28, 1);
+  gfx_rect(gbx, 374, 80, 24);
+  gfx_set(0.5, 0.5, 0.5, 1);
+  gfx_rect(gbx, 374, 80, 24, 0);
+  gon ? gfx_set(0.1, 0.1, 0.1, 1) : gfx_set(1, 1, 1, 1);
+  gfx_setfont(1, "Arial", 12);
+  gfx_x = gbx + (gt == 0 ? 12 : 8); gfx_y = 379;
+  gt == 0 ? gfx_drawstr("TEMPO SYNC") : gfx_drawstr("PING-PONG");
+  gt += 1;
+);
+
+// output meter
+gfx_set(0.9, 0.9, 0.3, 1);
+gfx_rect(705, 300, min(1, pkm) * 160, 8);
+gfx_set(0.45, 0.45, 0.45, 1);
+gfx_rect(705, 300, 160, 8, 0);
+
+// ---------- keyboard (A0 .. C8) ----------
+gwk = 16.5; gkx = 20; gky = 408;
+gn = 21;
+loop(88,
+  gpc = gn % 12;
+  (gpc == 0 || gpc == 2 || gpc == 4 || gpc == 5 || gpc == 7 || gpc == 9 || gpc == 11) ? (
+    gwi = floor(gn / 12) * 7 + (gpc >= 11 ? 6 : (gpc >= 9 ? 5 : (gpc >= 7 ? 4 : (gpc >= 5 ? 3 : (gpc >= 4 ? 2 : (gpc >= 2 ? 1 : 0)))))) - 12;
+    keys[gn] > 0 ? gfx_set(1, 0.9 - 0.45 * keys[gn] / 127, 0.25, 1) : gfx_set(0.93, 0.93, 0.93, 1);
+    gfx_rect(gkx + gwi * gwk, gky, gwk - 1, 100);
+  );
+  gn += 1;
+);
+gn = 21;
+loop(88,
+  gpc = gn % 12;
+  (gpc == 1 || gpc == 3 || gpc == 6 || gpc == 8 || gpc == 10) ? (
+    gm = gn - 1; gq = gm % 12;
+    gwi = floor(gm / 12) * 7 + (gq >= 11 ? 6 : (gq >= 9 ? 5 : (gq >= 7 ? 4 : (gq >= 5 ? 3 : (gq >= 4 ? 2 : (gq >= 2 ? 1 : 0)))))) - 12;
+    keys[gn] > 0 ? gfx_set(1, 0.75 - 0.4 * keys[gn] / 127, 0.15, 1) : gfx_set(0.08, 0.08, 0.08, 1);
+    gfx_rect(gkx + (gwi + 1) * gwk - 5, gky, 10, 62);
+  );
+  gn += 1;
+);
+
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.6, 0.6, 0.6, 1);
+gfx_x = 20; gfx_y = 516;
+lastnote >= 0 ? (
+  sprintf(#gs, "Last note %d   velocity %d   ->  velocity layer %d-%d", lastnote, lastvel, lastlv, lasthv);
+) : (
+  sprintf(#gs, "Play a note to see which velocity layer is used");
+);
+gfx_drawstr(#gs);

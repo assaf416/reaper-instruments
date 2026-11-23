@@ -1,202 +1,51 @@
-# 🎹 Reaper Mellotron - Professional 3-Tape Mixer Instrument
+# Reaper Instruments
 
-A vintage Mellotron emulation for Reaper with **three simultaneous tape selections**, **beautiful mixing UI**, and support for 25 authentic tape keyboard sounds from the DecenTron sample library.
+Four sampled instruments for REAPER, written as JSFX plugins with their own graphic UI. Everything an instrument
+needs (plugin, samples it uses, images, licenses, install script) lives in its own folder.
 
-![Mellotron UI Preview](WURLITZER.png)
+| Folder | Instrument | What it is |
+|--------|-----------|------------|
+| [`Mellotron/`](Mellotron/README.md) | **Mellotron** | Three tapes at once from the DecenTron library (24 tape sets), per-tape level / pan, wow & flutter, saturation |
+| [`Piano/`](Piano/README.md) | **Piano** | Midnight Upright, The King's Upright, Matt's Fender Rhodes and the WurliTzer, with real velocity layers and reverb |
+| [`Drums/`](Drums/README.md) | **Drums** | Five velocity-layered kits, a 7-channel mixer, reverb, and a MIDI note / CC map editor with Learn for e-drums |
+| [`Guitar/`](Guitar/README.md) | **Guitar** | 62 Reissue Stratocaster, ASAT Clean, ASAT DI, with chorus and a (tempo-syncable) ping-pong delay |
 
-## ✨ Features
+## Install
 
-- **3-Tape Independent Mixing** - Mix up to three different Mellotron sounds simultaneously
-- **25 Authentic Instruments** - From DecenTron professional sample library
-- **Beautiful UI** - Vintage-inspired mixer with real-time level/pan controls
-- **Tape Effects** - Wow & Flutter for vintage pitch instability, Tape Saturation for warmth
-- **Full MIDI Support** - Velocity-sensitive playback, sustain pedal compatible
-- **841 Professional Samples** - 35 note samples per instrument, fully mapped to MIDI keys
-- **10+ Pre-configured Presets** - Ready-to-use sounds from YES to King Crimson
-- **Zero Learning Curve** - One-click automatic setup script
-
-## 🚀 Quick Start
-
-### Installation
-
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/assaf416/reaper-instruments.git
-   cd reaper-instruments
-   ```
-
-2. Copy files to your Reaper resources:
-   - `Mellotron.jsfx` → Reaper FX directory
-   - `Mellotron_DecenTron_Setup.lua` → Reaper Scripts directory
-   - Documentation files → Keep in your project folder
-
-3. **Get the sample library** (see below for options)
-
-### Setup (90 seconds)
-
-In Reaper:
-1. **Tools** → **Run Script** → Select `Mellotron_DecenTron_Setup.lua`
-2. ✓ 4 tracks created automatically (Master + 3 Tapes)
-3. Add **ReaSampler** to each tape track
-4. Load samples from: `DecenTron 1.0.0/Samples/[Instrument]/`
-5. Create MIDI item and start playing! 🎵
-
-**For detailed instructions, see [DECENTRON_QUICK_START.txt](DECENTRON_QUICK_START.txt)**
-
-## 📚 Documentation
-
-| File | Purpose |
-|------|---------|
-| **[START_HERE.md](START_HERE.md)** | Quick overview & 60-second setup |
-| **[DECENTRON_QUICK_START.txt](DECENTRON_QUICK_START.txt)** | 2-minute step-by-step guide |
-| **[DECENTRON_MELLOTRON_GUIDE.md](DECENTRON_MELLOTRON_GUIDE.md)** | Complete manual (25 instruments) |
-| **[MELLOTRON_README.md](MELLOTRON_README.md)** | Full user guide |
-| **[MELLOTRON_PRESETS.txt](MELLOTRON_PRESETS.txt)** | 10 famous presets + techniques |
-| **[MELLOTRON_SETUP_VISUAL.txt](MELLOTRON_SETUP_VISUAL.txt)** | Visual diagrams & ASCII art |
-| **[QUICK_REFERENCE.txt](QUICK_REFERENCE.txt)** | Cheat sheet (printable) |
-
-## 🎵 Sample Libraries
-
-### Option 1: DecenTron Professional Library (Recommended!)
-
-**Download DecenTron 1.0.0** from [Decent Sampler](https://www.decentsamples.com/product/decentron/)
-
-Extract to your project folder:
-```
-reaper-instruments/
-└── decent-sampler-files/
-    └── melotron/
-        └── DecenTron 1.0.0/
-            └── Samples/
-                ├── MkIIFlute/ (35 samples)
-                ├── M300A/ (35 samples)
-                ├── StringSection/ (35 samples)
-                └── [22 more instruments]
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Install-All.ps1
 ```
 
-**Features:**
-- 25 instruments with 35 notes each
-- 841 professional recordings
-- Authentic vintage tape keyboard sound
-- Automatic MIDI note mapping
+Or one instrument at a time: `Mellotron\Install-Mellotron.ps1`, `Piano\Install-Piano.ps1`, `Drums\Install-Drums.ps1`,
+`Guitar\Install-Guitar.ps1`. Each one
 
-### Option 2: Original SF2 Mellotron
+* copies the `.jsfx` into REAPER's `Effects` folder,
+* copies the small sample maps into REAPER's `Data` folder,
+* links the instrument's `samples` folder into REAPER's `Data` folder (a folder junction - nothing big is copied,
+  and the link is re-pointed if you move this repository).
 
-If you already have Mellotron SF2 soundfonts, use `Mellotron_Setup.lua` instead.
+Then in REAPER: **FX -> Add**, search for the instrument name. Each folder has a `projects` folder with a demo project.
 
-## 🎼 Three Favorite Presets
+## Layout of an instrument folder
 
-### Preset 1: Classic Prog-Rock (YES Style)
 ```
-Tape 1: String Section (100%)
-Tape 2: M300A Violins (60%)
-Tape 3: Combined Choir (40%)
-Effects: Reverb on master (50% wet, 2.5 sec)
-→ Lush, orchestral pad sound
-```
-
-### Preset 2: Orchestral Brass
-```
-Tape 1: GC3 Brass (100%)
-Tape 2: Woodwind2 (70%)
-Tape 3: String Section (40%)
-Effects: Compression, hall reverb
-→ Bright brass with orchestral undertones
+<Instrument>/
+  <Instrument>.jsfx        the plugin
+  Install-<Instrument>.ps1 installs it into REAPER
+  Build-<...>-Assets.ps1   (maintainers) rebuilds samples/ and maps/ from the original libraries
+  samples/                 the samples the instrument plays (only the ones it uses)
+  maps/                    sample maps generated from the libraries' own preset files
+  images/ resources/ licenses/   kit photos, skins, readmes, preset files, license texts
+  projects/                demo REAPER projects
 ```
 
-### Preset 3: Ethereal Flute
-```
-Tape 1: MKII Flute (100%)
-Tape 2: MKII Flute (80%) Pan: Left
-Tape 3: 8 Choir (50%) Pan: Right
-Effects: Heavy reverb (70% wet)
-→ Floating, atmospheric Mellotron sound
-```
+## Samples and licenses
 
-[See MELLOTRON_PRESETS.txt for 7 more presets]
+The `samples` folders contain third-party sample libraries copied from a local Decent Sampler installation
+(DecenTron, the pianos, the guitars) and from REAPER's "DSP to JSFX" collection (the drum kits).
+They keep their own licenses - see the readme / license files next to them, and [`Drums/CREDITS.md`](Drums/CREDITS.md).
+Check those terms before publishing or redistributing this repository.
 
-## 🎹 25 Available Instruments
+## Requirements
 
-| Category | Instruments | Use For |
-|----------|-------------|---------|
-| **Woodwind** | MKII Flute, Woodwind2, Tenor Sax | Leads, pads |
-| **Strings** | M300A, MKII Violins, Cello, String Section, String Session, Orchestra | Lush pads, orchestral |
-| **Brass** | GC3 Brass, MKII Brass, Trumpet, Trombone, Mixed Brass | Funky, bright |
-| **Vocal** | Combined Choir, 8 Choir | Ethereal, ambient |
-| **Percussion** | Vibes, Church Organ, Italian Accordion | Color, texture |
-
-## 🎚️ Main Controls
-
-### Tape Selection (Sliders 1-3)
-Choose which Mellotron instrument for each channel (0-24)
-
-### Level & Pan (Sliders 4-9)
-Mix volume (0-100%) and stereo position (-100 Left to +100 Right)
-
-### Tape Characteristics
-- **Wow & Flutter (0-100%)**: Vintage pitch wobble
-- **Tape Saturation (0-100%)**: Harmonic warmth
-- **Master Volume**: Overall level
-
-## 🛠️ System Requirements
-
-- **Reaper** 6.0+ (Windows, Mac, Linux)
-- **ReaSampler** (included with Reaper)
-- **JSFX support** (default enabled)
-- **Disk space**: ~1.2GB for DecenTron samples
-- **CPU**: Minimal (mostly disk streaming)
-
-## 📝 Historical Context
-
-The Mellotron (1963) was a revolutionary keyboard that played tape loops of real instruments. This emulation captures that magic using:
-- Professional sample library from Decent Sampler
-- Real Mellotron tape keyboard recordings
-- Authentic vintage character with Wow & Flutter
-- Three-tape simultaneous mixing (like pressing three keys at once)
-
-**Featured in:** YES, King Crimson, Genesis, Emerson Lake & Palmer, The Moody Blues
-
-## 🤝 Contributing
-
-Improvements welcome! Please open issues or pull requests for:
-- Additional presets
-- Performance enhancements
-- Documentation improvements
-- UI/UX suggestions
-
-## 📄 License
-
-This project is provided as-is for personal and professional use.
-
-The DecenTron sample library is provided by [Decent Samples](https://www.decentsamples.com/) and subject to their license terms.
-
-## 🎓 Learning Resources
-
-- **Quick Start**: [DECENTRON_QUICK_START.txt](DECENTRON_QUICK_START.txt)
-- **Full Manual**: [DECENTRON_MELLOTRON_GUIDE.md](DECENTRON_MELLOTRON_GUIDE.md)
-- **Presets & Techniques**: [MELLOTRON_PRESETS.txt](MELLOTRON_PRESETS.txt)
-- **Performance Guide**: [MELLOTRON_README.md](MELLOTRON_README.md)
-
-## 🎵 Getting Started
-
-**Start here:** Read [START_HERE.md](START_HERE.md)
-
-You'll be playing the Mellotron in under 3 minutes!
-
-## 🎹 You're Ready!
-
-The Mellotron is a professional-grade instrument ready to use:
-✓ Beautiful mixer UI  
-✓ 25 authentic instruments  
-✓ 841 professional samples  
-✓ Automatic setup script  
-✓ Comprehensive documentation  
-✓ 10+ presets ready to use  
-
-**Run `Mellotron_DecenTron_Setup.lua` in Reaper and start making music!**
-
----
-
-**Happy Mellotron-ing!** 🎹✨
-
-*Professional vintage keyboard emulation for Reaper*
+REAPER 6+ on Windows (the install scripts are PowerShell). The JSFX plugins themselves are plain JSFX.

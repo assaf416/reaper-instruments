@@ -1,0 +1,27 @@
+Stick Click
+Kick Drum
+Snare Side-Stick
+Snare Center
+Hand Clap
+Snare Edge
+Floor Tom Center
+Closed Hi-Hat
+Floor Tom Edge
+Pedal Hi-Hat
+Tom Center
+Semi-Open Hi-Hat
+Tom Edge
+Swish Hi-Hat
+Crash 1
+Crash 1 Choked
+Ride Tip
+Ride Choked
+Ride Bell
+Tambourine
+Splash
+Cowbell
+Crash 2
+Crash 2 Choked
+Ride Shank
+China
+Shaker

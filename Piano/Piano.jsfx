@@ -1,0 +1,521 @@
+desc:Piano - Four Pianos, velocity layered (Decent Sampler library) v1.1
+// Plays four pianos from the Decent Sampler library with real velocity layers:
+//   Midnight Upright (3 layers), The King's Upright (2 layers), Matt's Fender Rhodes (4 layers),
+//   WurliTzer by Daniel Rosenholm (up to 5 layers per key)
+// plus a built-in stereo reverb. Run Install-Piano.ps1 once to install the sample links and maps.
+// Samples are read from  <REAPER resource path>/Data/Pianos/...  (folder links + map files).
+
+options:maxmem=32000000
+
+slider1:0<0,3,1{Midnight Upright,The King's Upright,Matt's Fender Rhodes,WurliTzer}>-Piano
+slider2:0.25<0,1,0.01>-Reverb Mix
+slider3:0.6<0,1,0.01>-Reverb Room Size
+slider4:0.4<0,1,0.01>-Reverb Damping
+slider5:1<0,2,0.01>-Output Volume
+
+in_pin:none
+out_pin:left output
+out_pin:right output
+
+@init
+NV = 64;          // voices
+MAXS = 192;       // max samples per piano
+
+// voice tables
+vact = 0; vgate = NV; vhold = NV*2; venv = NV*3; vpos = NV*4; vrate = NV*5;
+vbase = NV*6; vlen = NV*7; vnch = NV*8; vnote = NV*9; vgain = NV*10;
+
+// text / UI tables
+pkey = 800; pname = 810; psub = 820;
+ctl = 900; NC = 4;
+keys = 1000;      // 128 slots: velocity of the key currently down (for the keyboard display)
+
+// sample tables (one entry per loaded sample)
+sroot = 1200; slo = sroot + MAXS; shi = slo + MAXS; slv = shi + MAXS; shv = slv + MAXS;
+sbase = shv + MAXS; slen = sbase + MAXS; snch = slen + MAXS; sfs = snch + MAXS;
+sgain = sfs + MAXS; stune = sgain + MAXS;
+
+// reverb tables (sample tables above use 1200 .. 3119)
+cbase = 3200; clen = 3216; cidx = 3232; cst = 3248;   // 16 combs
+abase = 3264; alen = 3272; aidx = 3280;               // 8 all-pass filters
+ctun = 3300; atun = 3310;
+
+SCR = 4096;               // scratch (4096 slots) used to skip sample start offsets
+REV = 8192;               // reverb delay lines
+ARENA = 220000;           // sample memory
+ARENASZ = 30000000;
+
+pkey[0] = "MidnightUpright"; pkey[1] = "KingsUpright"; pkey[2] = "FenderRhodes"; pkey[3] = "WurliTzer";
+pname[0] = "MIDNIGHT UPRIGHT"; pname[1] = "KING'S UPRIGHT"; pname[2] = "FENDER RHODES"; pname[3] = "WURLITZER";
+psub[0] = "Acoustic upright - 3 layers";
+psub[1] = "Acoustic upright - 2 layers";
+psub[2] = "Electric piano - 4 layers";
+psub[3] = "Electric piano - 5 layers";
+
+// clickable bars: x, y, w, h, min, max, slider#, step, default
+co = ctl;      co[0] = 35;  co[1] = 258; co[2] = 190; co[3] = 30; co[4] = 0; co[5] = 1; co[6] = 2; co[7] = 0.01; co[8] = 0.25;
+co = ctl + 9;  co[0] = 250; co[1] = 258; co[2] = 190; co[3] = 30; co[4] = 0; co[5] = 1; co[6] = 3; co[7] = 0.01; co[8] = 0.6;
+co = ctl + 18; co[0] = 465; co[1] = 258; co[2] = 190; co[3] = 30; co[4] = 0; co[5] = 1; co[6] = 4; co[7] = 0.01; co[8] = 0.4;
+co = ctl + 27; co[0] = 680; co[1] = 258; co[2] = 190; co[3] = 30; co[4] = 0; co[5] = 2; co[6] = 5; co[7] = 0.01; co[8] = 1;
+gdrag = -1; glmd = 0;
+
+// --- reverb (Freeverb layout: 8 combs + 4 all-passes per channel) ---
+ctun[0] = 1116; ctun[1] = 1188; ctun[2] = 1277; ctun[3] = 1356;
+ctun[4] = 1422; ctun[5] = 1491; ctun[6] = 1557; ctun[7] = 1617;
+atun[0] = 556; atun[1] = 441; atun[2] = 341; atun[3] = 225;
+rsc = srate / 44100;
+rp = REV;
+rj = 0;
+loop(16,
+  clen[rj] = floor((ctun[rj % 8] + (rj >= 8 ? 23 : 0)) * rsc);
+  cbase[rj] = rp; cidx[rj] = 0; cst[rj] = 0;
+  memset(rp, 0, clen[rj]);
+  rp += clen[rj];
+  rj += 1;
+);
+rj = 0;
+loop(8,
+  alen[rj] = floor((atun[rj % 4] + (rj >= 4 ? 23 : 0)) * rsc);
+  abase[rj] = rp; aidx[rj] = 0;
+  memset(rp, 0, alen[rj]);
+  rp += alen[rj];
+  rj += 1;
+);
+
+// --- voices / state ---
+memset(keys, 0, 128);
+i = 0;
+loop(NV, vact[i] = 0; vgate[i] = 0; vhold[i] = 0; venv[i] = 0; i += 1; );
+loaded = -1;
+ns = 0;
+piano_norm = 1;
+rr = 0;
+sustain = 0;
+lastvel = 0; lastlv = 0; lasthv = 0; lastnote = -1;
+atk_inc = 1 / (0.002 * srate);
+rel_mul = exp(-1 / (0.12 * srate));
+pkm = 0;
+
+PP = 790;   // 1 slot: current read position for nextnum()
+
+// parse the next number (digits, '-', '.') out of a string, starting at PP[0]
+function nextnum(str, pos)
+  local(p, n, c, neg, v, scale)
+(
+  p = pos[0]; n = strlen(str);
+  while (p < n && (c = str_getchar(str, p)) != 45 && (c < 48 || c > 57) && c != 46) ( p += 1; );
+  neg = 0;
+  (p < n && str_getchar(str, p) == 45) ? ( neg = 1; p += 1; );
+  v = 0;
+  while (p < n && (c = str_getchar(str, p)) >= 48 && c <= 57) ( v = v * 10 + (c - 48); p += 1; );
+  (p < n && str_getchar(str, p) == 46) ? (
+    p += 1; scale = 0.1;
+    while (p < n && (c = str_getchar(str, p)) >= 48 && c <= 57) ( v += (c - 48) * scale; scale *= 0.1; p += 1; );
+  );
+  pos[0] = p;
+  neg ? -v : v;
+);
+
+function tanhx(x)
+  local(y, e)
+(
+  y = max(-8, min(8, x));
+  e = exp(2 * y);
+  (e - 1) / (e + 1);
+);
+
+@slider
+rv_fb = 0.7 + slider3 * 0.28;
+rv_damp = slider4 * 0.4;
+rv_wet = slider2 * 3;
+
+// (re)load the sample set when the piano changes
+slider1 != loaded ? (
+  loaded = slider1;
+  ld_i = 0; loop(NV, vact[ld_i] = 0; ld_i += 1; );
+  memset(keys, 0, 128);
+  ns = 0;
+  ptr = ARENA;
+  norm_peak = 0.000001;
+
+  sprintf(#ld_m, "Pianos/%s_map.txt", pkey[loaded]);
+  sprintf(#ld_f, "Pianos/%s_files.txt", pkey[loaded]);
+  mh = file_open(#ld_m);
+  fh = file_open(#ld_f);
+
+  (mh > 0 && fh > 0) ? (
+    file_string(mh, #ld_l);
+    PP[0] = 0;
+    ld_cnt = nextnum(#ld_l, PP);
+    ld_k = 0;
+    while (ld_k < ld_cnt && ld_k < MAXS) (
+      // one line of numbers: root lo hi loVel hiVel start len gainDb tune
+      file_string(mh, #ld_l);
+      PP[0] = 0;
+      ld_root = nextnum(#ld_l, PP); ld_lo = nextnum(#ld_l, PP); ld_hi = nextnum(#ld_l, PP);
+      ld_lv = nextnum(#ld_l, PP);   ld_hv = nextnum(#ld_l, PP); ld_start = nextnum(#ld_l, PP);
+      ld_len = nextnum(#ld_l, PP);  ld_gdb = nextnum(#ld_l, PP); ld_tune = nextnum(#ld_l, PP);
+      ld_mono = nextnum(#ld_l, PP);   // 1 = fold stereo files to mono while loading (saves memory)
+
+      // one line with the sample path (strip any trailing line-break characters)
+      file_string(fh, #ld_p);
+      ld_n = strlen(#ld_p);
+      while (ld_n > 0 && str_getchar(#ld_p, ld_n - 1) <= 32) ( ld_n -= 1; );
+      strcpy_substr(#ld_t, #ld_p, 0, ld_n);
+      strcpy(#ld_p, #ld_t);
+
+      sh = file_open(#ld_p);
+      sh > 0 ? (
+        ld_nch = 0; ld_fsr = 0;
+        file_riff(sh, ld_nch, ld_fsr);
+        ld_nch > 0 ? (
+          // skip the silent lead-in
+          ld_sk = ld_start * ld_nch;
+          while (ld_sk > 0) (
+            ld_n = min(ld_sk, 4096);
+            file_mem(sh, SCR, ld_n);
+            ld_sk -= ld_n;
+          );
+          ld_fr = min(ld_len, floor(file_avail(sh) / ld_nch));
+          ld_fold = (ld_mono > 0.5 && ld_nch == 2);
+          ld_outch = ld_fold ? 1 : ld_nch;
+          ld_items = ld_fr * ld_outch;
+          (ld_fr > 1000 && ptr + ld_items <= ARENA + ARENASZ) ? (
+            ld_fold ? (
+              // read 2048 stereo frames at a time and store (L+R)/2
+              ld_done = 0;
+              while (ld_done < ld_fr) (
+                ld_c = min(2048, ld_fr - ld_done);
+                file_mem(sh, SCR, ld_c * 2);
+                ld_j = 0;
+                loop(ld_c, ptr[ld_done + ld_j] = (SCR[ld_j * 2] + SCR[ld_j * 2 + 1]) * 0.5; ld_j += 1; );
+                ld_done += ld_c;
+              );
+            ) : (
+              file_mem(sh, ptr, ld_items);
+            );
+
+            ld_pk = 0; ld_j = 0;
+            loop(floor(ld_items / 2), ld_pk = max(ld_pk, abs(ptr[ld_j])); ld_j += 2; );
+
+            sroot[ns] = ld_root; slo[ns] = ld_lo; shi[ns] = ld_hi;
+            slv[ns] = ld_lv;     shv[ns] = ld_hv;
+            sbase[ns] = ptr;     slen[ns] = ld_fr;
+            snch[ns] = ld_outch; sfs[ns] = ld_fsr;
+            sgain[ns] = 10 ^ (ld_gdb / 20);
+            stune[ns] = ld_tune;
+            norm_peak = max(norm_peak, ld_pk * sgain[ns]);
+            ptr += ld_items;
+            ns += 1;
+          );
+        );
+        file_close(sh);
+      );
+      ld_k += 1;
+    );
+  );
+  mh > 0 ? file_close(mh);
+  fh > 0 ? file_close(fh);
+  piano_norm = 0.8 / norm_peak;
+);
+
+@block
+while (midirecv(offs, m1, m2, m3)) (
+  st = m1 & 0xF0;
+
+  (st == 0x90 && m3 > 0) ? (
+    keys[m2] = m3;
+
+    // pick the sample whose key range and velocity layer match
+    bk = -1;
+    i = 0;
+    loop(ns,
+      (bk < 0 && m2 >= slo[i] && m2 <= shi[i] && m3 >= slv[i] && m3 <= shv[i]) ? bk = i;
+      i += 1;
+    );
+
+    bk >= 0 ? (
+      v = -1;
+      i = 0;
+      while (i < NV && v < 0) ( vact[i] == 0 ? v = i; i += 1; );
+      v < 0 ? ( v = rr; rr = (rr + 1) % NV; );
+
+      vbase[v] = sbase[bk];
+      vlen[v]  = slen[bk];
+      vnch[v]  = snch[bk];
+      vrate[v] = 2 ^ ((m2 - sroot[bk] + stune[bk]) / 12) * sfs[bk] / srate;
+      vgain[v] = sgain[bk] * piano_norm * (0.55 + 0.45 * m3 / 127);
+      vpos[v]  = 0;
+      venv[v]  = 0;
+      vnote[v] = m2;
+      vact[v]  = 1;
+      vgate[v] = 1;
+      vhold[v] = 0;
+
+      lastvel = m3; lastlv = slv[bk]; lasthv = shv[bk]; lastnote = m2;
+    );
+  ) : (st == 0x80 || (st == 0x90 && m3 == 0)) ? (
+    keys[m2] = 0;
+    i = 0;
+    loop(NV,
+      (vact[i] && vgate[i] && vnote[i] == m2) ? (
+        sustain ? vhold[i] = 1 : vgate[i] = 0;
+      );
+      i += 1;
+    );
+  ) : (st == 0xB0 && m2 == 64) ? (
+    sustain = (m3 >= 64);
+    !sustain ? (
+      i = 0;
+      loop(NV, vhold[i] ? ( vhold[i] = 0; vgate[i] = 0; ); i += 1; );
+    );
+  ) : (st == 0xB0 && (m2 == 123 || m2 == 120)) ? (
+    i = 0;
+    loop(NV, vgate[i] = 0; vhold[i] = 0; i += 1; );
+    memset(keys, 0, 128);
+  );
+);
+
+@sample
+l = r = 0;
+i = 0;
+loop(NV,
+  vact[i] ? (
+    vgate[i] ? (
+      venv[i] < 1 ? venv[i] = min(1, venv[i] + atk_inc);
+    ) : (
+      venv[i] *= rel_mul;
+      venv[i] < 0.0005 ? ( venv[i] = 0; vact[i] = 0; );
+    );
+
+    pos = vpos[i];
+    ip  = floor(pos);
+    fr  = pos - ip;
+    nc  = vnch[i];
+    bb  = vbase[i] + ip * nc;
+
+    sleft = bb[0] + (bb[nc] - bb[0]) * fr;
+    sright = (nc == 2) ? (bb[1] + (bb[nc + 1] - bb[1]) * fr) : sleft;
+
+    g = vgain[i] * venv[i];
+    rem = vlen[i] - pos;
+    rem < 19200 ? g *= rem / 19200;        // fade out where the sample was cut
+
+    l += sleft * g;
+    r += sright * g;
+
+    vpos[i] = pos + vrate[i];
+    vpos[i] >= vlen[i] - 2 ? vact[i] = 0;
+  );
+  i += 1;
+);
+
+// ---- reverb ----
+rin = (l + r) * 0.015;
+rsumL = 0; rsumR = 0;
+rj = 0;
+loop(16,
+  rb = cbase[rj]; rix = cidx[rj];
+  ry = rb[rix];
+  cst[rj] = ry * (1 - rv_damp) + cst[rj] * rv_damp;
+  rb[rix] = rin + cst[rj] * rv_fb;
+  rix += 1; rix >= clen[rj] ? rix = 0;
+  cidx[rj] = rix;
+  rj < 8 ? rsumL += ry : rsumR += ry;
+  rj += 1;
+);
+rj = 0;
+loop(8,
+  rb = abase[rj]; rix = aidx[rj];
+  rbo = rb[rix];
+  rj < 4 ? (
+    rb[rix] = rsumL + rbo * 0.5;
+    rsumL = rbo - rsumL;
+  ) : (
+    rb[rix] = rsumR + rbo * 0.5;
+    rsumR = rbo - rsumR;
+  );
+  rix += 1; rix >= alen[rj] ? rix = 0;
+  aidx[rj] = rix;
+  rj += 1;
+);
+
+outL = tanhx(l + rsumL * rv_wet) * slider5;
+outR = tanhx(r + rsumR * rv_wet) * slider5;
+spl0 = outL;
+spl1 = outR;
+pkm = max(pkm * 0.9998, max(abs(outL), abs(outR)));
+
+@gfx 900 480
+gfx_clear = 0x1a1a1a;
+
+// ---------- mouse ----------
+gmd = mouse_cap & 1;
+gmd && !glmd ? (
+  gdrag = -1;
+
+  // piano cards
+  gt = 0;
+  loop(4,
+    (mouse_x >= 20 + gt * 215 && mouse_x < 225 + gt * 215 && mouse_y >= 80 && mouse_y < 180) ? (
+      slider1 = gt;
+      sliderchange(1);
+      slider_automate(1);
+    );
+    gt += 1;
+  );
+
+  // bars
+  gci = 0;
+  loop(NC,
+    gco = ctl + gci * 9;
+    (mouse_x >= gco[0] && mouse_x < gco[0] + gco[2] && mouse_y >= gco[1] && mouse_y < gco[1] + gco[3]) ? (
+      gdrag = gci;
+      (mouse_cap & 4) ? (
+        slider(gco[6]) = gco[8];
+        sliderchange(2 ^ (gco[6] - 1));
+        slider_automate(2 ^ (gco[6] - 1));
+        gdrag = -1;
+      );
+    );
+    gci += 1;
+  );
+);
+gmd && gdrag >= 0 ? (
+  gco = ctl + gdrag * 9;
+  gv = gco[4] + (gco[5] - gco[4]) * max(0, min(1, (mouse_x - gco[0]) / gco[2]));
+  gv = floor(gv / gco[7] + 0.5) * gco[7];
+  gv != slider(gco[6]) ? (
+    slider(gco[6]) = gv;
+    sliderchange(2 ^ (gco[6] - 1));
+    slider_automate(2 ^ (gco[6] - 1));
+  );
+);
+!gmd ? gdrag = -1;
+glmd = gmd;
+
+// ---------- title ----------
+gfx_setfont(1, "Arial", 30);
+gfx_set(1, 1, 1, 1);
+gfx_x = 20; gfx_y = 14;
+gfx_drawstr("PIANO");
+gfx_setfont(1, "Arial", 14);
+gfx_set(0.7, 0.7, 0.7, 1);
+gfx_x = 20; gfx_y = 54;
+gfx_drawstr("Click a piano to load it - drag the bars to adjust (Ctrl+click resets)");
+
+// ---------- piano selector cards ----------
+gt = 0;
+loop(4,
+  gbx = 20 + gt * 215;
+  gsel = (slider1 == gt);
+  gt == 0 ? ( gcr = 0.85; gcg = 0.65; gcb = 0.25; );
+  gt == 1 ? ( gcr = 0.35; gcg = 0.65; gcb = 0.95; );
+  gt == 2 ? ( gcr = 0.9;  gcg = 0.35; gcb = 0.35; );
+  gt == 3 ? ( gcr = 0.45; gcg = 0.85; gcb = 0.55; );
+  ghov = (mouse_x >= gbx && mouse_x < gbx + 205 && mouse_y >= 80 && mouse_y < 180);
+
+  gsel ? gfx_set(0.26, 0.26, 0.26, 1) : gfx_set(0.18, 0.18, 0.18, 1);
+  gfx_rect(gbx, 80, 205, 100);
+  (gsel || ghov) ? gfx_set(gcr, gcg, gcb, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(gbx, 80, 205, 100, 0);
+  gsel ? ( gfx_set(gcr, gcg, gcb, 1); gfx_rect(gbx, 80, 205, 5); );
+
+  gfx_setfont(1, "Arial", 17);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gbx + 14; gfx_y = 98;
+  gfx_drawstr(pname[gt]);
+  gfx_setfont(1, "Arial", 13);
+  gfx_set(0.7, 0.7, 0.7, 1);
+  gfx_x = gbx + 14; gfx_y = 130;
+  gfx_drawstr(psub[gt]);
+  gfx_x = gbx + 14; gfx_y = 152;
+  gsel ? (
+    gfx_set(gcr, gcg, gcb, 1);
+    sprintf(#gs, "LOADED  -  %d samples", ns);
+  ) : (
+    gfx_set(0.5, 0.5, 0.5, 1);
+    sprintf(#gs, "click to load");
+  );
+  gfx_drawstr(#gs);
+  gt += 1;
+);
+
+// ---------- reverb / output panel ----------
+gfx_set(0.2, 0.2, 0.2, 1);
+gfx_rect(20, 200, 860, 110);
+gfx_set(0.4, 0.4, 0.4, 1);
+gfx_rect(20, 200, 860, 110, 0);
+gfx_set(0.8, 0.6, 0.3, 1);
+gfx_rect(20, 200, 860, 4);
+gfx_setfont(1, "Arial", 14);
+gfx_set(1, 1, 1, 1);
+gfx_x = 35; gfx_y = 214;
+gfx_drawstr("REVERB & OUTPUT");
+
+gci = 0;
+loop(NC,
+  gco = ctl + gci * 9;
+  gv = slider(gco[6]);
+  gci == 0 ? ( gnm = "Reverb Mix";       gfx_set(0.35, 0.65, 0.95, 1); sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); );
+  gci == 1 ? ( gnm = "Room Size";        gfx_set(0.35, 0.65, 0.95, 1); sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); );
+  gci == 2 ? ( gnm = "Damping";          gfx_set(0.35, 0.65, 0.95, 1); sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); );
+  gci == 3 ? ( gnm = "Output Volume";    gfx_set(0.4, 0.8, 0.4, 1);    sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); );
+  gcr = gfx_r; gcg = gfx_g; gcb = gfx_b;
+
+  gfx_set(0.7, 0.7, 0.7, 1);
+  gfx_x = gco[0]; gfx_y = 238;
+  gfx_drawstr(gnm);
+  gfx_x = gco[0] + gco[2] - 40; gfx_y = 238;
+  gfx_drawstr(#gs);
+
+  gfx_set(0.1, 0.1, 0.1, 1);
+  gfx_rect(gco[0], gco[1] + 6, gco[2], 18);
+  gfx_set(gcr, gcg, gcb, 1);
+  gfx_rect(gco[0], gco[1] + 6, (gv - gco[4]) / (gco[5] - gco[4]) * gco[2], 18);
+  gfx_set(0.45, 0.45, 0.45, 1);
+  gfx_rect(gco[0], gco[1] + 6, gco[2], 18, 0);
+  gci += 1;
+);
+
+// output meter + last note info
+gfx_set(0.9, 0.9, 0.3, 1);
+gfx_rect(680, 296, min(1, pkm) * 190, 5);
+gfx_setfont(1, "Arial", 13);
+gfx_set(0.6, 0.6, 0.6, 1);
+gfx_x = 35; gfx_y = 292;
+lastnote >= 0 ? (
+  sprintf(#gs, "Last note %d   velocity %d   ->  velocity layer %d-%d", lastnote, lastvel, lastlv, lasthv);
+) : (
+  sprintf(#gs, "Play a note to see which velocity layer is used");
+);
+gfx_drawstr(#gs);
+
+// ---------- keyboard (A0 .. C8) ----------
+gwk = 16.5; gkx = 20; gky = 330;
+gn = 21;
+loop(88,
+  gpc = gn % 12;
+  (gpc == 0 || gpc == 2 || gpc == 4 || gpc == 5 || gpc == 7 || gpc == 9 || gpc == 11) ? (
+    gwi = floor(gn / 12) * 7 + (gpc >= 11 ? 6 : (gpc >= 9 ? 5 : (gpc >= 7 ? 4 : (gpc >= 5 ? 3 : (gpc >= 4 ? 2 : (gpc >= 2 ? 1 : 0)))))) - 12;
+    keys[gn] > 0 ? gfx_set(1, 0.9 - 0.45 * keys[gn] / 127, 0.25, 1) : gfx_set(0.93, 0.93, 0.93, 1);
+    gfx_rect(gkx + gwi * gwk, gky, gwk - 1, 100);
+  );
+  gn += 1;
+);
+gn = 21;
+loop(88,
+  gpc = gn % 12;
+  (gpc == 1 || gpc == 3 || gpc == 6 || gpc == 8 || gpc == 10) ? (
+    gm = gn - 1; gq = gm % 12;
+    gwi = floor(gm / 12) * 7 + (gq >= 11 ? 6 : (gq >= 9 ? 5 : (gq >= 7 ? 4 : (gq >= 5 ? 3 : (gq >= 4 ? 2 : (gq >= 2 ? 1 : 0)))))) - 12;
+    keys[gn] > 0 ? gfx_set(1, 0.75 - 0.4 * keys[gn] / 127, 0.15, 1) : gfx_set(0.08, 0.08, 0.08, 1);
+    gfx_rect(gkx + (gwi + 1) * gwk - 5, gky, 10, 62);
+  );
+  gn += 1;
+);
+
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.5, 0.5, 0.5, 1);
+gfx_x = 20; gfx_y = 442;
+gfx_drawstr("Sustain pedal (CC64) supported. Samples are the first ~6 s of each note, with a smooth fade.");
