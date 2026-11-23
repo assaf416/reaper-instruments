@@ -1,6 +1,6 @@
 # Reaper Instruments
 
-Four sampled instruments for REAPER, written as JSFX plugins with their own graphic UI. Everything an instrument
+Sampled and synthesized instruments for REAPER, written as JSFX plugins with their own graphic UI. Everything an instrument
 needs (plugin, samples it uses, images, licenses, install script) lives in its own folder.
 
 | Folder | Instrument | What it is |
@@ -9,6 +9,7 @@ needs (plugin, samples it uses, images, licenses, install script) lives in its o
 | [`Piano/`](Piano/README.md) | **Piano** | Midnight Upright, The King's Upright, Matt's Fender Rhodes and the WurliTzer, with real velocity layers and reverb |
 | [`Drums/`](Drums/README.md) | **Drums** | Five velocity-layered kits, a 7-channel mixer, reverb, and a MIDI note / CC map editor with Learn for e-drums |
 | [`Guitar/`](Guitar/README.md) | **Guitar** | 62 Reissue Stratocaster, ASAT Clean, ASAT DI, with chorus and a (tempo-syncable) ping-pong delay |
+| [`Organ/`](Organ/README.md) | **Organ** | Tonewheel organ with rotary speaker: *Lord of the Rinks* (original, by chmaha) plus a single-manual edition with a custom preset bank |
 
 ## Install
 
@@ -17,7 +18,7 @@ powershell -ExecutionPolicy Bypass -File .\Install-All.ps1
 ```
 
 Or one instrument at a time: `Mellotron\Install-Mellotron.ps1`, `Piano\Install-Piano.ps1`, `Drums\Install-Drums.ps1`,
-`Guitar\Install-Guitar.ps1`. Each one
+`Guitar\Install-Guitar.ps1`, `Organ\Install-Organ.ps1`. Each one
 
 * copies the `.jsfx` into REAPER's `Effects` folder,
 * copies the small sample maps into REAPER's `Data` folder,
