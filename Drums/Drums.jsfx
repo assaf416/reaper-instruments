@@ -202,6 +202,8 @@ slider1 != loaded ? (
   loaded = slider1;
   kit = slider1;
   kit_ok = 0;
+  loads += 1;                        // DEBUG: number of kit loads so far
+  dbg_got = 0; dbg_nch = -1; dbg_sh = -1;
   ld_i = 0; loop(NV, vact[ld_i] = 0; ld_i += 1; );
   memset(zcnt, 0, 32);
 
@@ -256,8 +258,10 @@ slider1 != loaded ? (
     sh > 0 ? (
       ld_nch = 0; ld_fsr = 0;
       file_riff(sh, ld_nch, ld_fsr);
+      dbg_nch = ld_nch; dbg_sh = sh;
       ld_nch == 1 ? (
         ld_got = file_mem(sh, ARENA, smp_len);
+        dbg_got = ld_got;
         kit_ok = (ld_got >= smp_len - 1);
         smp_rate = ld_fsr / srate;
       );
@@ -592,6 +596,12 @@ loop(2,
 // kit status
 gfx_setfont(1, "Arial", 12);
 kit_ok ? ( gfx_set(0.4, 0.8, 0.4, 1); sprintf(#gs, "kit loaded - %d pieces", keyN); ) : ( gfx_set(1, 0.4, 0.4, 1); sprintf(#gs, "kit NOT loaded - run Install-Drums.ps1"); );
+// DEBUG line (temporary)
+gfx_set(0.9, 0.9, 0.5, 1); gfx_setfont(1, "Arial", 11);
+gfx_x = 260; gfx_y = 148;
+sprintf(#gdb, "DBG load#%d kit=%d slider1=%d loaded=%d zones=%d read=%d/%d nch=%d sh=%d", loads, kit, slider1, loaded, ld_nz, dbg_got, smp_len, dbg_nch, dbg_sh);
+gfx_drawstr(#gdb);
+gfx_setfont(1, "Arial", 12);
 gfx_x = 700; gfx_y = 126;
 gfx_drawstr(#gs);
 
