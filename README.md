@@ -14,6 +14,10 @@ needs (plugin, samples it uses, images, licenses, install script) lives in its o
 | [`BassRig/`](BassRig/README.md) | **Bass Rig** | Tukan Studios' *Bass Station S2* (bass amp, cabinets, gate, modulation) for any bass track - installer, FX chain and demo; plugin files not redistributed |
 | [`Organ/`](Organ/README.md) | **Organ** | Tonewheel organ with rotary speaker: *Lord of the Rinks* (original, by chmaha) plus a single-manual edition with a custom preset bank |
 
+## Quick install with REAPER packages (REAPER 7.86+)
+
+REAPER 7.86 added native `.ReaperPkg` packages. [`Packages/`](Packages/README.md) builds one package per instrument - open the file and the plugin, samples and a demo template are installed.
+
 ## Install
 
 ```powershell

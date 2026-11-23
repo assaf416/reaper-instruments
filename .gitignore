@@ -33,3 +33,7 @@ Backups/
 # Tukan Studios' Guitar Station S2 files: the upstream repo declares no license, so they are not redistributed here
 GuitarRig/vendor/
 BassRig/vendor/
+
+# built .ReaperPkg packages contain third-party samples / unlicensed plugin files
+Packages/dist/
+*.ReaperPkg
