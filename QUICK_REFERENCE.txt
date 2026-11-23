@@ -1,0 +1,223 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                     MELLOTRON QUICK REFERENCE CARD                              ║
+║                                                                                  ║
+║                              Print & Keep Handy!                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+QUICK START (90 seconds)
+════════════════════════
+
+1. Run: Mellotron_Setup.lua                    ✓ Creates 4 tracks
+2. Add ReaSampler to each of 3 tape tracks     ✓ Plugin added
+3. Load samples/Mellotron/sample_000.wav       ✓ Samples loaded
+4. Create MIDI item, play keyboard             ✓ You're playing!
+
+
+TAPE SOUNDS QUICK SELECTOR
+══════════════════════════════════════════════════════════════════════
+
+Pick a number for each tape (1-3):
+
+ 0 ► Flute       3 ► Brass       6 ► Violin     9 ► Woodwind
+ 1 ► Cello       4 ► Gong        7 ► Choir     10 ► Flute Alt
+ 2 ► Violins     5 ► Violins     8 ► Strings   11 ► Violins Alt
+                                               12 ► Brass Alt
+
+
+THREE FAVORITE MIXES (Use These!)
+═════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────┐
+│ MIX 1: CLASSIC STRINGS (YES - "Roundabout")                      │
+├─────────────────────────────────────────────────────────────────┤
+│ Tape 1: 8 (Strings)    Level: 100%  Pan: Center               │
+│ Tape 2: 1 (Cello)      Level:  60%  Pan: Left                 │
+│ Tape 3: 7 (Choir)      Level:  40%  Pan: Right                │
+│ Wow: 35%  │  Saturation: 50%  │  Master: 100%                 │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ MIX 2: ORCHESTRAL BRASS (Funky/Modern)                           │
+├─────────────────────────────────────────────────────────────────┤
+│ Tape 1: 3 (Brass)      Level: 100%  Pan: Center               │
+│ Tape 2: 9 (Woodwind)   Level:  70%  Pan: Right                │
+│ Tape 3: 8 (Strings)    Level:  40%  Pan: Left                 │
+│ Wow: 25%  │  Saturation: 60%  │  Master: 95%                  │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ MIX 3: AMBIENT FLUTE (Dreamy/Ethereal)                           │
+├─────────────────────────────────────────────────────────────────┤
+│ Tape 1: 0 (Flute)      Level: 100%  Pan: Center               │
+│ Tape 2: 10 (Flute Alt) Level:  80%  Pan: Left                 │
+│ Tape 3: 7 (Choir)      Level:  50%  Pan: Right                │
+│ Wow: 50%  │  Saturation: 60%  │  Master: 90%                  │
+│ PRO TIP: Add heavy reverb on master (50-70% wet)              │
+└─────────────────────────────────────────────────────────────────┘
+
+
+EFFECTS SETTINGS BY VIBE
+════════════════════════════════════════════════════════════════════
+
+╔─ BRIGHT & CLEAN ─────────────────────────────────────────────╗
+║ Wow & Flutter:     0-10%        (Minimal pitch wobble)       ║
+║ Tape Saturation:   0-20%        (Clean signal)               ║
+║ Master Volume:     100%         (Full level)                 ║
+╚──────────────────────────────────────────────────────────────╝
+
+╔─ WARM & VINTAGE ─────────────────────────────────────────────╗
+║ Wow & Flutter:    30-40%        (Subtle wobble)              ║
+║ Tape Saturation:  50%           (Warm tone)                  ║
+║ Master Volume:    95-100%       (Comfortable level)          ║
+╚──────────────────────────────────────────────────────────────╝
+
+╔─ LO-FI & CHARACTERFUL ───────────────────────────────────────╗
+║ Wow & Flutter:    60-80%        (Heavy wobble)               ║
+║ Tape Saturation:  80-100%       (Lots of character)          ║
+║ Master Volume:    80-90%        (Watch clipping!)            ║
+╚──────────────────────────────────────────────────────────────╝
+
+
+PERFORMANCE TIPS
+════════════════════════════════════════════════════════════════════
+
+🎹 KEYBOARD TECHNIQUE
+   • Use Sustain pedal for smooth tape transitions
+   • Play legato for authentic sound
+   • Light velocity (30-50) = soft/muted
+   • Medium velocity (60-100) = natural tone
+   • Hard velocity (110-127) = bright/attacking
+
+🎚️ REAL-TIME MIXING
+   • Fade in Tape 2 during verse 2
+   • Add Tape 3 for chorus sections
+   • Dial up Saturation for climax
+   • Use panning for stereo movement
+
+🎼 LAYERING TRICKS
+   • Keep Tape 1 as main melodic element (100%)
+   • Use Tape 2 as harmonic bed (40-70%)
+   • Add Tape 3 for texture (20-50%)
+   • Never max all three at once (sounds muddy)
+
+
+CONTROL QUICK REFERENCE
+════════════════════════════════════════════════════════════════════
+
+SLIDER 1-3    Tape Selection (which tape sound: 0-12)
+SLIDER 4-6    Tape Level (mix volume: 0-100%)
+SLIDER 7-9    Tape Pan (position in stereo: -100 to +100)
+SLIDER 10     Wow & Flutter (pitch wobble: 0-100%)
+SLIDER 11     Tape Saturation (warmth/coloration: 0-100%)
+SLIDER 12     Master Volume (overall level: 0-200%)
+
+
+SAMPLE FILE LOCATION
+════════════════════════════════════════════════════════════════════
+
+Main samples:        samples/Mellotron/sample_000.wav          (111 MB)
+Bonus piano:         samples/Full_Grand_Piano/sample_000.wav   (17 MB)
+Wurlitzer samples:   samples/wurly_el_piano*.wav               (Dozens)
+
+
+TROUBLESHOOTING QUICK FIX
+════════════════════════════════════════════════════════════════════
+
+NO SOUND?
+  → Check ReaSampler shows green checkmark
+  → Verify sample file is loaded
+  → Check track levels (not at 0)
+  → Check Master Volume slider > 0%
+
+AUDIO CLICKS?
+  → Lower Wow & Flutter (reduce wobble)
+  → Increase audio buffer size
+  → Lower Saturation setting
+
+WON'T LOAD?
+  → Restart Reaper
+  → Drag .jsfx file directly to track FX
+
+
+FAVORITE FAMOUS SOUNDS
+════════════════════════════════════════════════════════════════════
+
+YES                Use Mix 1 (Classic Strings)
+King Crimson       Mix Brass (Tape 1) + Strings (Tape 2)
+Genesis            Mix 1 at conservative levels
+Emerson Lake & P.  Mix all three tapes, high saturation
+Moody Blues        Mix 3 (Flute) with heavy reverb
+
+
+RECORDING PERFORMANCE
+════════════════════════════════════════════════════════════════════
+
+Best Practice Workflow:
+
+1. Create MIDI track with Mellotron
+2. Create automation lane for tape mixing
+3. Record MIDI performance
+4. Record parameter automation changes
+5. Add reverb/compression on master
+6. Export stereo mixdown
+7. Done!
+
+
+RECOMMENDED MASTER BUS EFFECTS (In Order)
+════════════════════════════════════════════════════════════════════
+
+1. Mellotron.jsfx              (Mixer plugin)
+2. Parametric EQ               (Boost 2-4kHz, roll off 10kHz+)
+3. Chorus                      (Rate: 1.5Hz, Depth: 30%)
+4. Reverb                      (Type: Hall/Spring, 2-3 sec)
+5. Compressor                  (Ratio: 2:1, Attack: 50ms)
+6. Soft Clipper                (Optional warmth)
+
+
+TEMPO SYNC & MATCHING
+════════════════════════════════════════════════════════════════════
+
+For best results, match tape settings to song style:
+
+SLOW BALLAD (60-80 BPM)
+  → Wow: 20% | Saturation: 40% | Long sustain times
+
+MID-TEMPO ROCK (100-130 BPM)
+  → Wow: 35% | Saturation: 50% | Medium note length
+
+UPTEMPO (130+ BPM)
+  → Wow: 25% | Saturation: 45% | Shorter articulate notes
+
+
+CREATIVE USES
+════════════════════════════════════════════════════════════════════
+
+🎵 Prog-Rock          → Strings + Choir (Mix 1)
+🎵 Funk/Soul          → Brass + Woodwind (Mix 2)
+🎵 Ambient/Dreamy     → Flute + Choir (Mix 3)
+🎵 Orchestral         → Strings + Cello + Choir (Full mix)
+🎵 Solo Instrument    → Single tape at 100%
+🎵 Textural Pads      → All three at medium levels
+🎵 Cinematic          → Heavy reverb, slow changes
+
+
+KEYBOARD SHORTCUTS (Suggested for Reaper)
+════════════════════════════════════════════════════════════════════
+
+Ctrl+M         Mute/Unmute current track
+Shift+M        Maximize FX window
+Alt+P          Toggle play/stop
+Ctrl+D         Duplicate track (for adding more Mellotron)
+
+
+═════════════════════════════════════════════════════════════════════════════════
+
+🎹 ENJOY YOUR MELLOTRON! 🎹
+
+Remember: The Mellotron is a TAPE INSTRUMENT - its magic comes from
+the warm, slightly imperfect character of vintage tape playback.
+Embrace the wobble, saturation, and organic quality. That's not a bug,
+that's a FEATURE! ✨
+
+═════════════════════════════════════════════════════════════════════════════════

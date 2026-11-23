@@ -1,0 +1,250 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                     MELLOTRON 3-TAPE MIXER - SETUP GUIDE                        ║
+║                                                                                  ║
+║                              Reaper Integration                                 ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+TRACK LAYOUT
+============
+
+Your Reaper project should look like this:
+
+    ┌─────────────────────────────────────────────────────┐
+    │  MELLOTRON MASTER (Output Bus)                      │
+    │  ├─ FX: Mellotron.jsfx (Mixer & UI)                │
+    │  └─ Master Volume Control                          │
+    └─────────────────────────────────────────────────────┘
+              ▲                      ▲                 ▲
+              │                      │                 │
+              │                      │                 │
+    ┌─────────┴──────┐  ┌────────────┴──────┐ ┌──────┴──────────┐
+    │ TAPE 1 ■       │  │ TAPE 2 ■          │ │ TAPE 3 ■        │
+    │ (Green)        │  │ (Red)             │ │ (Blue)          │
+    ├────────────────┤  ├───────────────────┤ ├─────────────────┤
+    │ ReaSampler     │  │ ReaSampler        │ │ ReaSampler      │
+    │ ✓ Loaded       │  │ ✓ Loaded          │ │ ✓ Loaded        │
+    │ ✓ Resampling   │  │ ✓ Resampling      │ │ ✓ Resampling    │
+    └────────────────┘  └───────────────────┘ └─────────────────┘
+
+
+AUDIO SIGNAL FLOW
+=================
+
+MIDI Input (from keyboard/controller)
+  ↓
+  ├→ Track 1 (ReaSampler) ──────┐
+  │                             ├→ MELLOTRON.jsfx Mixer ──→ Master Out
+  ├→ Track 2 (ReaSampler) ──────┤
+  │                             ├→ (Processes 3 tape mix)
+  └→ Track 3 (ReaSampler) ──────┘
+
+
+STEP-BY-STEP SETUP
+==================
+
+1. QUICK METHOD (Recommended)
+   ─────────────────────────
+   ✓ Open Reaper project
+   ✓ Run: Mellotron_Setup.lua
+   ✓ DONE! (Tracks auto-created and configured)
+
+
+2. MANUAL METHOD
+   ──────────────
+
+   A. Create 3 Audio Tracks
+      • Reaper menu: Insert > Insert new track(s)
+      • Create 3 tracks
+      • Name them: "Tape 1 - Flute", "Tape 2 - Cello", "Tape 3 - Violins"
+      • Give them distinct colors (optional)
+
+   B. Add ReaSampler to Each Track
+      • Track 1 → FX > Add FX → ReaSampler
+      • Track 2 → FX > Add FX → ReaSampler
+      • Track 3 → FX > Add FX → ReaSampler
+
+   C. Load Samples
+      • Each ReaSampler:
+        ├─ Click "Open sample..."
+        ├─ Navigate to: samples/Mellotron/
+        ├─ Select: sample_000.wav
+        └─ Confirm
+
+   D. Configure ReaSampler
+      • Each instance:
+        ├─ Enable ✓ Resample
+        ├─ Set "Note on MIDI key" mode
+        └─ Set quality to "High" or "Very High"
+
+   E. Route to Master Bus
+      • Track 1 → I/O → Master
+      • Track 2 → I/O → Master
+      • Track 3 → I/O → Master
+
+   F. Add Mellotron Mixer
+      • Master Track → FX > Add FX → Mellotron.jsfx
+      • This provides the mixing UI
+
+
+MELLOTRON.JSFX INTERFACE
+========================
+
+The plugin UI shows:
+
+┌────────────────────────────────────────────────────────┐
+│ MELLOTRON - Three Tape Mixer                            │
+├──────────────┬──────────────┬──────────────────────────┤
+│ TAPE 1       │ TAPE 2       │ TAPE 3                   │
+├──────────────┼──────────────┼──────────────────────────┤
+│ Selection:   │ Selection:   │ Selection:               │
+│ MKII Flute   │ M400 Cello   │ MKII 3 Violins          │
+│              │              │                          │
+│ Level: 50%   │ Level: 50%   │ Level: 50%              │
+│ Pan: CENTER  │ Pan: CENTER  │ Pan: CENTER             │
+│ ■■■■■□□□□□   │ ■■■■■□□□□□   │ ■■■■■□□□□□             │
+└──────────────┴──────────────┴──────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│ TAPE CHARACTERISTICS                                   │
+├────────────────────────────────────────────────────────┤
+│ Wow & Flutter:  ◄─────●────────────► (30%)            │
+│ Tape Saturation:◄──────────●───────► (40%)            │
+│ Master Volume:  ◄───────────────●──► (100%)           │
+└────────────────────────────────────────────────────────┘
+
+
+AVAILABLE TAPES (Mellotron Sounds)
+==================================
+
+0:  MKII Flute           - Bright, piercing single flute
+1:  M400 Cello           - Warm, resonant cello
+2:  MKII 3 Violins       - Rich string section (3 violins)
+3:  Gc3 Brass            - Bright trumpet/brass
+4:  Gong                 - Sustained mellow gong
+5:  M300A Violins        - Smooth violin section
+6:  M300B Violin         - Single warm violin
+7:  M400 Choir           - Ethereal choir pad
+8:  M400 String Section  - Full lush strings
+9:  M400 Woodwind2       - Warm woodwind blend
+10: MKII Flute           - (Alternate version)
+11: MKII 3 Violins       - (Alternate version)
+12: MKII Brass           - (Alternate version)
+
+
+MIXING STRATEGIES
+=================
+
+LUSH STRING PAD:
+  Tape 1: M400 String Section (100%)
+  Tape 2: M400 Cello (60%)
+  Tape 3: M400 Choir (40%)
+  → Set Wow to 35%, Saturation to 50%
+
+ORCHESTRAL BRASS:
+  Tape 1: Gc3 Brass (100%)
+  Tape 2: M400 Woodwind2 (70%)
+  Tape 3: M400 String Section (40%)
+  → Set Wow to 25%, Saturation to 40%
+
+AMBIENT FLUTE:
+  Tape 1: MKII Flute (100%)
+  Tape 2: MKII Flute (80% - pan left)
+  Tape 3: M400 Choir (50% - pan right)
+  → Set Wow to 50%, Saturation to 60%
+
+SOLO CELLO:
+  Tape 1: M400 Cello (100%)
+  Tape 2: Off (0%)
+  Tape 3: Off (0%)
+  → Set Wow to 20%, Saturation to 30%
+
+
+EFFECTS RECOMMENDATIONS
+=======================
+
+For authentic Mellotron character, add effects AFTER the mixer:
+
+Master Track FX Chain:
+  1. Mellotron.jsfx         (Mixer plugin)
+  2. Parametric EQ          (boost 2-4kHz, roll off 10kHz+)
+  3. Chorus                 (simulates tape wobble)
+  4. Reverb                 (spring/hall, 2-3 seconds)
+  5. Compressor             (light 2:1 ratio, 50ms attack)
+  6. Soft Clipper           (optional warmth)
+
+
+KEYBOARD PLAYING TIPS
+=====================
+
+✓ Use SUSTAIN pedal for smooth tape transitions
+✓ Layer melodies by keeping multiple notes pressed
+✓ Vary velocity (soft: 30-50, medium: 60-100, hard: 110-127)
+✓ Use CC#1 (mod wheel) to control overall mix in real-time
+✓ Record automation for tape level changes
+✓ Use portamento/glide time in DAW for realistic tapes
+
+
+TROUBLESHOOTING
+===============
+
+Problem: No Sound
+  ✓ Check all track levels (should not be at minimum)
+  ✓ Verify ReaSampler shows green "loaded" indicator
+  ✓ Check master volume in Mellotron.jsfx (should be > 0%)
+
+Problem: Audio Clicks/Pops
+  ✓ Lower Wow & Flutter setting
+  ✓ Increase audio buffer size (Reaper > Preferences > Audio)
+  ✓ Lower Tape Saturation value
+
+Problem: Mellotron.jsfx Won't Load
+  ✓ Restart Reaper
+  ✓ Check FX list loads other plugins
+  ✓ Try loading directly into FX chain (drag .jsfx file)
+
+Problem: Tape Sounds Thin
+  ✓ Increase Tape Saturation for warmth
+  ✓ Layer multiple tapes together
+  ✓ Add Reverb on master bus
+
+
+FILES INCLUDED
+==============
+
+Mellotron.jsfx              - Main mixing/effect plugin
+Mellotron_Setup.lua         - Automatic track setup script
+samples/Mellotron/          - Extracted sample folder
+  └─ sample_000.wav         - All Mellotron tape samples (111MB)
+MELLOTRON_README.md         - Full documentation
+MELLOTRON_SETUP_VISUAL.txt  - This file
+
+
+KEYBOARD SHORTCUTS (Suggested)
+==============================
+
+Add these to your Reaper action list for quick access:
+
+Ctrl+M          - Mute/Unmute current tape
+Shift+M         - Mix current tape with master
+Alt+T           - Toggle Tape mode
+Ctrl+Shift+P    - Toggle Wow & Flutter preset
+
+
+NEXT STEPS
+==========
+
+1. ✓ Run Mellotron_Setup.lua or manually create tracks
+2. ✓ Load ReaSampler instances
+3. ✓ Load samples/Mellotron/sample_000.wav into each
+4. ✓ Add Mellotron.jsfx to master bus
+5. ✓ Create MIDI item on track 1
+6. ✓ Play keyboard/controller
+7. ✓ Adjust Tape Selection sliders to hear different sounds
+8. ✓ Mix levels with Tape 1/2/3 Level sliders
+9. ✓ Dial in Wow/Saturation for character
+10. ✓ Add reverb/chorus on master for ambience
+
+
+═════════════════════════════════════════════════════════════════════════════════
+Happy Mellotron-ing! 🎹✨
+═════════════════════════════════════════════════════════════════════════════════

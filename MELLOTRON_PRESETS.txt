@@ -1,0 +1,425 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                     MELLOTRON 3-TAPE MIXER - PRESET GUIDE                       ║
+║                                                                                  ║
+║                              Pre-configured Sound Sets                          ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+TAPE SOUND REFERENCE
+====================
+
+Tape Selection Number → Sound Name:
+
+ 0: MKII Flute              - Bright, articulate single flute
+ 1: M400 Cello              - Warm, singing cello with sustain
+ 2: MKII 3 Violins          - Rich ensemble of 3 violins
+ 3: Gc3 Brass               - Bright trumpet/brass section
+ 4: Gong                    - Mellow sustained gong/bell
+ 5: M300A Violins           - Smooth violin section ensemble
+ 6: M300B Violin            - Single warm sustained violin
+ 7: M400 Choir              - Ethereal human choir pad
+ 8: M400 String Section     - Full orchestral string section
+ 9: M400 Woodwind2          - Warm flute/oboe blend
+10: MKII Flute              - Alternative flute version
+11: MKII 3 Violins          - Alternative violin ensemble
+12: MKII Brass              - Alternative brass section
+
+
+═════════════════════════════════════════════════════════════════════════════════
+PRESET CONFIGURATIONS
+═════════════════════════════════════════════════════════════════════════════════
+
+
+PRESET 1: CLASSIC STRING SECTION (YES - Close to Original Mellotron)
+─────────────────────────────────────────────────────────────────────────
+
+Description: The classic 1970s Yes/Genesis string pad sound
+
+Configuration:
+  Tape 1 Selection:     8 (M400 String Section)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     1 (M400 Cello)
+  Tape 2 Level:         0.6 (60%)
+  Tape 2 Pan:           -20 (Left)
+
+  Tape 3 Selection:     7 (M400 Choir)
+  Tape 3 Level:         0.4 (40%)
+  Tape 3 Pan:           20 (Right)
+
+Tape Effects:
+  Wow & Flutter:        0.35 (35%)
+  Tape Saturation:      0.5 (50%)
+  Master Volume:        1.0 (100%)
+
+Performance Tips:
+  - Use sustain pedal for smooth transitions
+  - Play legato for authentic string section effect
+  - Vary velocity from 40-120 for different string dynamics
+  - Works great for pads and sustained chords
+
+
+PRESET 2: ORCHESTRAL BRASS (Funky/Aggressive)
+──────────────────────────────────────────────
+
+Description: Bright, punchy brass section with attitude
+
+Configuration:
+  Tape 1 Selection:     3 (Gc3 Brass)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     9 (M400 Woodwind2)
+  Tape 2 Level:         0.7 (70%)
+  Tape 2 Pan:           30 (Right)
+
+  Tape 3 Selection:     8 (M400 String Section)
+  Tape 3 Level:         0.4 (40%)
+  Tape 3 Pan:           -30 (Left)
+
+Tape Effects:
+  Wow & Flutter:        0.25 (25%)
+  Tape Saturation:      0.6 (60%)
+  Master Volume:        0.95 (95%)
+
+Performance Tips:
+  - Use short, punchy attacks
+  - Works great for horn sections in funk/soul
+  - Add compression on master for glue
+  - Sounds best with driving rhythms
+
+
+PRESET 3: AMBIENT FLUTE PAD (Ethereal/Dreamy)
+──────────────────────────────────────────────
+
+Description: Lush, floating flute pad with choir undertones
+
+Configuration:
+  Tape 1 Selection:     0 (MKII Flute)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     10 (MKII Flute - Alt)
+  Tape 2 Level:         0.8 (80%)
+  Tape 2 Pan:           -40 (Hard Left)
+
+  Tape 3 Selection:     7 (M400 Choir)
+  Tape 3 Level:         0.5 (50%)
+  Tape 3 Pan:           40 (Hard Right)
+
+Tape Effects:
+  Wow & Flutter:        0.5 (50%)
+  Tape Saturation:      0.6 (60%)
+  Master Volume:        0.9 (90%)
+
+Performance Tips:
+  - Play very softly (velocity 20-50) for ethereal quality
+  - Hold notes for long durations
+  - Use light vibrato on held notes
+  - Add heavy reverb on master (60% wet)
+  - Perfect for ambient/atmospheric music
+
+
+PRESET 4: SOLO CELLO (Lyrical/Vocal-like)
+──────────────────────────────────────────
+
+Description: Warm, singing cello with minimal accompaniment
+
+Configuration:
+  Tape 1 Selection:     1 (M400 Cello)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     6 (M300B Violin)
+  Tape 2 Level:         0.3 (30%)
+  Tape 2 Pan:           0 (Center)
+
+  Tape 3 Selection:     7 (M400 Choir)
+  Tape 3 Level:         0.2 (20%)
+  Tape 3 Pan:           0 (Center)
+
+Tape Effects:
+  Wow & Flutter:        0.2 (20%)
+  Tape Saturation:      0.4 (40%)
+  Master Volume:        1.0 (100%)
+
+Performance Tips:
+  - Use portamento (glide) for vocal-like bending
+  - Play with expression pedal for dynamic control
+  - Medium-to-long note values work best
+  - Minimal tape wobble keeps cello clear
+  - Great for lead melodies and solos
+
+
+PRESET 5: BRIGHT CHOIR (Spiritual/Gospel)
+──────────────────────────────────────────
+
+Description: Luminous choir pad with string undertones
+
+Configuration:
+  Tape 1 Selection:     7 (M400 Choir)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     8 (M400 String Section)
+  Tape 2 Level:         0.6 (60%)
+  Tape 2 Pan:           -15 (Slightly Left)
+
+  Tape 3 Selection:     1 (M400 Cello)
+  Tape 3 Level:         0.3 (30%)
+  Tape 3 Pan:           15 (Slightly Right)
+
+Tape Effects:
+  Wow & Flutter:        0.4 (40%)
+  Tape Saturation:      0.5 (50%)
+  Master Volume:        1.0 (100%)
+
+Performance Tips:
+  - Hold whole notes and sus chords
+  - Soft attacks for smooth blending
+  - Layer 2-3 notes for rich harmonies
+  - Add reverb on master for spacious sound
+  - Works great over slow, soulful bass lines
+
+
+PRESET 6: GONG/BELL SUSTAIN (Cinematic/Dramatic)
+─────────────────────────────────────────────────
+
+Description: Mysterious, sustaining gong with ethereal accompaniment
+
+Configuration:
+  Tape 1 Selection:     4 (Gong)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     7 (M400 Choir)
+  Tape 2 Level:         0.4 (40%)
+  Tape 2 Pan:           30 (Right)
+
+  Tape 3 Selection:     0 (MKII Flute)
+  Tape 3 Level:         0.3 (30%)
+  Tape 3 Pan:           -30 (Left)
+
+Tape Effects:
+  Wow & Flutter:        0.6 (60%)
+  Tape Saturation:      0.7 (70%)
+  Master Volume:        0.85 (85%)
+
+Performance Tips:
+  - Use single notes/pads for best effect
+  - Long sustain times work best
+  - Add reverb on master (70% wet)
+  - Heavy tape saturation adds character
+  - Great for dramatic crescendos and effects
+
+
+PRESET 7: LUSH VIOLIN ENSEMBLE (Romantic/Cinematic)
+────────────────────────────────────────────────────
+
+Description: Multiple violin layers for rich, romantic sound
+
+Configuration:
+  Tape 1 Selection:     5 (M300A Violins)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     2 (MKII 3 Violins)
+  Tape 2 Level:         0.8 (80%)
+  Tape 2 Pan:           -25 (Left)
+
+  Tape 3 Selection:     11 (MKII 3 Violins - Alt)
+  Tape 3 Level:         0.6 (60%)
+  Tape 3 Pan:           25 (Right)
+
+Tape Effects:
+  Wow & Flutter:        0.35 (35%)
+  Tape Saturation:      0.5 (50%)
+  Master Volume:        0.95 (95%)
+
+Performance Tips:
+  - Use sustain pedal throughout
+  - Play slow, expressive melodies
+  - Varies velocity for vibrato depth
+  - Add light compression on master for cohesion
+  - Perfect for orchestral arrangements
+
+
+PRESET 8: MIXED WOODWIND (Jazz/Contemporary)
+─────────────────────────────────────────────
+
+Description: Warm woodwind blend with modern edge
+
+Configuration:
+  Tape 1 Selection:     9 (M400 Woodwind2)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     0 (MKII Flute)
+  Tape 2 Level:         0.5 (50%)
+  Tape 2 Pan:           30 (Right)
+
+  Tape 3 Selection:     1 (M400 Cello)
+  Tape 3 Level:         0.4 (40%)
+  Tape 3 Pan:           -30 (Left)
+
+Tape Effects:
+  Wow & Flutter:        0.3 (30%)
+  Tape Saturation:      0.45 (45%)
+  Master Volume:        1.0 (100%)
+
+Performance Tips:
+  - Medium attack times work best
+  - Works great for jazz and fusion
+  - Staccato patterns sound authentic
+  - Lower tape saturation keeps it modern
+  - Layer with acoustic bass for best results
+
+
+PRESET 9: MAXIMALIST MIX (All-In Lush)
+──────────────────────────────────────
+
+Description: Maximum texture - all three tapes at full power
+
+Configuration:
+  Tape 1 Selection:     8 (M400 String Section)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     7 (M400 Choir)
+  Tape 2 Level:         1.0 (100%)
+  Tape 2 Pan:           -30 (Left)
+
+  Tape 3 Selection:     3 (Gc3 Brass)
+  Tape 3 Level:         0.8 (80%)
+  Tape 3 Pan:           30 (Right)
+
+Tape Effects:
+  Wow & Flutter:        0.4 (40%)
+  Tape Saturation:      0.65 (65%)
+  Master Volume:        0.8 (80%) - Lower to prevent clipping
+
+Performance Tips:
+  - Hold for long, lush pad sounds only
+  - Use high master volume carefully to avoid clipping
+  - Add heavy compression (4:1 or more)
+  - Layer 2-3 notes max for clarity
+  - Sounds best with orchestral arrangements
+
+
+PRESET 10: MINIMALIST CELLO (Contemporary/Sparse)
+──────────────────────────────────────────────────
+
+Description: Single instrument with minimal character
+
+Configuration:
+  Tape 1 Selection:     1 (M400 Cello)
+  Tape 1 Level:         1.0 (100%)
+  Tape 1 Pan:           0 (Center)
+
+  Tape 2 Selection:     --disabled-- (0%)
+
+  Tape 3 Selection:     --disabled-- (0%)
+
+Tape Effects:
+  Wow & Flutter:        0.1 (10%)
+  Tape Saturation:      0.2 (20%)
+  Master Volume:        1.0 (100%)
+
+Performance Tips:
+  - Ultra clean, minimal character
+  - Tape wobble is subtle
+  - Works like modern sample playback
+  - Great for precise melody work
+  - Pair with minimal arrangements
+
+
+═════════════════════════════════════════════════════════════════════════════════
+HOW TO USE THESE PRESETS
+═════════════════════════════════════════════════════════════════════════════════
+
+METHOD 1: Manual Setup (Easiest for learning)
+──────────────────────────────────────────────
+1. Open Mellotron.jsfx in your FX window
+2. For each preset, manually adjust sliders to match the values above
+3. Test by playing notes on your keyboard
+4. Save your favorite configurations
+
+
+METHOD 2: Reaper Preset System
+───────────────────────────────
+1. Configure the Mellotron.jsfx with your first preset
+2. In the FX window, click the preset dropdown
+3. Select "Save preset as..."
+4. Name it (e.g., "Classical_Strings_YES")
+5. Save and repeat for each preset
+
+
+METHOD 3: JSFX Automation
+──────────────────────────
+1. Create preset variations by automating slider changes
+2. Record parameter changes over time
+3. Play back for dynamic tape mixing during performance
+
+
+═════════════════════════════════════════════════════════════════════════════════
+MIXING REAL-TIME DURING PERFORMANCE
+═════════════════════════════════════════════════════════════════════════════════
+
+For live performance, you can dynamically mix tapes:
+
+Technique 1: Fade-In Secondary Tapes
+  - Start with Tape 1 at 100%, Tape 2-3 at 0%
+  - Gradually increase Tape 2/3 during the song
+  - Use faders for smooth blending
+
+Technique 2: Tape Switching
+  - Quickly change Tape Selection to different sounds
+  - Keeps same level but changes timbre
+  - Works well for verse/chorus variations
+
+Technique 3: Panning Dynamics
+  - Use pan to create stereo movement
+  - Move tapes L/R during builds or choruses
+  - Creates sense of space and depth
+
+Technique 4: Saturation Swells
+  - Increase Tape Saturation for climactic moments
+  - Dial back for clean sections
+  - Adds dynamic energy and character
+
+
+═════════════════════════════════════════════════════════════════════════════════
+FAMOUS MELLOTRON USAGE IN MUSIC
+═════════════════════════════════════════════════════════════════════════════════
+
+YES - "Roundabout"
+  → Use Preset 1 (Classic String Section)
+  → Tape 1 at full volume, sustain throughout
+
+KING CRIMSON - "Court of the Crimson King"
+  → Use Preset 2 (Orchestral Brass) + Preset 1 (Strings)
+  → Switch between them for sections
+  → Heavy Wow & Flutter for lo-fi character
+
+GENESIS - "Firth of Fifth"
+  → Use Preset 1 (Classic String Section)
+  → Minimal effects, let the pure tone shine
+
+THE MOODY BLUES - "Knights in White Satin"
+  → Use Preset 3 (Ambient Flute Pad) + Preset 5 (Choir)
+  → Heavy reverb on master bus
+  → Keep velocity moderate for lush quality
+
+
+═════════════════════════════════════════════════════════════════════════════════
+
+Tips for Creating Your Own Presets:
+  - Start with one tape, add layers
+  - Experiment with panning for width
+  - Tape Saturation = character, Wow = vintage feel
+  - Less is often more (avoid 100% on all three tapes)
+  - Save frequently and name descriptively
+  - Trust your ears over the numbers!
+
+Happy Mellotron-ing! 🎹✨

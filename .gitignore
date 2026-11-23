@@ -1,0 +1,26 @@
+# Sample files (use Git LFS for these)
+*.wav
+*.flac
+*.aiff
+
+# Large directories
+samples/
+decent-sampler-files/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Reaper
+*.bak
+*.autosave
+
+# Python
+__pycache__/
+*.pyc
