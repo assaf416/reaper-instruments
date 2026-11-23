@@ -151,7 +151,7 @@ In REAPER: FX -> Add -> 'Bass Station S2 (Tukan)', or the FX chain 'Reaper Instr
 if (Want 'DemoSong') {
   New-Package 'DemoSong' 'Demo Song (all instruments)' @"
 A 24-bar song that plays every instrument of the Reaper Instruments collection together (drums, bass through the bass rig, guitar through the
-guitar rig, organ, Rhodes, Mellotron). Install the instrument packages first. Open it from File -> New project from template.
+guitar rig, organ, Rhodes, Mellotron, Retro Synth). Install the instrument packages first. Open it from File -> New project from template.
 "@ @((F "$repo\DemoSong\DemoSong.rpp" 'ProjectTemplates/Reaper Instruments - Demo Song.RPP'))
 }
 

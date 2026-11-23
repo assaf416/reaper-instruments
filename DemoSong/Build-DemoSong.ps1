@@ -11,6 +11,8 @@
 #   4 Organ       Organ/OrganSingle.jsfx                preset 3 "Gospel"
 #   5 Piano       Piano/Piano.jsfx                      Matt's Fender Rhodes
 #   6 Mellotron   Mellotron/Mellotron.jsfx              flute + violins + strings
+#   7 Synth arp   Synth/RetroSynth.jsfx                 preset 27 "Pluck Arp"
+#   8 Synth lead  Synth/RetroSynth.jsfx                 preset 11 "Moore Lead"
 #
 # Sections (bar numbers start at 1):  Intro 1-4 | Verse 5-12 | Chorus 13-20 | Outro 21-24
 
@@ -34,7 +36,7 @@ function Section($bar) { if ($bar -lt 4) { 'intro' } elseif ($bar -lt 12) { 'ver
 function Human($t) { (($t * 7) % 9) - 4 }      # deterministic +-4 velocity wobble
 
 # per-track event lists: absolute tick, note, velocity, length
-$trk = @{}; foreach ($n in 'drums','bass','gtr','organ','piano','mello') { $trk[$n] = New-Object System.Collections.Generic.List[object] }
+$trk = @{}; foreach ($n in 'drums','bass','gtr','organ','piano','mello','arp','lead') { $trk[$n] = New-Object System.Collections.Generic.List[object] }
 function Note($track, $t, $n, $v, $len) {
   $v = [int][math]::Max(1, [math]::Min(127, $v + (Human $t)))
   $trk[$track].Add([pscustomobject]@{ t = [int]$t; n = [int]$n; v = $v; len = [int]$len })
@@ -107,6 +109,19 @@ for ($b = 0; $b -lt $BARS; $b++) {
   if ($sec -eq 'chorus' -or $b -eq 2 -or $b -eq 3) {
     for ($i = 0; $i -lt 4; $i++) { Note 'mello' ($o + $i * $Q) $c.mel[$i] 92 880 }
   }
+
+  # ---- synth arp (Retro Synth, preset 27 "Pluck Arp"): 16th-note arpeggio through the verse and chorus ----
+  if ($sec -eq 'verse' -or $sec -eq 'chorus') {
+    $av = if ($sec -eq 'chorus') { 88 } else { 66 }
+    $order = 0,1,2,1
+    for ($i = 0; $i -lt 16; $i++) { Note 'arp' ($o + $i * $S16) ($c.pad[$order[$i % 4]] + 12) ($av + $(if ($i % 4 -eq 0) { 14 } else { 0 })) 200 }
+  }
+
+  # ---- synth lead (Retro Synth, preset 11 "Moore Lead"): doubles the melody an octave up in the second half of the chorus, final note in the outro ----
+  if ($b -ge 16 -and $b -lt 20) {
+    for ($i = 0; $i -lt 4; $i++) { Note 'lead' ($o + $i * $Q) ($c.mel[$i] + 12) 100 880 }
+  }
+  if ($b -eq 23) { Note 'lead' $o ($c.pad[0] + 12) 105 3700 }
 }
 
 # ------------------------------------------------------------------ writer ----
@@ -150,7 +165,9 @@ $guitarFx      = '0 0.35 0.8 0.5 0.22 380 0.35 1 2 1 0.5 1' + (' -' * 52)      #
 $mello         = '12 7 15 0.9 0.6 0.5 0 -30 30 0.2 0.3 1' + (' -' * 52)       # flute + M300A violins + string section
 $piano         = '2 0.25 0.6 0.4 1' + (' -' * 59)                               # Fender Rhodes, output 100 %
 $organ         = (((1..40 | ForEach-Object { '-' }) -join ' ') + ' 3 ' + ((1..70 | ForEach-Object { '-' }) -join ' '))   # program 3: Gospel
-$drums         = '0 0.2 0.5 0.5 1 1 1 1 1 1 1 1 0 0 15 -20 20 0 0 0 0 0 0 0 0 0' + (' -' * 38)
+$synthArp      = '27' + (' -' * 70)                                              # Retro Synth preset 27: Pluck Arp
+$synthLead     = '11' + (' -' * 70)                                              # Retro Synth preset 11: Moore Lead
+$drums         ='0 0.2 0.5 0.5 1 1 1 1 1 1 1 1 0 0 15 -20 20 0 0 0 0 0 0 0 0 0' + (' -' * 38)
 
 $tracks = @(
   # fader values (linear): the first mix peaked at +3.5 dB on the master, so everything was pulled down ~6 dB
@@ -159,7 +176,9 @@ $tracks = @(
   (Track 'Guitar (Guitar sampler + Guitar Rig)' 0.34 -0.35 (Col 230 150 50) ((JS 'Guitar/Guitar.jsfx' $guitarFx '04') + "`n" + (JS 'GuitarRig/Guitar Station S2 (Tukan)' $dashes '05')) $trk['gtr']),
   (Track 'Organ (Single Manual)'        0.34  0.25 (Col 120 90 160) (JS 'Organ/OrganSingle.jsfx' $organ '06') $trk['organ']),
   (Track 'Piano (Fender Rhodes)'        0.30  0.35 (Col 90 160 110) (JS 'Piano/Piano.jsfx' $piano '07') $trk['piano']),
-  (Track 'Mellotron (3 tapes)'          0.34 -0.30 (Col 160 160 90) (JS 'Mellotron/Mellotron.jsfx' $mello '08') $trk['mello'])
+  (Track 'Mellotron (3 tapes)'          0.34 -0.30 (Col 160 160 90) (JS 'Mellotron/Mellotron.jsfx' $mello '08') $trk['mello']),
+  (Track 'Synth arp (Retro Synth - Pluck Arp)'  0.28  0.40 (Col 200 90 160) (JS 'Synth/RetroSynth.jsfx' $synthArp '09') $trk['arp']),
+  (Track 'Synth lead (Retro Synth - Moore Lead)' 0.26 -0.10 (Col 90 200 200) (JS 'Synth/RetroSynth.jsfx' $synthLead '10') $trk['lead'])
 )
 
 $markers = @(@(1,0,'Intro'), @(2,(4 * $secPerBar),'Verse'), @(3,(12 * $secPerBar),'Chorus'), @(4,(20 * $secPerBar),'Outro')) | ForEach-Object {
