@@ -29,3 +29,7 @@ __pycache__/
 Backups/
 *.rpp-bak
 */resources/
+
+# Tukan Studios' Guitar Station S2 files: the upstream repo declares no license, so they are not redistributed here
+GuitarRig/vendor/
+BassRig/vendor/
