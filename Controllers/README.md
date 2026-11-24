@@ -32,3 +32,7 @@ sliders 0-7, knobs 16-23.
 splitter in front of each instrument: bass on the low keys (Guitar sampler + Bass Rig), organ in the middle, piano on top, and the Drums on the pads
 (channel 10). All four tracks are armed; set each track's record input to the Oxygen (Drums: channel 10 only).
 Tilr's *Notes to CC* and *Vel to CC* are not used.
+
+## Rig presets
+The patched Guitar Station S2 holds 37 presets (its 29 factory presets, read from its `.RPL` file at install time, plus 8 more). A Program Change
+message (0-36) selects one; BANK < / > and the encoder step through them. The Guitar instrument's window sends those messages.

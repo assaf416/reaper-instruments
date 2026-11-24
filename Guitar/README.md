@@ -33,3 +33,12 @@ then **FX -> Add -> Guitar**. Demo project: `projects\Guitar_Demo.rpp`.
 ## Credits
 
 Samples belong to their authors and keep their licenses - see the readme / preset files in each `samples\<guitar>\` folder.
+
+## New window and rig remote
+The window follows the chmaha Jexed / JamSynth panels (all drawing code is new): guitar cells, chorus / delay / output knobs, and a **RIG** panel.
+The RIG panel and the preset display remote-control the **Tukan Guitar Station S2** placed **after** this plugin in the same FX chain (use the
+`Guitar + Rig` FX chain), so the sampled guitar is the amp's input: the display browses **all 37 presets** (the 29 factory presets of the plugin
+plus the 8 of this repository; Program Change messages), the eight effect cells pick Amp / Dist / Chorus / Flanger / Phaser / Tremolo / Delay /
+Reverb, and the four knobs set that effect's parameters (the effect is switched on). It talks to the rig with MIDI, so the knob positions show what the
+window last sent; choosing a preset resets them to the middle. Hardware controllers reach the rig the same way (see `..\Controllers\README.md`).
+Run `..\GuitarRig\Install-GuitarRig.ps1` after updating: it patches the local copy of the rig with the presets and the MIDI handling.

@@ -28,6 +28,56 @@ out_pin:right output
 
 @init
 rc_load();
+// ---- rig remote (the window sends MIDI to the Tukan rig placed after this plugin) ----
+rq = 2300; rqr = 0; rqw = 0; rn = 3100; fxnp = 3150; fxn = 3160; fxname = 3230; rkv = 3240;
+rig_p = 0; rig_fx = 0; menu_ok = 0; memset(rkv, 0.5, 32);
+rn[0] = "TWO OF US";
+rn[1] = "WHAT THEY TOLD YOU";
+rn[2] = "BASKET BALL";
+rn[3] = "DANI C.";
+rn[4] = "TAKE ME";
+rn[5] = "BLOG: INTRO FUZZ";
+rn[6] = "BLOG: WEIRDING";
+rn[7] = "BLOG: HARD DRIVE";
+rn[8] = "BLOG: SCOOPED MARSH";
+rn[9] = "BLOG: IN YER FKN FACE";
+rn[10] = "BLOG: VERY LOUD";
+rn[11] = "RIDE SURFER";
+rn[12] = "ABRAXAS";
+rn[13] = "SANTA ANTMAN";
+rn[14] = "ELF STEEMS";
+rn[15] = "SOMETHING ROAD";
+rn[16] = "OUTA SPACE";
+rn[17] = "GANG A BONG";
+rn[18] = "PURPLE PRECIPITATION";
+rn[19] = "VOODOO";
+rn[20] = "BLOG: STAY A WHILE AND LISTEN";
+rn[21] = "BLOG: PUNKIFIER";
+rn[22] = "BLOG: TEXTURED DRIVE";
+rn[23] = "BLOG: BRUTAL IN PINK";
+rn[24] = "BLOG: BEARD, PLAID SHIRT, TOO MANY PEDALS PROBABLY";
+rn[25] = "INIT AMP 1";
+rn[26] = "INIT AMP 2";
+rn[27] = "INIT AMP 3";
+rn[28] = "INIT AMP 4";
+rn[29] = "CLEAN";
+rn[30] = "CLEAN + CHORUS";
+rn[31] = "CRUNCH";
+rn[32] = "ROCK";
+rn[33] = "LEAD + DELAY";
+rn[34] = "HIGH GAIN";
+rn[35] = "BLUES";
+rn[36] = "AMBIENT";
+fxname[0] = "AMP"; fxname[1] = "DIST"; fxname[2] = "CHORUS"; fxname[3] = "FLANGER"; fxname[4] = "PHASER"; fxname[5] = "TREMOLO"; fxname[6] = "DELAY"; fxname[7] = "REVERB";
+fxnp[0] = 4; fxnp[1] = 4; fxnp[2] = 2; fxnp[3] = 4; fxnp[4] = 4; fxnp[5] = 4; fxnp[6] = 3; fxnp[7] = 1;
+fxn[0] = "GAIN"; fxn[1] = "BASS"; fxn[2] = "MID"; fxn[3] = "TREBLE";
+fxn[4] = "DRIVE"; fxn[5] = "LOWPASS"; fxn[6] = "OUTPUT"; fxn[7] = "DIST LEVEL";
+fxn[8] = "DEPTH"; fxn[9] = "BALANCE";
+fxn[12] = "RATE"; fxn[13] = "DELAY"; fxn[14] = "DEPTH"; fxn[15] = "PHASE";
+fxn[16] = "RATE"; fxn[17] = "FEEDBACK"; fxn[18] = "MIX"; fxn[19] = "RANGE";
+fxn[20] = "RATE"; fxn[21] = "AMOUNT"; fxn[22] = "STEREO"; fxn[23] = "SHAPE";
+fxn[24] = "TIME"; fxn[25] = "FEEDBACK"; fxn[26] = "MIX";
+fxn[28] = "AMOUNT";
 NV = 64;          // voices
 MAXS = 96;        // max samples per guitar
 
@@ -220,6 +270,7 @@ slider1 != loaded ? (
 );
 
 @block
+while (rqr != rqw) ( midisend(0, rq[rqr * 3], rq[rqr * 3 + 1], rq[rqr * 3 + 2]); rqr = (rqr + 1) & 255; );
 while (midirecv(offs, m1, m2, m3)) (
   st = m1 & 0xF0;
   (st == 0xB0 || st == 0xC0) ? midisend(offs, m1, m2, m3);   // pass controller messages on to a rig after this instrument (knobs 1-4 belong to the rig)
@@ -388,199 +439,275 @@ spl0 = outL;
 spl1 = outR;
 pkm = max(pkm * 0.9998, max(abs(outL), abs(outR)));
 
-@gfx 900 540
-gfx_clear = 0x1a1a1a;
+@gfx 1000 620
+// Look after the Jexed and JamSynth panels (chmaha JSFX ports): dark panels, preset LCD with arrows, round knobs with a coloured arc.
+// The RIG panel remote-controls the Tukan Guitar Station S2 placed after this plugin in the same FX chain (MIDI messages): all
+// its presets (Program Change), the effect choice and the four knobs of the chosen effect. All drawing code here is new.
+gfx_clear = 0x181614;
 
-// ---------- mouse ----------
+function gt_set(gs, v) ( slider(gs) = v; sliderchange(2 ^ (gs - 1)); slider_automate(2 ^ (gs - 1)); );
+function rig_send(a, b, c) ( rq[rqw * 3] = a; rq[rqw * 3 + 1] = b; rq[rqw * 3 + 2] = c; rqw = (rqw + 1) & 255; );
+function rig_preset(p) ( rig_p = (p + 37) % 37; rig_send(192, rig_p, 0); menu_ok = 0; memset(rkv, 0.5, 32); );
+function rig_fxsel(e) ( rig_fx = e; rig_send(176, rc_f4, floor((e + 0.5) / 8 * 127)); );
+function rig_knob(j, v) ( rkv[rig_fx * 4 + j] = v; rig_send(176, j == 0 ? rc_k1 : (j == 1 ? rc_k2 : (j == 2 ? rc_k3 : rc_k4)), floor(v * 127 + 0.5)); );
+
+// sampler knob table
+function kn(k) (
+  k == 0 ? ( ks = 2;  klo = 0;   khi = 1;    kst = 0.01; kdf = 0.4;  kc = 0; ) :
+  k == 1 ? ( ks = 3;  klo = 0.1; khi = 5;    kst = 0.05; kdf = 0.8;  kc = 0; ) :
+  k == 2 ? ( ks = 4;  klo = 0;   khi = 1;    kst = 0.01; kdf = 0.5;  kc = 0; ) :
+  k == 3 ? ( ks = 5;  klo = 0;   khi = 1;    kst = 0.01; kdf = 0.25; kc = 1; ) :
+  k == 4 ? ( ks = 6;  klo = 20;  khi = 1200; kst = 1;    kdf = 380;  kc = 1; ) :
+  k == 5 ? ( ks = 7;  klo = 0;   khi = 0.9;  kst = 0.01; kdf = 0.35; kc = 1; ) :
+  k == 6 ? ( ks = 11; klo = 0;   khi = 1;    kst = 0.01; kdf = 0.5;  kc = 1; ) :
+           ( ks = 12; klo = 0;   khi = 2;    kst = 0.01; kdf = 1;    kc = 2; );
+  kx = 420 + k * 72; ky = 196;
+  kc == 0 ? ( pr = 0.68; pg = 0.48; pb = 0.92; ) : kc == 1 ? ( pr = 0.45; pg = 0.60; pb = 0.98; ) : ( pr = 0.92; pg = 0.92; pb = 0.92; );
+);
+
+function drawknob(cx, cy, frac, from) local(rad, rf) (
+  rad = (frac * 260 - 130) * $pi / 180; rf = (from * 260 - 130) * $pi / 180;
+  gfx_set(0.16, 0.17, 0.19, 1);
+  gr_ = 23; loop(5, gfx_arc(cx, cy, gr_, -130 * $pi / 180, 130 * $pi / 180, 1); gr_ -= 0.5; );
+  gfx_set(pr, pg, pb, 1);
+  gr_ = 23; loop(5, gfx_arc(cx, cy, gr_, min(rf, rad), max(rf, rad), 1); gr_ -= 0.5; );
+  gfx_set(0.07, 0.075, 0.085, 1); gfx_circle(cx, cy, 18, 1, 1);
+  gfx_set(0.2, 0.21, 0.24, 1); gfx_circle(cx, cy, 15, 1, 1);
+  gfx_set(0.96, 0.96, 0.96, 1);
+  gfx_line(cx + sin(rad) * 5, cy - cos(rad) * 5, cx + sin(rad) * 13, cy - cos(rad) * 13, 1);
+);
+
+// ---- rig preset menu ----
+!menu_ok ? (
+  menu_ok = 1; strcpy(#pm, ">TUKAN PRESETS|");
+  gp = 0;
+  loop(37,
+    gp == 29 ? strcat(#pm, "<|>REAPER INSTRUMENTS PRESETS|");
+    gp == rig_p ? strcat(#pm, "!");
+    strcat(#pm, rn[gp]); strcat(#pm, "|");
+    gp += 1;
+  );
+  strcat(#pm, "<");
+);
+
+// ====================== mouse ======================
 gmd = mouse_cap & 1;
 gmd && !glmd ? (
   gdrag = -1;
-
-  // guitar cards
+  (mouse_y >= 14 && mouse_y < 92) ? (
+    (mouse_x >= 270 && mouse_x < 302) ? rig_preset(rig_p - 1) :
+    (mouse_x >= 638 && mouse_x < 670) ? rig_preset(rig_p + 1) :
+    (mouse_x >= 302 && mouse_x < 638) ? (
+      gfx_x = mouse_x; gfx_y = mouse_y; gsel = gfx_showmenu(#pm);
+      gsel > 0 ? rig_preset(gsel - 1); menu_ok = 0;
+    );
+  );
+  // guitar cells
   gt = 0;
   loop(3,
-    (mouse_x >= 20 + gt * 300 && mouse_x < 300 + gt * 300 && mouse_y >= 80 && mouse_y < 180) ? (
-      slider1 = gt;
-      sliderchange(1);
-      slider_automate(1);
-    );
+    (mouse_x >= 24 && mouse_x < 364 && mouse_y >= 138 + gt * 56 && mouse_y < 138 + gt * 56 + 50) ? gt_set(1, gt);
     gt += 1;
   );
-
-  // bars
-  gci = 0;
-  loop(NC - 1,
-    gco = ctl + gci * 9;
-    (mouse_x >= gco[0] && mouse_x < gco[0] + gco[2] && mouse_y >= gco[1] && mouse_y < gco[1] + gco[3]) ? (
-      gdrag = gci;
-      (mouse_cap & 4) ? (
-        slider(gco[6]) = gco[8];
-        sliderchange(2 ^ (gco[6] - 1));
-        slider_automate(2 ^ (gco[6] - 1));
-        gdrag = -1;
+  // sampler knobs
+  gk = 0;
+  loop(8,
+    kn(gk);
+    (mouse_x >= kx - 28 && mouse_x < kx + 28 && mouse_y >= ky - 28 && mouse_y < ky + 24) ? (
+      gnow = time_precise();
+      ((mouse_cap & 4) || (gk == glast_k && gnow - glast_t < 0.45)) ? ( gt_set(ks, kdf); ) :
+      ( gdrag = gk; gdy0 = mouse_y; gdv0 = slider(ks); );
+      glast_k = gk; glast_t = gnow;
+    );
+    gk += 1;
+  );
+  // toggles: tempo sync, ping-pong, division
+  (mouse_y >= 252 && mouse_y < 278) ? (
+    (mouse_x >= 400 && mouse_x < 480) ? gt_set(8, 1 - slider8);
+    (mouse_x >= 490 && mouse_x < 590) ? gt_set(10, 1 - slider10);
+    (mouse_x >= 600 && mouse_x < 680) ? gt_set(9, (slider9 + 1) % 7);
+  );
+  // rig: effect cells and knobs
+  (mouse_x >= 24 && mouse_x < 424 && mouse_y >= 352 && mouse_y < 448) ? (
+    ge = floor((mouse_y - 352) / 48) * 4 + floor((mouse_x - 24) / 100);
+    ge >= 0 && ge < 8 ? rig_fxsel(ge);
+  );
+  gj = 0;
+  loop(4,
+    gj < fxnp[rig_fx] ? (
+      gkx = 520 + gj * 110; gky = 416;
+      (mouse_x >= gkx - 28 && mouse_x < gkx + 28 && mouse_y >= gky - 28 && mouse_y < gky + 24) ? (
+        gnow = time_precise();
+        ((mouse_cap & 4) || (gnow - glast_t < 0.45 && glast_k == 100 + gj)) ? rig_knob(gj, 0.5) :
+        ( gdrag = 100 + gj; gdy0 = mouse_y; gdv0 = rkv[rig_fx * 4 + gj]; );
+        glast_k = 100 + gj; glast_t = gnow;
       );
     );
-    gci += 1;
-  );
-
-  // toggles: tempo sync, ping-pong
-  (mouse_y >= 394 - 20 && mouse_y < 394 + 4) ? (
-    (mouse_x >= 500 && mouse_x < 580) ? ( slider8 = 1 - slider8; sliderchange(128); slider_automate(128); );
-    (mouse_x >= 590 && mouse_x < 670) ? ( slider10 = 1 - slider10; sliderchange(512); slider_automate(512); );
+    gj += 1;
   );
 );
-gmd && gdrag >= 0 ? (
-  gco = ctl + gdrag * 9;
-  gslot = gco[6]; gmin = gco[4]; gmax = gco[5]; gstp = gco[7];
-  // while tempo sync is on, the delay-time bar picks the note division instead
-  (gslot == 6 && slider8 > 0.5) ? ( gslot = 9; gmin = 0; gmax = 6; gstp = 1; );
-  gv = gmin + (gmax - gmin) * max(0, min(1, (mouse_x - gco[0]) / gco[2]));
-  gv = floor(gv / gstp + 0.5) * gstp;
-  gv != slider(gslot) ? (
-    slider(gslot) = gv;
-    sliderchange(2 ^ (gslot - 1));
-    slider_automate(2 ^ (gslot - 1));
+gmd && gdrag >= 0 && gdrag < 100 ? (
+  kn(gdrag);
+  gv = gdv0 + (gdy0 - mouse_y) / (mouse_cap & 8 ? 600 : 160) * (khi - klo);
+  gv = max(klo, min(khi, gv)); gv = floor(gv / kst + 0.5) * kst;
+  gv != slider(ks) ? gt_set(ks, gv);
+);
+gmd && gdrag >= 100 ? (
+  gv = gdv0 + (gdy0 - mouse_y) / (mouse_cap & 8 ? 600 : 160);
+  gv = max(0, min(1, gv));
+  abs(gv - rkv[rig_fx * 4 + gdrag - 100]) > 0.004 ? rig_knob(gdrag - 100, gv);
+);
+mouse_wheel != 0 ? (
+  gk = 0;
+  loop(8,
+    kn(gk);
+    (mouse_x >= kx - 28 && mouse_x < kx + 28 && mouse_y >= ky - 28 && mouse_y < ky + 24) ? (
+      gv = slider(ks) + (mouse_wheel > 0 ? 1 : -1) * max(kst, (khi - klo) * 0.04);
+      gv = max(klo, min(khi, gv)); gv = floor(gv / kst + 0.5) * kst; gt_set(ks, gv);
+    );
+    gk += 1;
   );
+  gj = 0;
+  loop(4,
+    gj < fxnp[rig_fx] ? (
+      (mouse_x >= 492 + gj * 110 && mouse_x < 548 + gj * 110 && mouse_y >= 388 && mouse_y < 440) ? (
+        rig_knob(gj, max(0, min(1, rkv[rig_fx * 4 + gj] + (mouse_wheel > 0 ? 0.04 : -0.04))));
+      );
+    );
+    gj += 1;
+  );
+  mouse_wheel = 0;
 );
 !gmd ? gdrag = -1;
 glmd = gmd;
 
-// ---------- title ----------
-gfx_setfont(1, "Arial", 30);
-gfx_set(1, 1, 1, 1);
-gfx_x = 20; gfx_y = 14;
-gfx_drawstr("GUITAR");
-gfx_setfont(1, "Arial", 14);
-gfx_set(0.7, 0.7, 0.7, 1);
-gfx_x = 20; gfx_y = 54;
-gfx_drawstr("Click a guitar to load it - drag the bars to adjust (Ctrl+click resets)");
+// ====================== header ======================
+gfx_setfont(1, "Arial", 30, 98);
+gfx_set(0.95, 0.62, 0.18, 1); gfx_x = 20; gfx_y = 14; gfx_drawstr("GUITAR");
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.6, 0.6, 0.62, 1); gfx_x = 22; gfx_y = 54; gfx_drawstr("sampled guitars + Tukan amps and effects");
+gfx_x = 22; gfx_y = 70; gfx_drawstr("the display browses the rig presets");
 
-// ---------- guitar cards ----------
+gfx_set(0.055, 0.04, 0.025, 1); gfx_rect(270, 14, 400, 78);
+gfx_set(0.25, 0.2, 0.12, 1); gfx_rect(270, 14, 400, 78, 0);
+gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(270, 14, 32, 78); gfx_rect(638, 14, 32, 78);
+gfx_set(0.95, 0.5, 0.2, 1);
+gfx_triangle(292, 38, 292, 68, 278, 53);
+gfx_triangle(648, 38, 648, 68, 662, 53);
+gfx_setfont(1, "Courier New", 13, 98);
+gfx_set(0.95, 0.6, 0.2, 1);
+gfx_x = 314; gfx_y = 22; rig_p < 29 ? gfx_drawstr("TUKAN RIG") : gfx_drawstr("REAPER INSTRUMENTS RIG");
+sprintf(#gs, "%03d/037", rig_p + 1);
+gfx_measurestr(#gs, gw_, gh_); gfx_x = 628 - gw_; gfx_y = 22; gfx_drawstr(#gs);
+gfx_setfont(1, "Courier New", 22, 98);
+gfx_set(1, 0.72, 0.25, 1);
+gfx_measurestr(rn[rig_p], gw_, gh_); gfx_x = 470 - gw_ / 2; gfx_y = 46; gfx_drawstr(rn[rig_p]);
+
+gfx_set(0.1, 0.11, 0.12, 1); gfx_rect(880, 96, 100, 6);
+gfx_set(0.36, 0.82, 0.5, 1); gfx_rect(880, 96, min(1, pkm) * 100, 6);
+
+// ====================== guitar panel ======================
+gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(12, 108, 372, 204);
+gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(12, 108, 372, 204, 0);
+gfx_set(0.96, 0.62, 0.18, 1); gfx_rect(12, 108, 372, 2);
+gfx_setfont(1, "Arial", 12, 98); gfx_x = 20; gfx_y = 116; gfx_drawstr("GUITAR");
 gt = 0;
 loop(3,
-  gbx = 20 + gt * 300;
+  gcy = 138 + gt * 56;
   gsel = (slider1 == gt);
-  gt == 0 ? ( gcr = 0.95; gcg = 0.6;  gcb = 0.2; );
-  gt == 1 ? ( gcr = 0.35; gcg = 0.8;  gcb = 0.8; );
-  gt == 2 ? ( gcr = 0.75; gcg = 0.5;  gcb = 0.95; );
-  ghov = (mouse_x >= gbx && mouse_x < gbx + 280 && mouse_y >= 80 && mouse_y < 180);
-
-  gsel ? gfx_set(0.26, 0.26, 0.26, 1) : gfx_set(0.18, 0.18, 0.18, 1);
-  gfx_rect(gbx, 80, 280, 100);
-  (gsel || ghov) ? gfx_set(gcr, gcg, gcb, 1) : gfx_set(0.4, 0.4, 0.4, 1);
-  gfx_rect(gbx, 80, 280, 100, 0);
-  gsel ? ( gfx_set(gcr, gcg, gcb, 1); gfx_rect(gbx, 80, 280, 5); );
-
-  gfx_setfont(1, "Arial", 20);
-  gfx_set(1, 1, 1, 1);
-  gfx_x = gbx + 16; gfx_y = 98;
-  gfx_drawstr(pname[gt]);
-  gfx_setfont(1, "Arial", 13);
-  gfx_set(0.7, 0.7, 0.7, 1);
-  gfx_x = gbx + 16; gfx_y = 130;
-  gfx_drawstr(psub[gt]);
-  gfx_x = gbx + 16; gfx_y = 152;
-  gsel ? (
-    gfx_set(gcr, gcg, gcb, 1);
-    sprintf(#gs, "LOADED  -  %d samples", ns);
-  ) : (
-    gfx_set(0.5, 0.5, 0.5, 1);
-    sprintf(#gs, "click to load");
-  );
+  ghov = (mouse_x >= 24 && mouse_x < 364 && mouse_y >= gcy && mouse_y < gcy + 50);
+  gsel ? ( gfx_set(0.55, 0.33, 0.08, 1); gfx_rect(24, gcy, 340, 50); gfx_set(0.7, 0.42, 0.1, 1); gfx_rect(24, gcy + 25, 340, 25); ) :
+         ( gfx_set(ghov ? 0.13 : 0.09, ghov ? 0.14 : 0.1, ghov ? 0.16 : 0.115, 1); gfx_rect(24, gcy, 340, 50); );
+  gfx_setfont(1, "Arial", 11); gfx_set(gsel ? 1 : 0.8, gsel ? 0.8 : 0.5, 0.2, 1);
+  sprintf(#gs, "%02d", gt + 1); gfx_x = 34; gfx_y = gcy + 6; gfx_drawstr(#gs);
+  gfx_setfont(1, "Courier New", 16, 98); gfx_set(1, 1, 1, 1); gfx_x = 34; gfx_y = gcy + 18; gfx_drawstr(pname[gt]);
+  gfx_setfont(1, "Arial", 11); gfx_set(gsel ? 1 : 0.55, gsel ? 0.9 : 0.55, gsel ? 0.7 : 0.58, 1);
+  gfx_x = 34; gfx_y = gcy + 36; gsel ? sprintf(#gs, "%s  -  %d samples", psub[gt], ns) : sprintf(#gs, "%s", psub[gt]);
   gfx_drawstr(#gs);
   gt += 1;
 );
 
-// ---------- effect panels ----------
-gp = 0;
-loop(3,
-  gpx = (gp == 0) ? 20 : ((gp == 1) ? 300 : 690);
-  gpw = (gp == 0) ? 270 : ((gp == 1) ? 380 : 190);
-  gfx_set(0.2, 0.2, 0.2, 1);
-  gfx_rect(gpx, 200, gpw, 204);
-  gfx_set(0.4, 0.4, 0.4, 1);
-  gfx_rect(gpx, 200, gpw, 204, 0);
-  gp == 0 ? gfx_set(0.35, 0.65, 0.95, 1) : ( gp == 1 ? gfx_set(0.95, 0.65, 0.25, 1) : gfx_set(0.4, 0.8, 0.4, 1) );
-  gfx_rect(gpx, 200, gpw, 4);
-  gfx_setfont(1, "Arial", 14);
-  gfx_set(1, 1, 1, 1);
-  gfx_x = gpx + 15; gfx_y = 212;
-  gp == 0 ? gfx_drawstr("CHORUS") : ( gp == 1 ? gfx_drawstr("DELAY") : gfx_drawstr("OUTPUT") );
-  gp += 1;
+// ====================== chorus / delay / output ======================
+gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(396, 108, 592, 204);
+gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(396, 108, 592, 204, 0);
+gfx_set(0.68, 0.48, 0.92, 1); gfx_rect(396, 108, 220, 2);
+gfx_set(0.45, 0.60, 0.98, 1); gfx_rect(616, 108, 292, 2);
+gfx_set(0.92, 0.92, 0.92, 1); gfx_rect(908, 108, 80, 2);
+gfx_setfont(1, "Arial", 12, 98);
+gfx_set(0.68, 0.48, 0.92, 1); gfx_x = 404; gfx_y = 116; gfx_drawstr("CHORUS");
+gfx_set(0.45, 0.60, 0.98, 1); gfx_x = 624; gfx_y = 116; gfx_drawstr("DELAY");
+gfx_set(0.92, 0.92, 0.92, 1); gfx_x = 916; gfx_y = 116; gfx_drawstr("OUTPUT");
+gk = 0;
+loop(8,
+  kn(gk); gv = slider(ks);
+  gk == 0 ? ( gnm = "MIX"; sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); ) :
+  gk == 1 ? ( gnm = "RATE"; sprintf(#gs, "%.2f Hz", gv); ) :
+  gk == 2 ? ( gnm = "DEPTH"; sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); ) :
+  gk == 3 ? ( gnm = "MIX"; sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); ) :
+  gk == 4 ? ( gnm = "TIME"; slider8 > 0.5 ? sprintf(#gs, "%s", divn[slider9]) : sprintf(#gs, "%d ms", gv); ) :
+  gk == 5 ? ( gnm = "FEEDBACK"; sprintf(#gs, "%d%%", floor(gv / 0.9 * 100 + 0.5)); ) :
+  gk == 6 ? ( gnm = "TONE"; sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); ) :
+            ( gnm = "VOLUME"; sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); );
+  gfx_setfont(1, "Arial", 11);
+  gfx_set(0.85, 0.85, 0.85, 1); gfx_measurestr(#gs, gw_, gh_); gfx_x = kx - gw_ / 2; gfx_y = ky - 40; gfx_drawstr(#gs);
+  gfx_set(0.62, 0.62, 0.66, 1); gfx_measurestr(gnm, gw_, gh_); gfx_x = kx - gw_ / 2; gfx_y = ky + 26; gfx_drawstr(gnm);
+  drawknob(kx, ky, (gv - klo) / (khi - klo), 0);
+  gk += 1;
 );
-
-gci = 0;
-loop(NC - 1,
-  gco = ctl + gci * 9;
-  gslot = gco[6];
-  gmin = gco[4]; gmax = gco[5];
-  gv = slider(gslot);
-  gci == 0 ? ( gnm = "Mix";       sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.35, 0.65, 0.95, 1); );
-  gci == 1 ? ( gnm = "Rate";      sprintf(#gs, "%.2f Hz", gv);                 gfx_set(0.35, 0.65, 0.95, 1); );
-  gci == 2 ? ( gnm = "Depth";     sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.35, 0.65, 0.95, 1); );
-  gci == 3 ? ( gnm = "Mix";       sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.95, 0.65, 0.25, 1); );
-  gci == 4 ? (
-    gfx_set(0.95, 0.65, 0.25, 1);
-    slider8 > 0.5 ? (
-      gnm = "Time (tempo sync)"; gv = slider9; gmin = 0; gmax = 6;
-      sprintf(#gs, "%s", divn[slider9]);
-    ) : (
-      gnm = "Time";
-      sprintf(#gs, "%d ms", floor(gv + 0.5));
-    );
-  );
-  gci == 5 ? ( gnm = "Feedback";  sprintf(#gs, "%d%%", floor(gv * 100 / 0.9 + 0.5)); gfx_set(0.95, 0.65, 0.25, 1); );
-  gci == 6 ? ( gnm = "Tone";      sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.95, 0.65, 0.25, 1); );
-  gci == 7 ? ( gnm = "Volume";    sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)); gfx_set(0.4, 0.8, 0.4, 1); );
-  gcr = gfx_r; gcg = gfx_g; gcb = gfx_b;
-
-  gfx_setfont(1, "Arial", 13);
-  gfx_set(0.7, 0.7, 0.7, 1);
-  gfx_x = gco[0]; gfx_y = gco[1] - 18;
-  gfx_drawstr(gnm);
-  gfx_x = gco[0] + gco[2] - 60; gfx_y = gco[1] - 18;
-  gfx_drawstr(#gs);
-
-  gfx_set(0.1, 0.1, 0.1, 1);
-  gfx_rect(gco[0], gco[1], gco[2], gco[3]);
-  gfx_set(gcr, gcg, gcb, 1);
-  gfx_rect(gco[0], gco[1], (gv - gmin) / (gmax - gmin) * gco[2], gco[3]);
-  gfx_set(0.45, 0.45, 0.45, 1);
-  gfx_rect(gco[0], gco[1], gco[2], gco[3], 0);
-  gci += 1;
-);
-
-// toggle buttons (tempo sync / ping-pong)
+// toggle pills
 gt = 0;
-loop(2,
-  gbx = (gt == 0) ? 500 : 590;
-  gon = (gt == 0) ? (slider8 > 0.5) : (slider10 > 0.5);
-  gon ? gfx_set(0.95, 0.65, 0.25, 1) : gfx_set(0.28, 0.28, 0.28, 1);
-  gfx_rect(gbx, 374, 80, 24);
-  gfx_set(0.5, 0.5, 0.5, 1);
-  gfx_rect(gbx, 374, 80, 24, 0);
-  gon ? gfx_set(0.1, 0.1, 0.1, 1) : gfx_set(1, 1, 1, 1);
-  gfx_setfont(1, "Arial", 12);
-  gfx_x = gbx + (gt == 0 ? 12 : 8); gfx_y = 379;
-  gt == 0 ? gfx_drawstr("TEMPO SYNC") : gfx_drawstr("PING-PONG");
+loop(3,
+  gbx = gt == 0 ? 400 : (gt == 1 ? 490 : 600); gbw = gt == 1 ? 100 : 80;
+  gon = gt == 0 ? slider8 > 0.5 : (gt == 1 ? slider10 > 0.5 : 0);
+  gon ? ( gfx_set(0.45, 0.60, 0.98, 1); gfx_rect(gbx, 252, gbw, 26); gfx_set(0.06, 0.07, 0.09, 1); ) :
+        ( gfx_set(0.157, 0.176, 0.196, 1); gfx_rect(gbx, 252, gbw, 26); gfx_set(0.75, 0.75, 0.78, 1); );
+  gfx_setfont(1, "Arial", 12, 98); gfx_x = gbx + 10; gfx_y = 258;
+  gt == 0 ? gfx_drawstr("TEMPO SYNC") : (gt == 1 ? gfx_drawstr("PING-PONG") : ( sprintf(#gs, "DIV %s", divn[slider9]); gfx_drawstr(#gs); ));
   gt += 1;
 );
 
-// output meter
-gfx_set(0.9, 0.9, 0.3, 1);
-gfx_rect(705, 300, min(1, pkm) * 160, 8);
-gfx_set(0.45, 0.45, 0.45, 1);
-gfx_rect(705, 300, 160, 8, 0);
+// ====================== rig panel ======================
+gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(12, 322, 976, 150);
+gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(12, 322, 976, 150, 0);
+gfx_set(0.95, 0.38, 0.50, 1); gfx_rect(12, 322, 976, 2);
+gfx_setfont(1, "Arial", 12, 98); gfx_x = 20; gfx_y = 330;
+gfx_drawstr("RIG  -  TUKAN GUITAR STATION S2  (put it after this plugin in the FX chain: the samples are its guitar input)");
+gt = 0;
+loop(8,
+  gbx = 24 + (gt % 4) * 100; gby = 352 + floor(gt / 4) * 48;
+  gsel = (rig_fx == gt);
+  gsel ? ( gfx_set(0.55, 0.20, 0.28, 1); gfx_rect(gbx, gby, 94, 42); gfx_set(0.95, 0.38, 0.50, 1); gfx_rect(gbx, gby, 94, 2); ) :
+         ( gfx_set(0.157, 0.176, 0.196, 1); gfx_rect(gbx, gby, 94, 42); );
+  gfx_setfont(1, "Arial", 12, 98);
+  gfx_set(gsel ? 1 : 0.78, gsel ? 1 : 0.78, gsel ? 1 : 0.80, 1);
+  gfx_x = gbx + 10; gfx_y = gby + 14; gfx_drawstr(fxname[gt]);
+  gt += 1;
+);
+gj = 0;
+loop(4,
+  gj < fxnp[rig_fx] ? (
+    gkx = 520 + gj * 110; gky = 416;
+    pr = 0.95; pg = 0.38; pb = 0.50;
+    gv = rkv[rig_fx * 4 + gj];
+    sprintf(#gs, "%d", floor(gv * 100 + 0.5));
+    gfx_setfont(1, "Arial", 11);
+    gfx_set(0.85, 0.85, 0.85, 1); gfx_measurestr(#gs, gw_, gh_); gfx_x = gkx - gw_ / 2; gfx_y = gky - 40; gfx_drawstr(#gs);
+    gfx_set(0.62, 0.62, 0.66, 1); gfx_measurestr(fxn[rig_fx * 4 + gj], gw_, gh_); gfx_x = gkx - gw_ / 2; gfx_y = gky + 26; gfx_drawstr(fxn[rig_fx * 4 + gj]);
+    drawknob(gkx, gky, gv, 0);
+  );
+  gj += 1;
+);
+gfx_setfont(1, "Arial", 11); gfx_set(0.5, 0.5, 0.52, 1);
+gfx_x = 480; gfx_y = 452; gfx_drawstr("rig knob positions show what this window last sent; choosing a preset resets them to the middle");
 
-// ---------- keyboard (A0 .. C8) ----------
-gwk = 16.5; gkx = 20; gky = 408;
+// ====================== keyboard (A0 .. C8) ======================
+gwk = 18.5; gkx = 19; gky = 484;
 gn = 21;
 loop(88,
   gpc = gn % 12;
   (gpc == 0 || gpc == 2 || gpc == 4 || gpc == 5 || gpc == 7 || gpc == 9 || gpc == 11) ? (
     gwi = floor(gn / 12) * 7 + (gpc >= 11 ? 6 : (gpc >= 9 ? 5 : (gpc >= 7 ? 4 : (gpc >= 5 ? 3 : (gpc >= 4 ? 2 : (gpc >= 2 ? 1 : 0)))))) - 12;
     keys[gn] > 0 ? gfx_set(1, 0.9 - 0.45 * keys[gn] / 127, 0.25, 1) : gfx_set(0.93, 0.93, 0.93, 1);
-    gfx_rect(gkx + gwi * gwk, gky, gwk - 1, 100);
+    gfx_rect(gkx + gwi * gwk, gky, gwk - 1, 110);
   );
   gn += 1;
 );
@@ -591,17 +718,7 @@ loop(88,
     gm = gn - 1; gq = gm % 12;
     gwi = floor(gm / 12) * 7 + (gq >= 11 ? 6 : (gq >= 9 ? 5 : (gq >= 7 ? 4 : (gq >= 5 ? 3 : (gq >= 4 ? 2 : (gq >= 2 ? 1 : 0)))))) - 12;
     keys[gn] > 0 ? gfx_set(1, 0.75 - 0.4 * keys[gn] / 127, 0.15, 1) : gfx_set(0.08, 0.08, 0.08, 1);
-    gfx_rect(gkx + (gwi + 1) * gwk - 5, gky, 10, 62);
+    gfx_rect(gkx + (gwi + 1) * gwk - 6, gky, 11, 68);
   );
   gn += 1;
 );
-
-gfx_setfont(1, "Arial", 12);
-gfx_set(0.6, 0.6, 0.6, 1);
-gfx_x = 20; gfx_y = 516;
-lastnote >= 0 ? (
-  sprintf(#gs, "Last note %d   velocity %d   ->  velocity layer %d-%d", lastnote, lastvel, lastlv, lasthv);
-) : (
-  sprintf(#gs, "Play a note to see which velocity layer is used");
-);
-gfx_drawstr(#gs);
