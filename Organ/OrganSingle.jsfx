@@ -1805,6 +1805,31 @@ mkpreset(18, "Rotary Dream",     641, 0,0,0,0, 0, 0, 0.45); mem_set_values(pg_db
 mkpreset(19, "Smokey",           514, 0,0,0,0, 0, 1, 0.20); mem_set_values(pg_db + 19 * 27, 8,6,8,5,0,0,0,0,0);
 mkpreset(20, "Wall of Sound",      1, 0,0,0,0, 2, 1, 0.25); mem_set_values(pg_db + 20 * 27, 8,8,8,8,8,8,8,8,8);
 
+// LEGENDARY KEYBOARDISTS PRESETS (21-36)
+// Rick Wakeman (Yes)
+mkpreset(21, "Owner of Lonely Heart", 643, 1,0,1,0, 2, 0, 0.18); mem_set_values(pg_db + 21 * 27, 8,8,8,8,0,2,0,0,0);
+mkpreset(22, "Roundabout",            515, 0,0,0,0, 2, 0, 0.22); mem_set_values(pg_db + 22 * 27, 8,8,8,8,8,4,2,0,0);
+mkpreset(23, "Yours is No Disgrace",  642, 1,0,0,1, 2, 0, 0.14); mem_set_values(pg_db + 23 * 27, 8,8,8,4,0,0,0,0,0);
+mkpreset(24, "South Side of the Sky", 641, 0,0,0,0, 0, 0, 0.42); mem_set_values(pg_db + 24 * 27, 4,2,6,2,0,0,0,0,2);
+
+// Tony Banks (Genesis)
+mkpreset(25, "In the Air Tonight",   641, 0,0,0,0, 1, 0, 0.55); mem_set_values(pg_db + 25 * 27, 2,0,4,2,0,0,0,0,2);
+mkpreset(26, "Turn It On Again",     643, 1,0,1,1, 2, 0, 0.12); mem_set_values(pg_db + 26 * 27, 0,0,8,8,0,4,0,0,0);
+mkpreset(27, "Cinema Show",          514, 0,0,0,0, 1, 0, 0.35); mem_set_values(pg_db + 27 * 27, 6,4,8,6,2,0,0,0,0);
+mkpreset(28, "Lamb Lies Down",         1, 0,0,0,0, 1, 1, 0.30); mem_set_values(pg_db + 28 * 27, 4,2,6,0,0,0,0,0,2);
+
+// Keith Emerson (ELP)
+mkpreset(29, "Hoedown",              643, 1,0,1,0, 2, 0, 0.16); mem_set_values(pg_db + 29 * 27, 8,8,8,8,2,2,0,0,0);
+mkpreset(30, "Fanfare Common Man",   515, 0,0,0,0, 2, 1, 0.20); mem_set_values(pg_db + 30 * 27, 8,8,8,8,8,8,4,2,2);
+mkpreset(31, "Toccata",              513, 1,0,1,0, 2, 0, 0.18); mem_set_values(pg_db + 31 * 27, 8,6,8,8,4,2,2,0,0);
+mkpreset(32, "Karn Evil 9",            1, 0,0,0,0, 2, 1, 0.15); mem_set_values(pg_db + 32 * 27, 8,8,8,8,8,6,0,0,0);
+
+// John Lord (Deep Purple)
+mkpreset(33, "Smoke on the Water",     1, 0,0,0,0, 2, 1, 0.12); mem_set_values(pg_db + 33 * 27, 8,8,8,8,0,0,0,0,0);
+mkpreset(34, "Highway Star",         643, 1,0,1,0, 2, 1, 0.14); mem_set_values(pg_db + 34 * 27, 8,8,8,8,4,0,0,0,0);
+mkpreset(35, "Lazy",                 641, 0,0,0,0, 1, 1, 0.38); mem_set_values(pg_db + 35 * 27, 6,2,6,4,0,0,0,0,0);
+mkpreset(36, "Child in Time",        514, 1,0,0,0, 2, 1, 0.28); mem_set_values(pg_db + 36 * 27, 8,8,8,6,2,0,0,0,2);
+
 slDef = alloc(160); slMin = alloc(160); slMax = alloc(160); slStep = alloc(160);
 mem_set_values(slDef+1, 8,0,0,8,0,0,0,0,0,7,8,7,0,0,0,0,0,0,7,0,
   8,0,0,0,0,0,0,0,0,1,0,4,0,0,127,1,1,0,0,.1,
