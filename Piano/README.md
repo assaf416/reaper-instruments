@@ -1,6 +1,6 @@
 # Piano
 
-Four velocity-layered pianos with reverb. Click a card to load one; drag the bars to set the reverb and output level
+Four velocity-layered pianos with reverb. Click an instrument cell (or the display arrows) to load one; drag the round knobs to set the reverb and output level (style after the Jexed and JamSynth panels by chmaha; all drawing code is new)
 (Ctrl+click resets). The keyboard at the bottom lights up with the notes you play, and a line shows which velocity layer
 the last note used. The sustain pedal (CC64) works.
 
