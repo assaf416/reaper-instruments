@@ -16,7 +16,7 @@ Run `Install-GeneralMidi.ps1` (or `..\Install-All.ps1`), then FX -> Add -> "Gene
 
 * **MELODIC tab**: pick a family (16 GM families), a program (8 per family) and, when the program has them, a variation bank.
 * **DRUM KITS tab**: pick one of the 31 kits (Standard, Room, Power, Electronic, TR-808, Jazz, Brush, Orchestra, ...).
-* Volume, reverb mix and reverb size bars (Ctrl+click resets). The keyboard shows the notes that sound.
+* Five knobs (Volume, Reverb Mix, Reverb Size, Tune, Release): drag up or down (Shift = fine), mouse wheel, double-click or Ctrl-click to reset. The keyboard shows the notes that sound.
 * MIDI in: notes + velocity, pitch bend (+-2), CC64 sustain, CC7 volume, Bank Select (CC0) + Program Change, CC123 all notes off.
   Send Program Change 0..127 to switch sounds from the track, or automate the bank / program.
 

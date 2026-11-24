@@ -6,6 +6,8 @@ desc:Drums - Five velocity-layered kits with mixer, reverb and MIDI map v1.0
 
 options:maxmem=24000000
 
+import RIControllers.jsfx-inc
+
 slider1:0<0,4,1{Captain's Kit,Led Head,Goldibops,Goldibops Hot Rods,Busk Stop}>-Kit
 slider2:0.2<0,1,0.01>-Reverb Mix
 slider3:0.5<0,1,0.01>-Reverb Room Size
@@ -38,6 +40,7 @@ out_pin:left output
 out_pin:right output
 
 @init
+rc_load();
 NV = 64;            // voices
 MAXZ = 256;         // max velocity zones per kit
 NK = 5;             // kits
@@ -291,6 +294,18 @@ maps_dirty ? (
 
 while (midirecv(boffs, m1, m2, m3)) (
   bst = m1 & 0xF0;
+  rct = rc_decode(m1, m2, m3);
+  rct == 1 ? (
+    rc_idx == 0 ? ( slider5 = 0 + rc_val * (2 - 0); sliderchange(2^4); ) :
+    0;
+  ) : rct == 2 ? (
+    rc_idx == 0 ? ( slider2 = 0 + rc_val * (1 - 0); sliderchange(2^1); ) :
+    rc_idx == 1 ? ( slider3 = 0 + rc_val * (1 - 0); sliderchange(2^2); ) :
+    rc_idx == 2 ? ( slider4 = 0 + rc_val * (1 - 0); sliderchange(2^3); ) :
+    0;
+  ) : (rct == 4 || rct == 5 || rct == 6) ? (
+    slider1 = (slider1 + rc_idx + 5) % 5; sliderchange(2^0);
+  ) :
 
   (bst == 0x90 && m3 > 0) ? (
     lastnote = m2; lastvel = m3;

@@ -1,0 +1,65 @@
+desc:Reaper Instruments - shared hardware controller map (include)
+// Shared by every instrument in this repository. Maps the controls of the M-Audio Oxygen Pro Mini (and any other keyboard) to
+// generic events, so each instrument only decides what a fader / knob / bank button does for it.
+//
+// The CC numbers come from Data/Controllers/controllers.txt (first line, whitespace separated, 18 numbers):
+//   mod  fader1..fader4  knob1..knob8  bankPrev  bankNext  encoder  encoderMode  padChannel
+// encoderMode: 0 = absolute (rises = next), 1 = relative offset-64, 2 = relative two's complement.  padChannel is 1..16 (drums = 10).
+// Missing file = the defaults below.  Run Controllers\Learn-Controller.ps1 to write the file by moving the real controls.
+//
+// Use: call rc_load() once in @init; for every incoming message call rc_decode(m1, m2, m3). It returns the event type and sets
+//   rc_idx (0-based control number, or +1 / -1 for a step) and rc_val (0..1).
+//   types: 0 none, 1 fader, 2 knob, 3 mod wheel, 4 bank prev, 5 bank next, 6 encoder step (rc_idx = +1 / -1)
+
+@init
+
+function rc_num(str) local(p, n, c, v) (
+  p = rc_p; n = strlen(str);
+  while (p < n && ((c = str_getchar(str, p)) < 48 || c > 57)) ( p += 1; );
+  v = 0;
+  while (p < n && (c = str_getchar(str, p)) >= 48 && c <= 57) ( v = v * 10 + (c - 48); p += 1; );
+  rc_p = p;
+  v;
+);
+
+function rc_load() local(fh) (
+  rc_mod = 1; rc_f1 = 70; rc_f2 = 71; rc_f3 = 72; rc_f4 = 73;
+  rc_k1 = 21; rc_k2 = 22; rc_k3 = 23; rc_k4 = 24; rc_k5 = 25; rc_k6 = 26; rc_k7 = 27; rc_k8 = 28;
+  rc_bp = 106; rc_bn = 107; rc_enc = 108; rc_emode = 0; rc_padch = 10; rc_last = -1;
+  fh = file_open("Controllers/controllers.txt");
+  fh > 0 ? (
+    file_string(fh, #rc_line);
+    rc_p = 0;
+    rc_mod = rc_num(#rc_line); rc_f1 = rc_num(#rc_line); rc_f2 = rc_num(#rc_line);
+    rc_f3 = rc_num(#rc_line); rc_f4 = rc_num(#rc_line);
+    rc_k1 = rc_num(#rc_line); rc_k2 = rc_num(#rc_line); rc_k3 = rc_num(#rc_line); rc_k4 = rc_num(#rc_line);
+    rc_k5 = rc_num(#rc_line); rc_k6 = rc_num(#rc_line); rc_k7 = rc_num(#rc_line); rc_k8 = rc_num(#rc_line);
+    rc_bp = rc_num(#rc_line); rc_bn = rc_num(#rc_line); rc_enc = rc_num(#rc_line);
+    rc_emode = rc_num(#rc_line); rc_padch = rc_num(#rc_line);
+    file_close(fh);
+  );
+);
+
+function rc_decode(m1, m2, m3) local(d, t) (
+  t = 0;
+  (m1 & 240) == 176 ? (
+    rc_val = m3 / 127;
+    m2 == rc_mod ? ( t = 3; rc_idx = 0; ) :
+    m2 == rc_bp ? ( m3 >= 64 ? ( t = 4; rc_idx = -1; ); ) :
+    m2 == rc_bn ? ( m3 >= 64 ? ( t = 5; rc_idx = 1; ); ) :
+    m2 == rc_enc ? (
+      d = 0;
+      rc_emode == 0 ? ( rc_last >= 0 ? ( d = m3 - rc_last; d > 64 ? d -= 128; d < -64 ? d += 128; ); rc_last = m3; ) :
+      rc_emode == 1 ? ( d = m3 > 64 ? 1 : m3 < 64 ? -1 : 0; ) :
+                      ( d = (m3 >= 1 && m3 < 64) ? 1 : m3 >= 65 ? -1 : 0; );
+      d != 0 ? ( t = 6; rc_idx = d > 0 ? 1 : -1; );
+    ) :
+    m2 == rc_f1 ? ( t = 1; rc_idx = 0; ) : m2 == rc_f2 ? ( t = 1; rc_idx = 1; ) :
+    m2 == rc_f3 ? ( t = 1; rc_idx = 2; ) : m2 == rc_f4 ? ( t = 1; rc_idx = 3; ) :
+    m2 == rc_k1 ? ( t = 2; rc_idx = 0; ) : m2 == rc_k2 ? ( t = 2; rc_idx = 1; ) :
+    m2 == rc_k3 ? ( t = 2; rc_idx = 2; ) : m2 == rc_k4 ? ( t = 2; rc_idx = 3; ) :
+    m2 == rc_k5 ? ( t = 2; rc_idx = 4; ) : m2 == rc_k6 ? ( t = 2; rc_idx = 5; ) :
+    m2 == rc_k7 ? ( t = 2; rc_idx = 6; ) : m2 == rc_k8 ? ( t = 2; rc_idx = 7; );
+  );
+  t;
+);

@@ -1,6 +1,7 @@
 Version: 1.2
 desc: Tonewheel Organ - Single Manual, custom presets (from Lord of the Rinks by chmaha)
 tags: instrument
+import RIControllers.jsfx-inc
 author: chmaha (original), single-manual edition
 changelog:
   Single-manual edition: one upper manual with its own keyboard, every MIDI channel plays it,
@@ -134,6 +135,7 @@ out_pin:left
 out_pin:right
 
 @init
+rc_load();
 ext_noinit = gfx_ext_retina = 1;
 last_srate = srate;
 
@@ -1609,9 +1611,14 @@ function store_program(p, name) local(i, sc) (
   usr[p] = 1;
 );
 
-function midi_event(m1, m2, m3) local(st, ch, tab, vec, fid, k) (
+function midi_event(m1, m2, m3) local(st, ch, tab, vec, fid, k, rt) (
   st = m1 & 240; ch = m1 & 15;
   m2 &= 127; m3 &= 127;
+  rt = rc_decode(m1, m2, m3);
+  rt == 3 ? ( setRevSelect(m3 >= 64 ? 2 : 0); ui_dirty = 1; ) :   // mod wheel: Leslie slow (down) / fast (up)
+  rt == 2 ? ( rc_idx == 0 ? ctl(67, m3) : rc_idx == 1 ? ctl(59, m3); ) :   // knob 1 reverb, knob 2 overdrive character
+  (rt == 4 || rt == 5 || rt == 6) ? ( k = curProg - 1 + rc_idx; k < 0 ? k = 35; k > 35 ? k = 0; installProgram(k); ) :   // bank buttons / encoder: previous / next preset
+  (st == 144 || st == 128) && ch == rc_padch - 1 ? 0 :   // drum-pad channel does not play the organ
   st == 144 ? (
     tab = chTab[ch];
     tab && tab[m2] != 255 ? ( m3 > 0 ? oscKeyOn(tab[m2]) : oscKeyOff(tab[m2]); );

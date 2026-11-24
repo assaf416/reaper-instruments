@@ -7,6 +7,8 @@
 
 options:maxmem=40000000
 
+import RIControllers.jsfx-inc
+
 slider1:12<0,23,1{8 Choir,Bassoon,Cello,Church Organ,CombinedChoir,GC3Brass,ItalianAccordion,M300A,M300B,Mixed Brass B,MkII Combined Brass,MkIIBrass,MkIIFlute,MKIIViolins,Orchestra,StringSection,StringSession,Tenor Sax,Tenor_Alto Sax,Trombone,Trombone_Trumpet,Trumpet,Vibes,Woodwind2}>-Tape 1 Selection
 slider2:7<0,23,1{8 Choir,Bassoon,Cello,Church Organ,CombinedChoir,GC3Brass,ItalianAccordion,M300A,M300B,Mixed Brass B,MkII Combined Brass,MkIIBrass,MkIIFlute,MKIIViolins,Orchestra,StringSection,StringSession,Tenor Sax,Tenor_Alto Sax,Trombone,Trombone_Trumpet,Trumpet,Vibes,Woodwind2}>-Tape 2 Selection
 slider3:15<0,23,1{8 Choir,Bassoon,Cello,Church Organ,CombinedChoir,GC3Brass,ItalianAccordion,M300A,M300B,Mixed Brass B,MkII Combined Brass,MkIIBrass,MkIIFlute,MKIIViolins,Orchestra,StringSection,StringSession,Tenor Sax,Tenor_Alto Sax,Trombone,Trombone_Trumpet,Trumpet,Vibes,Woodwind2}>-Tape 3 Selection
@@ -24,6 +26,7 @@ out_pin:left output
 out_pin:right output
 
 @init
+rc_load();
 NVV = 96;        // voices (32 notes x 3 tapes)
 NS = 35;         // samples per tape set
 ROOT0 = 55;      // lowest sample note (G2)
@@ -153,8 +156,21 @@ loop(3,
 @block
 while (midirecv(offs, m1, m2, m3)) (
   st = m1 & 0xF0;
+  rct = rc_decode(m1, m2, m3);
+  (st == 0x90 || st == 0x80) && (m1 & 15) == rc_padch - 1 ? ( st = 0; );   // drum-pad channel does not play the tapes
 
-  (st == 0x90 && m3 > 0) ? (
+  rct == 1 ? (
+    rc_idx == 0 ? ( slider4 = rc_val; sliderchange(8); ) :
+    rc_idx == 1 ? ( slider5 = rc_val; sliderchange(16); ) :
+    rc_idx == 2 ? ( slider6 = rc_val; sliderchange(32); ) :
+    ( slider12 = rc_val * 2; sliderchange(2048); );
+  ) : rct == 2 ? (
+    rc_idx == 0 ? ( slider10 = rc_val; sliderchange(512); ) :
+    rc_idx == 1 ? ( slider11 = rc_val; sliderchange(1024); );
+  ) : (rct == 4 || rct == 5 || rct == 6) ? (
+    slider1 = (slider1 + rc_idx + 24) % 24; slider2 = (slider2 + rc_idx + 24) % 24; slider3 = (slider3 + rc_idx + 24) % 24;
+    sliderchange(7);
+  ) : (st == 0x90 && m3 > 0) ? (
     // note on: trigger the same key on all three tapes
     r = max(ROOT0, min(ROOT0 + NS - 1, m2));
     ti = 0;

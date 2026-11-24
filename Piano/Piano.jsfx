@@ -7,6 +7,8 @@ desc:Piano - Four Pianos, velocity layered (Decent Sampler library) v1.1
 
 options:maxmem=32000000
 
+import RIControllers.jsfx-inc
+
 slider1:0<0,3,1{Midnight Upright,The King's Upright,Matt's Fender Rhodes,WurliTzer}>-Piano
 slider2:0.25<0,1,0.01>-Reverb Mix
 slider3:0.6<0,1,0.01>-Reverb Room Size
@@ -18,6 +20,7 @@ out_pin:left output
 out_pin:right output
 
 @init
+rc_load();
 NV = 64;          // voices
 MAXS = 192;       // max samples per piano
 
@@ -222,6 +225,19 @@ slider1 != loaded ? (
 @block
 while (midirecv(offs, m1, m2, m3)) (
   st = m1 & 0xF0;
+  rct = rc_decode(m1, m2, m3);
+  (st == 0x90 || st == 0x80) && (m1 & 15) == rc_padch - 1 ? ( st = 0; );   // drum-pad channel does not play this instrument
+  rct == 1 ? (
+    rc_idx == 0 ? ( slider5 = 0 + rc_val * (2 - 0); sliderchange(2^4); ) :
+    0;
+  ) : rct == 2 ? (
+    rc_idx == 0 ? ( slider2 = 0 + rc_val * (1 - 0); sliderchange(2^1); ) :
+    rc_idx == 1 ? ( slider3 = 0 + rc_val * (1 - 0); sliderchange(2^2); ) :
+    rc_idx == 2 ? ( slider4 = 0 + rc_val * (1 - 0); sliderchange(2^3); ) :
+    0;
+  ) : (rct == 4 || rct == 5 || rct == 6) ? (
+    slider1 = (slider1 + rc_idx + 4) % 4; sliderchange(2^0);
+  ) :
 
   (st == 0x90 && m3 > 0) ? (
     keys[m2] = m3;

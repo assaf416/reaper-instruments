@@ -7,6 +7,8 @@ desc:Guitar - Three Electric Guitars with Chorus and Delay (Decent Sampler libra
 
 options:maxmem=32000000
 
+import RIControllers.jsfx-inc
+
 slider1:0<0,2,1{62 Reissue Strat,ASAT Clean,ASAT DI}>-Guitar
 slider2:0.4<0,1,0.01>-Chorus Mix
 slider3:0.8<0.1,5,0.05>-Chorus Rate (Hz)
@@ -25,6 +27,7 @@ out_pin:left output
 out_pin:right output
 
 @init
+rc_load();
 NV = 64;          // voices
 MAXS = 96;        // max samples per guitar
 
@@ -219,6 +222,21 @@ slider1 != loaded ? (
 @block
 while (midirecv(offs, m1, m2, m3)) (
   st = m1 & 0xF0;
+  (st == 0xB0 || st == 0xC0) ? midisend(offs, m1, m2, m3);   // pass controller messages on to a rig after this instrument (knobs 1-4 belong to the rig)
+  rct = rc_decode(m1, m2, m3);
+  (st == 0x90 || st == 0x80) && (m1 & 15) == rc_padch - 1 ? ( st = 0; );   // drum-pad channel does not play this instrument
+  rct == 1 ? (
+    rc_idx == 0 ? ( slider12 = 0 + rc_val * (2 - 0); sliderchange(2^11); ) :
+    0;
+  ) : rct == 2 ? (
+    rc_idx == 4 ? ( slider2 = 0 + rc_val * (1 - 0); sliderchange(2^1); ) :
+    rc_idx == 5 ? ( slider5 = 0 + rc_val * (1 - 0); sliderchange(2^4); ) :
+    rc_idx == 6 ? ( slider6 = 20 + rc_val * (1200 - 20); sliderchange(2^5); ) :
+    rc_idx == 7 ? ( slider7 = 0 + rc_val * (0.9 - 0); sliderchange(2^6); ) :
+    0;
+  ) : (rct == 4 || rct == 5 || rct == 6) ? (
+    slider1 = (slider1 + rc_idx + 3) % 3; sliderchange(2^0);
+  ) :
 
   (st == 0x90 && m3 > 0) ? (
     keys[m2] = m3;

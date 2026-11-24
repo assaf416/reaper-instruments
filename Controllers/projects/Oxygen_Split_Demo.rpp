@@ -1,0 +1,79 @@
+<REAPER_PROJECT 0.1 "7.78/win64" 0
+  TEMPO 100 4 4
+  <TRACK
+    NAME "Bass (keys 0-47)"
+    VOLPAN 0.6 0 -1 -1 1
+    NCHAN 2
+    ISBUS 0 0
+    REC 1 0 1 0 0 0 0
+    <FXCHAIN
+      <JS "Tilr/MIDI Keyvel Filter.jsfx" ""
+        0 47 0 127 0
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000D1010}
+      WAK 0 0
+      <JS "Guitar/Guitar.jsfx" ""
+        0 0 0.8 0.5 0 380 0.35 0 2 1 0.5 1 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000D1020}
+      WAK 0 0
+      <JS "BassRig/Bass Station S2 (Tukan)" ""
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000D1030}
+      WAK 0 0
+    >
+  >
+  <TRACK
+    NAME "Organ (keys 48-71)"
+    VOLPAN 0.6 0 -1 -1 1
+    NCHAN 2
+    ISBUS 0 0
+    REC 1 0 1 0 0 0 0
+    <FXCHAIN
+      <JS "Tilr/MIDI Keyvel Filter.jsfx" ""
+        48 71 0 127 0
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000D2010}
+      WAK 0 0
+      <JS "Organ/OrganSingle.jsfx" ""
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 21 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000D2020}
+      WAK 0 0
+    >
+  >
+  <TRACK
+    NAME "Piano (keys 72-127)"
+    VOLPAN 0.6 0 -1 -1 1
+    NCHAN 2
+    ISBUS 0 0
+    REC 1 0 1 0 0 0 0
+    <FXCHAIN
+      <JS "Tilr/MIDI Keyvel Filter.jsfx" ""
+        72 127 0 127 0
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000D3010}
+      WAK 0 0
+      <JS "Piano/Piano.jsfx" ""
+        2 0.25 0.6 0.4 1 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000D3020}
+      WAK 0 0
+    >
+  >
+  <TRACK
+    NAME "Drums (pads, channel 10)"
+    VOLPAN 0.6 0 -1 -1 1
+    NCHAN 2
+    ISBUS 0 0
+    REC 1 0 1 0 0 0 0
+    <FXCHAIN
+      <JS "Drums/Drums.jsfx" ""
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000D4010}
+      WAK 0 0
+    >
+  >
+>

@@ -8,6 +8,7 @@ param(
 )
 $here = $PSScriptRoot
 $steps = @(
+  'Controllers\Install-Controllers.ps1',
   'Mellotron\Install-Mellotron.ps1',
   'Piano\Install-Piano.ps1',
   'Drums\Install-Drums.ps1',

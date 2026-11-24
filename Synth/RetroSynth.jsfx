@@ -47,10 +47,13 @@ slider36:0<0,1,0.01>-Drive
 slider37:0.7<0,1,0.01>-Volume
 
 in_pin:none
+
+import RIControllers.jsfx-inc
 out_pin:left output
 out_pin:right output
 
 @init
+rc_load();
 NV = 16; NP = 50; NPAR = 36;
 
 // ---- memory map ----
@@ -265,6 +268,23 @@ loop(4,
 
 while (midirecv(offs, m1, m2, m3)) (
   stt = m1 & 0xF0;
+  rct = rc_decode(m1, m2, m3);
+  (stt == 0x90 || stt == 0x80) && (m1 & 15) == rc_padch - 1 ? ( stt = 0; );   // drum-pad channel does not play this instrument
+  rct == 1 ? (
+    rc_idx == 0 ? ( slider14 = 0 + rc_val * (1 - 0); sliderchange(2^13); ) :
+    rc_idx == 1 ? ( slider15 = 0 + rc_val * (1 - 0); sliderchange(2^14); ) :
+    rc_idx == 2 ? ( slider32 = 0 + rc_val * (1 - 0); sliderchange(2^31); ) :
+    rc_idx == 3 ? ( slider37 = 0 + rc_val * (1 - 0); sliderchange(2^36); ) :
+    0;
+  ) : rct == 2 ? (
+    rc_idx == 0 ? ( slider35 = 0 + rc_val * (1 - 0); sliderchange(2^34); ) :
+    rc_idx == 1 ? ( slider36 = 0 + rc_val * (1 - 0); sliderchange(2^35); ) :
+    rc_idx == 2 ? ( slider18 = 0 + rc_val * (1 - 0); sliderchange(2^17); ) :
+    rc_idx == 3 ? ( slider21 = 0 + rc_val * (1 - 0); sliderchange(2^20); ) :
+    0;
+  ) : (rct == 4 || rct == 5 || rct == 6) ? (
+    slider1 = (slider1 + rc_idx + 50) % 50; sliderchange(2^0);
+  ) :
   (stt == 0x90 && m3 > 0) ? (
     // ---- note on ----
     s_mono ? (

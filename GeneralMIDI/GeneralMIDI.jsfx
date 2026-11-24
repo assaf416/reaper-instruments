@@ -8,17 +8,22 @@ tags:instrument sampler
 
 options:maxmem=9000000
 
+import RIControllers.jsfx-inc
+
 slider1:0<0,128,1>-Bank
 slider2:0<0,127,1>-Program
 slider3:0.4<0,1,0.01>-Reverb Mix
 slider4:0.5<0,1,0.01>-Reverb Size
 slider5:1<0,2,0.01>-Volume
+slider6:0<-100,100,1>-Tune (cents)
+slider7:1<0.2,4,0.01>-Release time
 
 in_pin:none
 out_pin:left output
 out_pin:right output
 
 @init
+rc_load();
 NV = 64;            // voices
 MAXZ = 768;         // zones per preset
 ARENA = 280000;     // sample memory starts here
@@ -54,10 +59,12 @@ fam[8] = "Reed";           fam[9] = "Pipe";            fam[10] = "Synth Lead";  
 fam[12] = "Synth Effects"; fam[13] = "Ethnic";         fam[14] = "Percussive";   fam[15] = "Sound Effects";
 
 // bars: x, y, w, h, min, max, slider#, step, default
-co = ctl;      co[0] = 20;  co[1] = 436; co[2] = 270; co[3] = 26; co[4] = 0; co[5] = 2; co[6] = 5; co[7] = 0.01; co[8] = 1;
-co = ctl + 9;  co[0] = 315; co[1] = 436; co[2] = 270; co[3] = 26; co[4] = 0; co[5] = 1; co[6] = 3; co[7] = 0.01; co[8] = 0.4;
-co = ctl + 18; co[0] = 610; co[1] = 436; co[2] = 270; co[3] = 26; co[4] = 0; co[5] = 1; co[6] = 4; co[7] = 0.01; co[8] = 0.5;
-NC = 3;
+co = ctl;      co[0] = 130; co[1] = 410; co[2] = 44; co[3] = 44; co[4] = 0;    co[5] = 2;   co[6] = 5; co[7] = 0.01; co[8] = 1;
+co = ctl + 9;  co[0] = 270; co[1] = 410; co[2] = 44; co[3] = 44; co[4] = 0;    co[5] = 1;   co[6] = 3; co[7] = 0.01; co[8] = 0.4;
+co = ctl + 18; co[0] = 410; co[1] = 410; co[2] = 44; co[3] = 44; co[4] = 0;    co[5] = 1;   co[6] = 4; co[7] = 0.01; co[8] = 0.5;
+co = ctl + 27; co[0] = 550; co[1] = 410; co[2] = 44; co[3] = 44; co[4] = -100; co[5] = 100; co[6] = 6; co[7] = 1;    co[8] = 0;
+co = ctl + 36; co[0] = 690; co[1] = 410; co[2] = 44; co[3] = 44; co[4] = 0.2;  co[5] = 4;   co[6] = 7; co[7] = 0.01; co[8] = 1;
+NC = 5; glast_k = -1; glast_t = 0; gdy0 = 0; gdv0 = 0;
 
 // ---- reverb (Freeverb layout) ----
 ctun0 = 23000; ctun = ctun0; atun = ctun0 + 10;
@@ -118,6 +125,8 @@ function tanhx(x)
 rv_wet = slider3 * 3;
 rv_fb = 0.7 + slider4 * 0.28;
 rv_damp = 0.3;
+tune_f = 2 ^ (slider6 / 1200);
+rel_m = slider7;
 
 // ---- the preset list (once) ----
 !plist_ok ? (
@@ -231,7 +240,18 @@ rv_damp = 0.3;
 @block
 while (midirecv(boffs, m1, m2, m3)) (
   bst = m1 & 0xF0;
+  rct = rc_decode(m1, m2, m3);
+  (bst == 0x90 || bst == 0x80) && (m1 & 15) == rc_padch - 1 && slider1 != 128 ? ( bst = 0; );   // drum-pad channel does not play melodic sounds
 
+  rct == 1 ? ( rc_idx == 0 ? ( slider5 = rc_val * 2; sliderchange(16); ); ) :
+  rct == 2 ? ( rc_idx == 0 ? ( slider3 = rc_val; sliderchange(4); ) : rc_idx == 1 ? ( slider4 = rc_val; sliderchange(8); ); ) :
+  (rct == 4 || rct == 5 || rct == 6) ? (
+    slider1 == 128 ? (
+      gd = 0; gi = 0; loop(ndk, pprog[dkit[gi]] == slider2 ? gd = gi; gi += 1; );
+      gd = (gd + rc_idx + ndk) % ndk; slider2 = pprog[dkit[gd]];
+    ) : ( slider2 = (slider2 + rc_idx + 128) % 128; slider1 = 0; );
+    sliderchange(3);
+  ) :
   (bst == 0x90 && m3 > 0) ? (
     keys[m2] = m3;
     bz = 0;
@@ -250,7 +270,7 @@ while (midirecv(boffs, m1, m2, m3)) (
         vend[bv] = zsl[bz] - 2;
         vpos[bv] = zst[bz];
         vls[bv] = zls[bz]; vle[bv] = zle[bz]; vmode[bv] = zmode[bz];
-        vrate[bv] = 2 ^ (((m2 - zroot[bz]) * zscale[bz] + zcents[bz]) / 1200) * zrate[bz] / srate;
+        vrate[bv] = 2 ^ (((m2 - zroot[bz]) * zscale[bz] + zcents[bz]) / 1200) * zrate[bz] / srate * tune_f;
         bva = (m3 / 127) ^ 2;
         vgl[bv] = zgl[bz] * bva; vgr[bv] = zgr[bz] * bva;
         vlpa[bv] = zlpa[bz]; vlp[bv] = 0; vrev[bv] = zrev[bz];
@@ -263,7 +283,7 @@ while (midirecv(boffs, m1, m2, m3)) (
         vhn[bv] = zhld[bz] * srate;
         vdm[bv] = zdec[bz] > 0.0005 ? 10 ^ (-5 / (zdec[bz] * srate)) : 0;
         vsus[bv] = zsus[bz];
-        vrm[bv] = 10 ^ (-5 / (max(zrel[bz], 0.01) * srate));
+        vrm[bv] = 10 ^ (-5 / (max(zrel[bz] * rel_m, 0.01) * srate));
         vact[bv] = 1; vgate[bv] = 1; vhold[bv] = 0;
       );
       bz += 1;
@@ -373,7 +393,7 @@ spl0 = outL; spl1 = outR;
 pkm = max(pkm * 0.9998, max(abs(outL), abs(outR)));
 
 @gfx 900 620
-gfx_clear = 0x1a1a1a;
+gfx_clear = 0x181614;
 
 // ====================== mouse ======================
 gmd = mouse_cap & 1;
@@ -436,29 +456,49 @@ gmd && !glmd ? (
     );
   );
 
-  // bars
+  // knobs: drag up / down, Ctrl-click or double-click resets
   gci = 0;
   loop(NC,
     gco = ctl + gci * 9;
-    (mouse_x >= gco[0] && mouse_x < gco[0] + gco[2] && mouse_y >= gco[1] && mouse_y < gco[1] + gco[3]) ? (
-      gdrag = gci;
-      (mouse_cap & 4) ? (
+    (mouse_x >= gco[0] && mouse_x < gco[0] + 44 && mouse_y >= gco[1] && mouse_y < gco[1] + 44) ? (
+      gnow = time_precise();
+      (mouse_cap & 4) || (gci == glast_k && gnow - glast_t < 0.45) ? (
         slider(gco[6]) = gco[8];
         sliderchange(2 ^ (gco[6] - 1)); slider_automate(2 ^ (gco[6] - 1));
         gdrag = -1;
+      ) : (
+        gdrag = gci; gdy0 = mouse_y; gdv0 = slider(gco[6]);
       );
+      glast_k = gci; glast_t = gnow;
     );
     gci += 1;
   );
 );
 gmd && gdrag >= 0 ? (
   gco = ctl + gdrag * 9;
-  gv_ = gco[4] + (gco[5] - gco[4]) * max(0, min(1, (mouse_x - gco[0]) / gco[2]));
+  gv_ = gdv0 + (gdy0 - mouse_y) / (mouse_cap & 8 ? 600 : 160) * (gco[5] - gco[4]);
+  gv_ = max(gco[4], min(gco[5], gv_));
   gv_ = floor(gv_ / gco[7] + 0.5) * gco[7];
   gv_ != slider(gco[6]) ? (
     slider(gco[6]) = gv_;
     sliderchange(2 ^ (gco[6] - 1)); slider_automate(2 ^ (gco[6] - 1));
   );
+);
+// mouse wheel over a knob
+mouse_wheel != 0 ? (
+  gci = 0;
+  loop(NC,
+    gco = ctl + gci * 9;
+    (mouse_x >= gco[0] && mouse_x < gco[0] + 44 && mouse_y >= gco[1] && mouse_y < gco[1] + 44) ? (
+      gv_ = slider(gco[6]) + (mouse_wheel > 0 ? 1 : -1) * (gco[5] - gco[4]) * 0.04;
+      gv_ = max(gco[4], min(gco[5], gv_));
+      gv_ = floor(gv_ / gco[7] + 0.5) * gco[7];
+      slider(gco[6]) = gv_;
+      sliderchange(2 ^ (gco[6] - 1)); slider_automate(2 ^ (gco[6] - 1));
+    );
+    gci += 1;
+  );
+  mouse_wheel = 0;
 );
 !gmd ? gdrag = -1;
 glmd = gmd;
@@ -477,7 +517,7 @@ gfx_drawstr("Fluid R3 GM SoundFont - 128 programs, variations, 31 drum kits");
 gcur = -1; gi = 0;
 loop(npr, (pbank[gi] == slider1 && pprog[gi] == slider2) ? gcur = gi; gi += 1; );
 gfx_setfont(1, "Arial", 20);
-gfx_set(0.95, 0.75, 0.3, 1);
+gfx_set(0.894, 0.8, 0.365, 1);
 gfx_x = 330; gfx_y = 14;
 gcur >= 0 ? ( strcpy_substr(#gn, #allnames, noff[gcur], nlen[gcur]); sprintf(#gs, "%s", #gn); ) : sprintf(#gs, "(no preset)");
 gfx_drawstr(#gs);
@@ -495,10 +535,10 @@ gfx_drawstr(#gs);
 gt = 0;
 loop(2,
   gbx = 20 + gt * 126;
-  gfx_set(0.18, 0.18, 0.18, 1);
-  ui_tab == gt ? gfx_set(0.3, 0.3, 0.3, 1);
+  gfx_set(0.157, 0.176, 0.196, 1);
+  ui_tab == gt ? gfx_set(0.22, 0.21, 0.12, 1);
   gfx_rect(gbx, 72, 120, 26);
-  ui_tab == gt ? gfx_set(0.35, 0.65, 0.95, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+  ui_tab == gt ? gfx_set(0.894, 0.8, 0.365, 1) : gfx_set(0.22, 0.25, 0.28, 1);
   gfx_rect(gbx, 72, 120, 26, 0);
   gfx_setfont(1, "Arial", 13);
   gfx_set(1, 1, 1, 1);
@@ -515,9 +555,9 @@ ui_tab == 0 ? (
     gfxx = 20 + floor(gf / 8) * 132; gfy = 112 + (gf % 8) * 36;
     gsel = (ui_family == gf);
     ghov = (mouse_x >= gfxx && mouse_x < gfxx + 124 && mouse_y >= gfy && mouse_y < gfy + 30);
-    gsel ? gfx_set(0.22, 0.38, 0.55, 1) : gfx_set(0.2, 0.2, 0.2, 1);
+    gsel ? gfx_set(0.22, 0.21, 0.12, 1) : gfx_set(0.157, 0.176, 0.196, 1);
     gfx_rect(gfxx, gfy, 124, 30);
-    (gsel || ghov) ? gfx_set(0.35, 0.65, 0.95, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+    (gsel || ghov) ? gfx_set(0.894, 0.8, 0.365, 1) : gfx_set(0.22, 0.25, 0.28, 1);
     gfx_rect(gfxx, gfy, 124, 30, 0);
     gfx_set(1, 1, 1, 1);
     gfx_x = gfxx + 8; gfx_y = gfy + 8;
@@ -534,9 +574,9 @@ ui_tab == 0 ? (
     gp = ui_family * 8 + gk;
     gsel = (slider1 != 128 && slider2 == gp);
     ghov = (mouse_x >= gpx && mouse_x < gpx + 288 && mouse_y >= gpy && mouse_y < gpy + 40);
-    gsel ? gfx_set(0.55, 0.38, 0.12, 1) : gfx_set(0.2, 0.2, 0.2, 1);
+    gsel ? gfx_set(0.22, 0.21, 0.12, 1) : gfx_set(0.157, 0.176, 0.196, 1);
     gfx_rect(gpx, gpy, 288, 40);
-    (gsel || ghov) ? gfx_set(0.95, 0.65, 0.2, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+    (gsel || ghov) ? gfx_set(0.894, 0.8, 0.365, 1) : gfx_set(0.22, 0.25, 0.28, 1);
     gfx_rect(gpx, gpy, 288, 40, 0);
     gfx_set(0.7, 0.7, 0.7, 1);
     gfx_x = gpx + 10; gfx_y = gpy + 13;
@@ -557,9 +597,9 @@ ui_tab == 0 ? (
       gvx = 300 + (gv % 3) * 198; gvy = 350 + floor(gv / 3) * 40;
       gsel = (slider1 == pbank[gi]);
       ghov = (mouse_x >= gvx && mouse_x < gvx + 190 && mouse_y >= gvy && mouse_y < gvy + 34);
-      gsel ? gfx_set(0.3, 0.5, 0.3, 1) : gfx_set(0.2, 0.2, 0.2, 1);
+      gsel ? gfx_set(0.22, 0.21, 0.12, 1) : gfx_set(0.157, 0.176, 0.196, 1);
       gfx_rect(gvx, gvy, 190, 34);
-      (gsel || ghov) ? gfx_set(0.5, 0.85, 0.5, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+      (gsel || ghov) ? gfx_set(0.894, 0.8, 0.365, 1) : gfx_set(0.22, 0.25, 0.28, 1);
       gfx_rect(gvx, gvy, 190, 34, 0);
       gfx_setfont(1, "Arial", 12);
       gfx_set(1, 1, 1, 1);
@@ -579,9 +619,9 @@ ui_tab == 0 ? (
     gkx = 20 + (gk % 4) * 218; gky = 112 + floor(gk / 4) * 38;
     gsel = (slider1 == 128 && slider2 == pprog[dkit[gk]]);
     ghov = (mouse_x >= gkx && mouse_x < gkx + 210 && mouse_y >= gky && mouse_y < gky + 32);
-    gsel ? gfx_set(0.55, 0.25, 0.2, 1) : gfx_set(0.2, 0.2, 0.2, 1);
+    gsel ? gfx_set(0.22, 0.21, 0.12, 1) : gfx_set(0.157, 0.176, 0.196, 1);
     gfx_rect(gkx, gky, 210, 32);
-    (gsel || ghov) ? gfx_set(0.95, 0.4, 0.3, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+    (gsel || ghov) ? gfx_set(0.894, 0.8, 0.365, 1) : gfx_set(0.22, 0.25, 0.28, 1);
     gfx_rect(gkx, gky, 210, 32, 0);
     gfx_set(1, 1, 1, 1);
     gfx_x = gkx + 10; gfx_y = gky + 9;
@@ -593,30 +633,31 @@ ui_tab == 0 ? (
 );
 
 // ====================== controls ======================
-gfx_set(0.2, 0.2, 0.2, 1);
-gfx_rect(20, 404, 860, 64);
-gfx_set(0.4, 0.4, 0.4, 1);
-gfx_rect(20, 404, 860, 64, 0);
+// Knob look after the JS3Osc / Tilr plugins (tilr_jsfx, MIT): dark 260 degree track, yellow value arc, dark disc, yellow dot.
+gfx_setfont(1, "Arial", 12);
 gci = 0;
 loop(NC,
   gco = ctl + gci * 9;
   gv_ = slider(gco[6]);
-  gci == 0 ? ( gnm = "Volume";      gfx_set(0.4, 0.8, 0.4, 1);    sprintf(#gs, "%d%%", floor(gv_ * 100 + 0.5)); );
-  gci == 1 ? ( gnm = "Reverb Mix";  gfx_set(0.35, 0.65, 0.95, 1); sprintf(#gs, "%d%%", floor(gv_ * 100 + 0.5)); );
-  gci == 2 ? ( gnm = "Reverb Size"; gfx_set(0.35, 0.65, 0.95, 1); sprintf(#gs, "%d%%", floor(gv_ * 100 + 0.5)); );
-  gcr = gfx_r; gcg = gfx_g; gcb = gfx_b;
-  gfx_setfont(1, "Arial", 12);
-  gfx_set(0.75, 0.75, 0.75, 1);
-  gfx_x = gco[0]; gfx_y = 410;
-  gfx_drawstr(gnm);
-  gfx_x = gco[0] + gco[2] - 40; gfx_y = 410;
-  gfx_drawstr(#gs);
-  gfx_set(0.1, 0.1, 0.1, 1);
-  gfx_rect(gco[0], gco[1], gco[2], 26);
-  gfx_set(gcr, gcg, gcb, 1);
-  gfx_rect(gco[0], gco[1], (gv_ - gco[4]) / (gco[5] - gco[4]) * gco[2], 26);
-  gfx_set(0.45, 0.45, 0.45, 1);
-  gfx_rect(gco[0], gco[1], gco[2], 26, 0);
+  gkx0 = gco[0] + 22; gky0 = gco[1] + 22;
+  gk_rad = ((gv_ - gco[4]) / (gco[5] - gco[4]) * 260 - 130) * $pi / 180;
+  gk_from = gco[4] < 0 ? 0 : -130 * $pi / 180;
+  gfx_set(0.157, 0.176, 0.196, 1);
+  gr_ = 20; loop(4, gfx_arc(gkx0, gky0, gr_, -130 * $pi / 180, 130 * $pi / 180, 1); gr_ -= 0.5; );
+  gfx_circle(gkx0, gky0, 15, 1, 1);
+  gfx_set(0.894, 0.8, 0.365, 1);
+  gfx_circle(gkx0 + sin(gk_rad) * 10, gky0 - cos(gk_rad) * 10, 3, 1);
+  gr_ = 20; loop(4, gfx_arc(gkx0, gky0, gr_, min(gk_from, gk_rad), max(gk_from, gk_rad), 1); gr_ -= 0.5; );
+  gci == 0 ? ( gnm = "Volume";      sprintf(#gs, "%d %%", floor(gv_ * 100 + 0.5)); );
+  gci == 1 ? ( gnm = "Reverb Mix";  sprintf(#gs, "%d %%", floor(gv_ * 100 + 0.5)); );
+  gci == 2 ? ( gnm = "Reverb Size"; sprintf(#gs, "%d %%", floor(gv_ * 100 + 0.5)); );
+  gci == 3 ? ( gnm = "Tune";        sprintf(#gs, "%+d ct", floor(gv_ + (gv_ < 0 ? -0.5 : 0.5))); );
+  gci == 4 ? ( gnm = "Release";     sprintf(#gs, "x %.2f", gv_); );
+  gfx_set(1, 1, 1, 1);
+  gdrag == gci ? sprintf(#gs2, "%s", #gs) : sprintf(#gs2, "%s", gnm);
+  gfx_measurestr(#gs2, gmw_, gmh_);
+  gfx_x = gkx0 - gmw_ / 2; gfx_y = gco[1] + 48;
+  gfx_drawstr(#gs2);
   gci += 1;
 );
 

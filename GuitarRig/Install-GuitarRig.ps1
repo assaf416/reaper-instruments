@@ -35,6 +35,7 @@ foreach ($rel in (Get-Content (Join-Path $here 'manifest.txt') | Where-Object { 
   $n++
 }
 Write-Host "Guitar Station S2: $n files installed to $dest (from $from)"
+& (Join-Path $here "..\Controllers\Patch-Rig.ps1") -File (Join-Path $dest "Guitar Station S2 (Tukan)") -Kind guitar
 if ($skipped) { Write-Warning "$skipped listed files were not found and were skipped." }
 
 # FX chain: the Guitar instrument followed by the rig (needs Guitar\Install-Guitar.ps1 for the first plugin)
