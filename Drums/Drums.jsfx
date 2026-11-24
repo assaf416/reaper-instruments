@@ -437,48 +437,67 @@ spl0 = outL;
 spl1 = outR;
 pkm = max(pkm * 0.9997, max(abs(outL), abs(outR)));
 
-@gfx 900 600
-gfx_clear = 0x1a1a1a;
+@gfx 1000 620
+// Look after the Jexed and JamSynth panels (chmaha JSFX ports): dark panels, kit LCD with arrows, round knobs with a coloured value arc.
+// All drawing code here is new.
+gfx_clear = 0x181614;
+
+function dr_chcol(c) (
+  c == 0 ? ( pr = 0.95; pg = 0.35; pb = 0.30; ) :
+  c == 1 ? ( pr = 0.95; pg = 0.65; pb = 0.20; ) :
+  c == 2 ? ( pr = 0.95; pg = 0.90; pb = 0.30; ) :
+  c == 3 ? ( pr = 0.40; pg = 0.85; pb = 0.40; ) :
+  c == 4 ? ( pr = 0.30; pg = 0.80; pb = 0.80; ) :
+  c == 5 ? ( pr = 0.40; pg = 0.60; pb = 0.95; ) :
+  c == 6 ? ( pr = 0.75; pg = 0.50; pb = 0.95; ) :
+  c == 7 ? ( pr = 0.92; pg = 0.92; pb = 0.92; ) : ( pr = 0.45; pg = 0.60; pb = 0.98; );
+);
+
+// knob k: 0-6 channel levels, 7-13 channel pans, 14 master, 15-17 reverb mix / room / damping
+function dr_pos(k) (
+  k < 7 ? ( kx = 58 + k * 98; ky = 196; ) :
+  k < 14 ? ( kx = 58 + (k - 7) * 98; ky = 296; ) :
+  k == 14 ? ( kx = 58 + 7 * 98; ky = 196; ) :
+  ( kx = 828 + (k - 15) * 64; ky = 196; );
+);
+
+function dr_set(gs, v) ( slider(gs) = v; sliderchange(2 ^ (gs - 1)); slider_automate(2 ^ (gs - 1)); );
 
 // ====================== mouse ======================
 gmd = mouse_cap & 1;
 gmd && !glmd ? (
   gdrag = -1;
-
-  // kit cards
-  gt = 0;
-  loop(5,
-    (mouse_x >= 20 + gt * 178 && mouse_x < 188 + gt * 178 && mouse_y >= 56 && mouse_y < 108) ? (
-      slider1 = gt; sliderchange(1); slider_automate(1);
-    );
-    gt += 1;
+  // kit LCD arrows
+  (mouse_y >= 14 && mouse_y < 92) ? (
+    (mouse_x >= 270 && mouse_x < 302) ? dr_set(1, (slider1 + 4) % 5);
+    (mouse_x >= 638 && mouse_x < 670) ? dr_set(1, (slider1 + 1) % 5);
   );
-
   // tabs
-  (mouse_y >= 118 && mouse_y < 144) ? (
-    (mouse_x >= 20 && mouse_x < 130) ? ui_tab = 0;
-    (mouse_x >= 136 && mouse_x < 246) ? ui_tab = 1;
+  (mouse_y >= 14 && mouse_y < 48) ? (
+    (mouse_x >= 700 && mouse_x < 830) ? ui_tab = 0;
+    (mouse_x >= 840 && mouse_x < 970) ? ui_tab = 1;
+  );
+  // kit cells under the LCD (quick select)
+  (mouse_y >= 56 && mouse_y < 92 && mouse_x >= 700 && mouse_x < 990) ? (
+    gt = floor((mouse_x - 700) / 58); gt >= 0 && gt < 5 ? dr_set(1, gt);
   );
 
   ui_tab == 0 ? (
-    // faders / pan / reverb bars
     gci = 0;
     loop(NC,
-      gco = ctl + gci * 10;
-      (mouse_x >= gco[0] && mouse_x < gco[0] + gco[2] && mouse_y >= gco[1] && mouse_y < gco[1] + gco[3]) ? (
-        gdrag = gci;
-        (mouse_cap & 4) ? (
-          slider(gco[6]) = gco[8];
-          sliderchange(2 ^ (gco[6] - 1)); slider_automate(2 ^ (gco[6] - 1));
-          gdrag = -1;
-        );
+      gco = ctl + gci * 10; dr_pos(gci);
+      (mouse_x >= kx - 28 && mouse_x < kx + 28 && mouse_y >= ky - 28 && mouse_y < ky + 24) ? (
+        gnow = time_precise();
+        ((mouse_cap & 4) || (gci == glast_k && gnow - glast_t < 0.45)) ? ( dr_set(gco[6], gco[8]); ) :
+        ( gdrag = gci; gdy0 = mouse_y; gdv0 = slider(gco[6]); );
+        glast_k = gci; glast_t = gnow;
       );
       gci += 1;
     );
-    // mute buttons
+    // mute pills
     gc = 0;
     loop(7,
-      (mouse_x >= 25 + gc * 82 + 4 && mouse_x < 25 + gc * 82 + 72 && mouse_y >= 470 && mouse_y < 494) ? (
+      (mouse_x >= 12 + gc * 98 + 16 && mouse_x < 12 + gc * 98 + 76 && mouse_y >= 380 && mouse_y < 404) ? (
         slider(20 + gc) = 1 - slider(20 + gc);
         sliderchange(2 ^ (19 + gc)); slider_automate(2 ^ (19 + gc));
       );
@@ -550,223 +569,151 @@ gmd && !glmd ? (
 
 gmd && gdrag >= 0 && ui_tab == 0 ? (
   gco = ctl + gdrag * 10;
-  gfrac = gco[9] ? 1 - (mouse_y - gco[1]) / gco[3] : (mouse_x - gco[0]) / gco[2];
-  gv = gco[4] + (gco[5] - gco[4]) * max(0, min(1, gfrac));
-  gv = floor(gv / gco[7] + 0.5) * gco[7];
-  gv != slider(gco[6]) ? (
-    slider(gco[6]) = gv;
-    sliderchange(2 ^ (gco[6] - 1)); slider_automate(2 ^ (gco[6] - 1));
+  gv = gdv0 + (gdy0 - mouse_y) / (mouse_cap & 8 ? 600 : 160) * (gco[5] - gco[4]);
+  gv = max(gco[4], min(gco[5], gv)); gv = floor(gv / gco[7] + 0.5) * gco[7];
+  gv != slider(gco[6]) ? dr_set(gco[6], gv);
+);
+mouse_wheel != 0 && ui_tab == 0 ? (
+  gci = 0;
+  loop(NC,
+    gco = ctl + gci * 10; dr_pos(gci);
+    (mouse_x >= kx - 28 && mouse_x < kx + 28 && mouse_y >= ky - 28 && mouse_y < ky + 24) ? (
+      gv = slider(gco[6]) + (mouse_wheel > 0 ? 1 : -1) * max(gco[7], (gco[5] - gco[4]) * 0.04);
+      gv = max(gco[4], min(gco[5], gv)); gv = floor(gv / gco[7] + 0.5) * gco[7];
+      dr_set(gco[6], gv);
+    );
+    gci += 1;
   );
+  mouse_wheel = 0;
 );
 !gmd ? gdrag = -1;
 glmd = gmd;
 
 // ====================== header ======================
-gfx_setfont(1, "Arial", 28);
-gfx_set(1, 1, 1, 1);
-gfx_x = 20; gfx_y = 12;
-gfx_drawstr("DRUMS");
-gfx_setfont(1, "Arial", 13);
-gfx_set(0.65, 0.65, 0.65, 1);
-gfx_x = 130; gfx_y = 24;
-gfx_drawstr("velocity-layered kits - mixer - reverb - MIDI map");
+gfx_setfont(1, "Arial", 30, 98);
+gfx_set(0.95, 0.35, 0.30, 1); gfx_x = 20; gfx_y = 14; gfx_drawstr("DRUMS");
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.6, 0.6, 0.62, 1); gfx_x = 22; gfx_y = 54; gfx_drawstr("velocity-layered kits, mixer, reverb");
+gfx_x = 22; gfx_y = 70; gfx_drawstr("and a MIDI map for e-drums");
 
-// kit cards
-gt = 0;
-loop(5,
-  gbx = 20 + gt * 178;
-  gsel = (kit == gt);
-  ghov = (mouse_x >= gbx && mouse_x < gbx + 168 && mouse_y >= 56 && mouse_y < 108);
-  gsel ? gfx_set(0.27, 0.27, 0.27, 1) : gfx_set(0.18, 0.18, 0.18, 1);
-  gfx_rect(gbx, 56, 168, 52);
-  (gsel || ghov) ? gfx_set(0.95, 0.65, 0.2, 1) : gfx_set(0.4, 0.4, 0.4, 1);
-  gfx_rect(gbx, 56, 168, 52, 0);
-  gsel ? ( gfx_set(0.95, 0.65, 0.2, 1); gfx_rect(gbx, 56, 168, 4); );
-  gfx_setfont(1, "Arial", 15);
-  gfx_set(1, 1, 1, 1);
-  gfx_x = gbx + 10; gfx_y = 66;
-  gfx_drawstr(kname[gt]);
-  gfx_setfont(1, "Arial", 12);
-  gfx_set(0.65, 0.65, 0.65, 1);
-  gfx_x = gbx + 10; gfx_y = 88;
-  gfx_drawstr(ksub[gt]);
-  gt += 1;
-);
+gfx_set(0.055, 0.04, 0.025, 1); gfx_rect(270, 14, 400, 78);
+gfx_set(0.25, 0.2, 0.12, 1); gfx_rect(270, 14, 400, 78, 0);
+gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(270, 14, 32, 78); gfx_rect(638, 14, 32, 78);
+gfx_set(0.95, 0.5, 0.2, 1);
+gfx_triangle(292, 38, 292, 68, 278, 53);
+gfx_triangle(648, 38, 648, 68, 662, 53);
+gfx_setfont(1, "Courier New", 13, 98);
+gfx_set(0.95, 0.6, 0.2, 1);
+gfx_x = 314; gfx_y = 22; gfx_drawstr(ksub[kit]);
+sprintf(#gs, "KIT %02d/05", kit + 1);
+gfx_measurestr(#gs, gw_, gh_); gfx_x = 628 - gw_; gfx_y = 22; gfx_drawstr(#gs);
+gfx_setfont(1, "Courier New", 24, 98);
+gfx_set(1, 0.72, 0.25, 1);
+gfx_measurestr(kname[kit], gw_, gh_); gfx_x = 470 - gw_ / 2; gfx_y = 44; gfx_drawstr(kname[kit]);
+gfx_setfont(1, "Courier New", 12, 98);
+kit_ok ? ( gfx_set(0.95, 0.6, 0.2, 1); sprintf(#gs, "PIECES %d", keyN); ) : ( gfx_set(1, 0.4, 0.4, 1); sprintf(#gs, "KIT NOT LOADED - RUN Install-Drums.ps1"); );
+gfx_x = 314; gfx_y = 74; gfx_drawstr(#gs);
 
-// tabs
+// tab buttons
 gt = 0;
 loop(2,
-  gbx = 20 + gt * 116;
-  gfx_set(0.18, 0.18, 0.18, 1);
-  ui_tab == gt ? gfx_set(0.3, 0.3, 0.3, 1);
-  gfx_rect(gbx, 118, 110, 26);
-  ui_tab == gt ? gfx_set(0.95, 0.65, 0.2, 1) : gfx_set(0.4, 0.4, 0.4, 1);
-  gfx_rect(gbx, 118, 110, 26, 0);
-  gfx_setfont(1, "Arial", 13);
-  gfx_set(1, 1, 1, 1);
-  gfx_x = gbx + (gt == 0 ? 36 : 28); gfx_y = 124;
-  gt == 0 ? gfx_drawstr("MIXER") : gfx_drawstr("MIDI MAP");
+  gbx = 700 + gt * 140;
+  ui_tab == gt ? ( gfx_set(0.70, 0.42, 0.10, 1); gfx_rect(gbx, 14, 130, 34); ) : ( gfx_set(0.157, 0.176, 0.196, 1); gfx_rect(gbx, 14, 130, 34); );
+  gfx_setfont(1, "Arial", 13, 98);
+  ui_tab == gt ? gfx_set(1, 1, 1, 1) : gfx_set(0.75, 0.75, 0.78, 1);
+  gt == 0 ? ( gfx_x = gbx + 46; gfx_y = 22; gfx_drawstr("MIXER"); ) : ( gfx_x = gbx + 36; gfx_y = 22; gfx_drawstr("MIDI MAP"); );
   gt += 1;
 );
-// kit status
-gfx_setfont(1, "Arial", 12);
-kit_ok ? ( gfx_set(0.4, 0.8, 0.4, 1); sprintf(#gs, "kit loaded - %d pieces", keyN); ) : ( gfx_set(1, 0.4, 0.4, 1); sprintf(#gs, "kit NOT loaded - run Install-Drums.ps1"); );
-// DEBUG line (temporary)
-gfx_set(0.9, 0.9, 0.5, 1); gfx_setfont(1, "Arial", 11);
-gfx_x = 260; gfx_y = 148;
-sprintf(#gdb, "DBG load#%d kit=%d slider1=%d loaded=%d zones=%d read=%d/%d nch=%d sh=%d", loads, kit, slider1, loaded, ld_nz, dbg_got, smp_len, dbg_nch, dbg_sh);
-gfx_drawstr(#gdb);
-gfx_setfont(1, "Arial", 12);
-gfx_x = 700; gfx_y = 126;
-gfx_drawstr(#gs);
+// quick kit selector (five small cells)
+gt = 0;
+loop(5,
+  gbx = 700 + gt * 58;
+  kit == gt ? ( gfx_set(0.70, 0.42, 0.10, 1); ) : ( gfx_set(0.098, 0.106, 0.118, 1); );
+  gfx_rect(gbx, 56, 52, 36);
+  gfx_setfont(1, "Courier New", 15, 98);
+  kit == gt ? gfx_set(1, 1, 1, 1) : gfx_set(0.7, 0.7, 0.72, 1);
+  sprintf(#gs, "%02d", gt + 1); gfx_x = gbx + 16; gfx_y = 65; gfx_drawstr(#gs);
+  gt += 1;
+);
 
 // ====================== MIXER ======================
 ui_tab == 0 ? (
-  gfx_setfont(1, "Arial", 12);
   gc = 0;
-  loop(7,
-    gx0 = 25 + gc * 82;
-    gc == 0 ? ( gcr = 0.95; gcg = 0.35; gcb = 0.3; );
-    gc == 1 ? ( gcr = 0.95; gcg = 0.65; gcb = 0.2; );
-    gc == 2 ? ( gcr = 0.95; gcg = 0.9;  gcb = 0.3; );
-    gc == 3 ? ( gcr = 0.4;  gcg = 0.85; gcb = 0.4; );
-    gc == 4 ? ( gcr = 0.3;  gcg = 0.8;  gcb = 0.8; );
-    gc == 5 ? ( gcr = 0.4;  gcg = 0.6;  gcb = 0.95; );
-    gc == 6 ? ( gcr = 0.75; gcg = 0.5;  gcb = 0.95; );
-
-    gfx_set(0.2, 0.2, 0.2, 1);
-    gfx_rect(gx0, 156, 76, 346);
-    gfx_set(0.4, 0.4, 0.4, 1);
-    gfx_rect(gx0, 156, 76, 346, 0);
-    gfx_set(gcr, gcg, gcb, 1);
-    gfx_rect(gx0, 156, 76, 4);
-
-    gfx_set(1, 1, 1, 1);
-    gfx_x = gx0 + 8; gfx_y = 170;
-    gfx_drawstr(kit == 4 ? chnB[gc] : chn[gc]);
-
-    // meter
-    gfx_set(0.1, 0.1, 0.1, 1);
-    gfx_rect(gx0 + 8, 200, 8, 200);
-    gpkv = min(1, mpk[gc] * 2.5);
-    gfx_set(gcr, gcg, gcb, 1);
-    gfx_rect(gx0 + 8, 200 + 200 * (1 - gpkv), 8, 200 * gpkv);
-
-    // fader
-    gv = slider(6 + gc);
-    gfx_set(0.1, 0.1, 0.1, 1);
-    gfx_rect(gx0 + 22, 200, 30, 200);
-    gfx_set(gcr * 0.8, gcg * 0.8, gcb * 0.8, 1);
-    gfx_rect(gx0 + 22, 200 + 200 * (1 - gv / 1.5), 30, 200 * gv / 1.5);
-    gfx_set(0.95, 0.95, 0.95, 1);
-    gfx_rect(gx0 + 20, 200 + 200 * (1 - gv / 1.5) - 2, 34, 4);
-    gfx_set(0.45, 0.45, 0.45, 1);
-    gfx_rect(gx0 + 22, 200, 30, 200, 0);
-    gfx_set(0.8, 0.8, 0.8, 1);
-    gfx_x = gx0 + 22; gfx_y = 404;
-    sprintf(#gs, "%d%%", floor(gv / 1 * 100 + 0.5));
-    gfx_drawstr(#gs);
-
-    // pan
-    gfx_set(0.55, 0.55, 0.55, 1);
-    gfx_x = gx0 + 4; gfx_y = 422;
-    gfx_drawstr("Pan");
-    gpn = slider(13 + gc);
-    gfx_set(0.1, 0.1, 0.1, 1);
-    gfx_rect(gx0 + 4, 438, 68, 18);
-    gfx_set(0.9, 0.9, 0.9, 1);
-    gfx_rect(gx0 + 4 + (gpn + 100) / 200 * 68 - 2, 436, 4, 22);
-    gfx_set(0.45, 0.45, 0.45, 1);
-    gfx_rect(gx0 + 4, 438, 68, 18, 0);
-    gfx_set(0.8, 0.8, 0.8, 1);
-    gfx_x = gx0 + 36; gfx_y = 422;
-    sprintf(#gs, "%d", gpn);
-    gfx_drawstr(#gs);
-
-    // mute
-    gmu = slider(20 + gc) > 0.5;
-    gmu ? gfx_set(0.85, 0.25, 0.25, 1) : gfx_set(0.28, 0.28, 0.28, 1);
-    gfx_rect(gx0 + 4, 470, 68, 24);
-    gfx_set(0.5, 0.5, 0.5, 1);
-    gfx_rect(gx0 + 4, 470, 68, 24, 0);
-    gfx_set(1, 1, 1, 1);
-    gfx_x = gx0 + 24; gfx_y = 476;
-    gfx_drawstr("MUTE");
+  loop(8,
+    gx0 = 12 + gc * 98;
+    dr_chcol(gc);
+    gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(gx0, 108, 92, 372);
+    gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(gx0, 108, 92, 372, 0);
+    gfx_set(pr, pg, pb, 1); gfx_rect(gx0, 108, 92, 2);
+    gfx_setfont(1, "Arial", 12, 98);
+    gfx_x = gx0 + 8; gfx_y = 116;
+    gc < 7 ? gfx_drawstr(kit == 4 ? chnB[gc] : chn[gc]) : gfx_drawstr("MASTER");
+    // level meter (vertical, right edge)
+    gfx_set(0.1, 0.11, 0.12, 1); gfx_rect(gx0 + 80, 132, 6, 220);
+    gpkv = gc < 7 ? min(1, mpk[gc] * 2.5) : min(1, pkm);
+    gfx_set(pr, pg, pb, 1); gfx_rect(gx0 + 80, 132 + 220 * (1 - gpkv), 6, 220 * gpkv);
+    gc < 7 ? (
+      gfx_setfont(1, "Arial", 11);
+      gfx_set(0.62, 0.62, 0.66, 1); gfx_x = gx0 + 8; gfx_y = 232; gfx_drawstr("LEVEL");
+      gfx_x = gx0 + 8; gfx_y = 332; gfx_drawstr("PAN");
+      gmu = slider(20 + gc) > 0.5;
+      gmu ? ( gfx_set(0.85, 0.25, 0.25, 1); gfx_rect(gx0 + 16, 380, 60, 24); gfx_set(1, 1, 1, 1); ) :
+            ( gfx_set(0.157, 0.176, 0.196, 1); gfx_rect(gx0 + 16, 380, 60, 24); gfx_set(0.7, 0.7, 0.72, 1); );
+      gfx_setfont(1, "Arial", 12, 98); gfx_x = gx0 + 32; gfx_y = 385; gfx_drawstr("MUTE");
+    ) : (
+      gfx_setfont(1, "Arial", 11);
+      gfx_set(0.62, 0.62, 0.66, 1); gfx_x = gx0 + 8; gfx_y = 232; gfx_drawstr("VOLUME");
+    );
     gc += 1;
   );
 
-  // master strip
-  gx0 = 599;
-  gfx_set(0.2, 0.2, 0.2, 1);
-  gfx_rect(gx0, 156, 76, 346);
-  gfx_set(0.4, 0.4, 0.4, 1);
-  gfx_rect(gx0, 156, 76, 346, 0);
-  gfx_set(0.9, 0.9, 0.9, 1);
-  gfx_rect(gx0, 156, 76, 4);
-  gfx_set(1, 1, 1, 1);
-  gfx_x = gx0 + 8; gfx_y = 170;
-  gfx_drawstr("MASTER");
-  gfx_set(0.1, 0.1, 0.1, 1);
-  gfx_rect(gx0 + 8, 200, 8, 200);
-  gpkv = min(1, pkm);
-  gfx_set(0.9, 0.9, 0.3, 1);
-  gfx_rect(gx0 + 8, 200 + 200 * (1 - gpkv), 8, 200 * gpkv);
-  gv = slider5;
-  gfx_set(0.1, 0.1, 0.1, 1);
-  gfx_rect(gx0 + 22, 200, 30, 200);
-  gfx_set(0.7, 0.7, 0.7, 1);
-  gfx_rect(gx0 + 22, 200 + 200 * (1 - gv / 2), 30, 200 * gv / 2);
-  gfx_set(0.95, 0.95, 0.95, 1);
-  gfx_rect(gx0 + 20, 200 + 200 * (1 - gv / 2) - 2, 34, 4);
-  gfx_set(0.45, 0.45, 0.45, 1);
-  gfx_rect(gx0 + 22, 200, 30, 200, 0);
-  gfx_set(0.8, 0.8, 0.8, 1);
-  gfx_x = gx0 + 22; gfx_y = 404;
-  sprintf(#gs, "%d%%", floor(gv * 100 + 0.5));
-  gfx_drawstr(#gs);
-
   // reverb panel
-  gfx_set(0.2, 0.2, 0.2, 1);
-  gfx_rect(690, 156, 190, 346);
-  gfx_set(0.4, 0.4, 0.4, 1);
-  gfx_rect(690, 156, 190, 346, 0);
-  gfx_set(0.35, 0.65, 0.95, 1);
-  gfx_rect(690, 156, 190, 4);
-  gfx_set(1, 1, 1, 1);
-  gfx_x = 705; gfx_y = 170;
-  gfx_drawstr("REVERB");
-  gci = 15;
-  loop(3,
-    gco = ctl + gci * 10;
+  gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(796, 108, 192, 372);
+  gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(796, 108, 192, 372, 0);
+  gfx_set(0.45, 0.60, 0.98, 1); gfx_rect(796, 108, 192, 2);
+  gfx_setfont(1, "Arial", 12, 98); gfx_x = 804; gfx_y = 116; gfx_drawstr("REVERB");
+
+  // knobs
+  gci = 0;
+  loop(NC,
+    gco = ctl + gci * 10; dr_pos(gci);
+    gci < 7 ? dr_chcol(gci) : (gci < 14 ? dr_chcol(gci - 7) : (gci == 14 ? dr_chcol(7) : dr_chcol(8)));
     gv = slider(gco[6]);
-    gfx_set(0.7, 0.7, 0.7, 1);
-    gfx_x = gco[0]; gfx_y = gco[1] - 18;
-    gci == 15 ? gfx_drawstr("Mix") : ( gci == 16 ? gfx_drawstr("Room Size") : gfx_drawstr("Damping") );
-    gfx_x = gco[0] + 120; gfx_y = gco[1] - 18;
-    sprintf(#gs, "%d%%", floor(gv * 100 + 0.5));
-    gfx_drawstr(#gs);
-    gfx_set(0.1, 0.1, 0.1, 1);
-    gfx_rect(gco[0], gco[1], gco[2], gco[3]);
-    gfx_set(0.35, 0.65, 0.95, 1);
-    gfx_rect(gco[0], gco[1], gv * gco[2], gco[3]);
-    gfx_set(0.45, 0.45, 0.45, 1);
-    gfx_rect(gco[0], gco[1], gco[2], gco[3], 0);
+    gci < 7 || gci == 14 ? sprintf(#gs, "%d%%", floor(gv * 100 + 0.5)) :
+    gci < 14 ? sprintf(#gs, "%+d", gv) : sprintf(#gs, "%d%%", floor(gv * 100 + 0.5));
+    gfx_setfont(1, "Arial", 11);
+    gfx_set(0.85, 0.85, 0.85, 1); gfx_measurestr(#gs, gw_, gh_); gfx_x = kx - gw_ / 2; gfx_y = ky - 40; gfx_drawstr(#gs);
+    gci >= 15 ? (
+      gnm = gci == 15 ? "MIX" : (gci == 16 ? "ROOM" : "DAMPING");
+      gfx_set(0.62, 0.62, 0.66, 1); gfx_measurestr(gnm, gw_, gh_); gfx_x = kx - gw_ / 2; gfx_y = ky + 26; gfx_drawstr(gnm);
+    );
+    gk_rad = ((gv - gco[4]) / (gco[5] - gco[4]) * 260 - 130) * $pi / 180;
+    gk_from = (gco[4] < 0 && gco[5] > 0) ? ((0 - gco[4]) / (gco[5] - gco[4]) * 260 - 130) * $pi / 180 : -130 * $pi / 180;
+    gfx_set(0.16, 0.17, 0.19, 1);
+    gr_ = 23; loop(5, gfx_arc(kx, ky, gr_, -130 * $pi / 180, 130 * $pi / 180, 1); gr_ -= 0.5; );
+    gfx_set(pr, pg, pb, 1);
+    gr_ = 23; loop(5, gfx_arc(kx, ky, gr_, min(gk_from, gk_rad), max(gk_from, gk_rad), 1); gr_ -= 0.5; );
+    gfx_set(0.07, 0.075, 0.085, 1); gfx_circle(kx, ky, 18, 1, 1);
+    gfx_set(0.2, 0.21, 0.24, 1); gfx_circle(kx, ky, 15, 1, 1);
+    gfx_set(0.96, 0.96, 0.96, 1);
+    gfx_line(kx + sin(gk_rad) * 5, ky - cos(gk_rad) * 5, kx + sin(gk_rad) * 13, ky - cos(gk_rad) * 13, 1);
     gci += 1;
   );
 
   // last hit + hint
-  gfx_set(0.7, 0.7, 0.7, 1);
-  gfx_x = 25; gfx_y = 512;
+  gfx_setfont(1, "Arial", 12);
+  gfx_set(0.7, 0.7, 0.72, 1);
+  gfx_x = 20; gfx_y = 494;
   lastpiece >= 0 ? (
-    sprintf(#gs, "Last hit: %s   (MIDI note %d, velocity %d)", 600 + lastpiece, lastnote, lastvel);
+    sprintf(#gs, "LAST HIT  %s   (MIDI note %d, velocity %d)", 600 + lastpiece, lastnote, lastvel);
   ) : (
     lastnote >= 0 ? sprintf(#gs, "Last MIDI note %d (velocity %d) is not mapped - see the MIDI MAP tab", lastnote, lastvel)
                   : sprintf(#gs, "Play a pad or a MIDI item to see which piece and velocity layer you hit");
   );
   gfx_drawstr(#gs);
-  gfx_set(0.5, 0.5, 0.5, 1);
-  gfx_x = 25; gfx_y = 532;
-  gfx_drawstr("Drag the faders, pan and reverb bars. Ctrl+click resets a control. Hi-hats and cymbals choke each other like the real kit.");
+  gfx_set(0.5, 0.5, 0.52, 1);
+  gfx_x = 20; gfx_y = 516;
+  gfx_drawstr("Drag a knob up or down (Shift = fine), mouse wheel, double-click or Ctrl+click to reset. Hi-hats and cymbals choke each other.");
 );
 
 // ====================== MIDI MAP ======================
@@ -784,7 +731,7 @@ ui_tab == 1 ? (
   loop(3,
     gbx = (gt == 0) ? 300 : ((gt == 1) ? 446 : 522);
     gbw = (gt == 0) ? 140 : ((gt == 1) ? 70 : 60);
-    gfx_set(0.28, 0.28, 0.28, 1);
+    gfx_set(0.157, 0.176, 0.196, 1);
     gfx_rect(gbx, 156, gbw, 22);
     gfx_set(0.5, 0.5, 0.5, 1);
     gfx_rect(gbx, 156, gbw, 22, 0);
@@ -798,10 +745,10 @@ ui_tab == 1 ? (
   loop(keyN,
     gbx = 25 + floor(gp / 14) * 290; gby = 190 + (gp % 14) * 24;
     gcur = pnote[kit * 32 + gp];
-    gfx_set(0.2, 0.2, 0.2, 1);
+    gfx_set(0.098, 0.106, 0.118, 1);
     gfx_rect(gbx, gby, 264, 20);
     flash[gp] > 0.02 ? ( gfx_set(0.95, 0.65, 0.2, flash[gp]); gfx_rect(gbx, gby, 264, 20); flash[gp] *= 0.85; );
-    gfx_set(0.4, 0.4, 0.4, 1);
+    gfx_set(0.16, 0.17, 0.19, 1);
     gfx_rect(gbx, gby, 264, 20, 0);
     gfx_setfont(1, "Arial", 12);
     gfx_set(1, 1, 1, 1);
@@ -818,14 +765,14 @@ ui_tab == 1 ? (
 
     // learn
     glw = (learn_type == 1 && learn_idx == gp);
-    glw ? gfx_set(0.9, 0.3, 0.3, 1) : gfx_set(0.3, 0.3, 0.3, 1);
+    glw ? gfx_set(0.9, 0.3, 0.3, 1) : gfx_set(0.157, 0.176, 0.196, 1);
     gfx_rect(gbx + 176, gby + 1, 46, 18);
     gfx_set(1, 1, 1, 1);
     gfx_x = gbx + 182; gfx_y = gby + 4;
     glw ? gfx_drawstr("wait..") : gfx_drawstr("Learn");
 
     // - / +
-    gfx_set(0.3, 0.3, 0.3, 1);
+    gfx_set(0.157, 0.176, 0.196, 1);
     gfx_rect(gbx + 226, gby + 1, 18, 18);
     gfx_rect(gbx + 246, gby + 1, 18, 18);
     gfx_set(1, 1, 1, 1);
@@ -835,11 +782,11 @@ ui_tab == 1 ? (
   );
 
   // CC map
-  gfx_set(0.2, 0.2, 0.2, 1);
+  gfx_set(0.098, 0.106, 0.118, 1);
   gfx_rect(600, 156, 280, 170);
-  gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_set(0.16, 0.17, 0.19, 1);
   gfx_rect(600, 156, 280, 170, 0);
-  gfx_set(0.35, 0.65, 0.95, 1);
+  gfx_set(0.45, 0.60, 0.98, 1);
   gfx_rect(600, 156, 280, 4);
   gfx_setfont(1, "Arial", 13);
   gfx_set(1, 1, 1, 1);
@@ -860,12 +807,12 @@ ui_tab == 1 ? (
     sprintf(#gs, "CC %d", ccmap[kit * 3 + gr]);
     gfx_drawstr(#gs);
     glw = (learn_type == 2 && learn_idx == gr);
-    glw ? gfx_set(0.9, 0.3, 0.3, 1) : gfx_set(0.3, 0.3, 0.3, 1);
+    glw ? gfx_set(0.9, 0.3, 0.3, 1) : gfx_set(0.157, 0.176, 0.196, 1);
     gfx_rect(678, gry + 18, 64, 20);
     gfx_set(1, 1, 1, 1);
     gfx_x = 688; gfx_y = gry + 22;
     glw ? gfx_drawstr("waiting..") : gfx_drawstr("Learn");
-    gfx_set(0.3, 0.3, 0.3, 1);
+    gfx_set(0.157, 0.176, 0.196, 1);
     gfx_rect(748, gry + 18, 20, 20);
     gfx_rect(772, gry + 18, 20, 20);
     gfx_set(1, 1, 1, 1);
@@ -875,9 +822,9 @@ ui_tab == 1 ? (
   );
 
   // monitor
-  gfx_set(0.2, 0.2, 0.2, 1);
+  gfx_set(0.098, 0.106, 0.118, 1);
   gfx_rect(600, 340, 280, 150);
-  gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_set(0.16, 0.17, 0.19, 1);
   gfx_rect(600, 340, 280, 150, 0);
   gfx_set(1, 1, 1, 1);
   gfx_x = 612; gfx_y = 350;
@@ -909,3 +856,9 @@ ui_tab == 1 ? (
   gfx_x = 25; gfx_y = 534;
   gfx_drawstr("Each kit keeps its own map. Notes your e-drum module sends -> the kit piece they should play. Saved with the project.");
 );
+
+// kit-load diagnostics (small, bottom right)
+gfx_set(0.4, 0.4, 0.42, 1); gfx_setfont(1, "Arial", 10);
+gfx_x = 560; gfx_y = 600;
+sprintf(#gdb, "load#%d kit=%d slider1=%d zones=%d read=%d/%d nch=%d", loads, kit, slider1, ld_nz, dbg_got, smp_len, dbg_nch);
+gfx_drawstr(#gdb);

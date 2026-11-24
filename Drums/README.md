@@ -14,9 +14,9 @@ Five drum kits with velocity layers, a 7-channel mixer, reverb, and a MIDI map e
 
 ## The UI
 
-* **Kit cards** along the top - click to load a kit (the kit's FLAC is loaded into memory, a few seconds for the big ones).
+* **Kit display** at the top (arrows, or the five numbered cells at the right) - loads a kit (its FLAC is read into memory, a few seconds for the big ones).
 * **MIXER tab** - 7 channel strips (Kick, Snare, Hi-Hat, Tom, Floor, Cymbals, Perc; Busk Stop has its own names)
-  with fader, pan, mute and level meter, a master strip, and the reverb (mix, room size, damping).
+  with round level and pan knobs, mute and level meter, a master strip, and the reverb (mix, room, damping). The look follows the chmaha Jexed and JamSynth panels; the drawing code is new.
   Ctrl+click resets a control.
 * **MIDI MAP tab**
   * *Note map*: for every piece of the current kit, the MIDI note your e-kit sends to play it.
