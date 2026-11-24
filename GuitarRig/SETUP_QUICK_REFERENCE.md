@@ -1,4 +1,4 @@
-# Guitar Legends - Quick Setup Reference
+# Guitar Legends - Quick Setup Reference (10 Presets)
 
 **Copy these settings into Guitar Station S2 for each legendary tone.**
 
@@ -72,6 +72,54 @@ Pre-Gain: 9  |  Distortion: 8.5  |  Master: 7
 Amp: Crunch (High-Gain) | Cabinet: British 4x12 (Closed)
 Mic: SM57 Near | Compressor: 8:1 Ratio Mid Threshold | Gate: -15dB
 Distortion: Massive Fuzz | Chorus: 50% 0.6Hz | Delay: OFF | Reverb: Spring 35%
+```
+
+---
+
+## 7️⃣ QUEEN (Brian May - Lush & Orchestral)
+```
+Bass: 6.5  |  Mid: 6.5  |  Treble: 7.5  |  Bright: ON
+Pre-Gain: 6.5  |  Distortion: 2.5  |  Master: 8
+
+Amp: British Warm | Cabinet: British 1x12 (Open)
+Mic: Ribbon Mid | Distortion: Soft Clip
+Chorus: 65% 1.2Hz | Delay: 500ms | Reverb: Plate 55%
+```
+
+---
+
+## 8️⃣ DIRE STRAITS (Mark Knopfler - Clean Strat Warmth)
+```
+Bass: 6.5  |  Mid: 6.5  |  Treble: 6.5  |  Bright: OFF
+Pre-Gain: 4.5  |  Distortion: 0.5  |  Master: 9
+
+Amp: American Clean (Fender) | Cabinet: American 2x12 (Closed)
+Mic: SM57 Mid | Compressor: 3:1 Ratio Mid Threshold
+Distortion: OFF | Chorus: 20% 0.5Hz | Delay: 300ms | Reverb: Spring 30%
+```
+
+---
+
+## 9️⃣ METALLICA / MEGADETH (High-Gain Metal)
+```
+Bass: 6.5  |  Mid: 6.5  |  Treble: 7.5  |  Bright: ON
+Pre-Gain: 8.5  |  Distortion: 8.5  |  Master: 7.5
+
+Amp: Crunch (High-Gain) | Cabinet: British 2x12 (Closed)
+Mic: SM57 Near | Gate: Threshold -8dB
+Distortion: Heavy Tight | Flanger: 15% 0.5Hz | Delay: 250ms | Reverb: Plate 20%
+```
+
+---
+
+## 🔟 RAGE AGAINST THE MACHINE (Tom Morello - Heavy & Experimental)
+```
+Bass: 7.5  |  Mid: 5.5  |  Treble: 6.5  |  Bright: OFF
+Pre-Gain: 8.5  |  Distortion: 8  |  Master: 7
+
+Amp: Crunch (High-Gain) | Cabinet: British 4x12 (Closed)
+Mic: SM57 Near | Gate: Threshold -12dB
+Distortion: Heavy Aggressive | Flanger: 40% 1.2Hz | Delay: 400ms | Reverb: Plate 35%
 ```
 
 ---

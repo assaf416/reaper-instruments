@@ -1,6 +1,6 @@
 # Guitar Legends Presets - Tukan Studios Guitar Station S2
 
-This guide provides detailed setup instructions for 6 iconic guitar sounds using the Tukan Studios Guitar Station S2 plugin. Each section includes recommended amp, cabinet, and effect settings.
+This guide provides detailed setup instructions for 10 iconic guitar sounds using the Tukan Studios Guitar Station S2 plugin. Each section includes recommended amp, cabinet, and effect settings.
 
 ## Setup Instructions
 
@@ -278,6 +278,167 @@ The standard pedal order (left to right):
 
 ---
 
+## 7. Queen - Brian May (Lush, Orchestral Lead)
+
+**Character:** Warm, singing lead tone with rich harmonic content. Lush reverb and chorus creating orchestral shimmer. Clean to slightly overdriven with sustain.
+
+### Tone Controls
+| Setting | Value | Notes |
+|---------|-------|-------|
+| **Bass** | 6-7 | Full, warm foundation |
+| **Mid** | 6-7 | Present and rich for body |
+| **Treble** | 7-8 | Bright but warm highs |
+| **Bright** | On | Shimmer and definition |
+| **Pre-Gain** | 6-7 | Warm breakup, slightly overdriven |
+| **Distortion** | 2-3 | Minimal, natural amp saturation |
+
+### Amp & Cabinet
+| Setting | Recommendation |
+|---------|-----------------|
+| **Amp** | British Warm or Crunch (Warm, Lush) |
+| **Power** | 50W for natural breakup |
+| **Cabinet** | British 1x12 or 2x12 (Open or Closed) |
+| **Microphone** | Ribbon or SM57 (Mid) for warmth |
+
+### Effects Order
+| Effect | Setting | Character |
+|--------|---------|-----------|
+| **Distortion/OD** | ENABLED - Soft Clip | Warm tube saturation |
+| **Modulation** | CHORUS - Deep (60-70%), medium rate (1-1.5Hz) | Rich, lush character |
+| **Delay** | 500ms (Quarter note @ 120BPM) | Adds dimension and space |
+| **Reverb** | Plate Reverb, 50-60% mix | Enveloping, theatrical space |
+
+### Performance Tips
+- Use vibrato liberally for expression
+- Bend strings with control and sustain
+- Layer chords for orchestral texture
+- Let notes ring and blend with reverb
+- Smooth, singing phrasing (Brian May trademark)
+
+---
+
+## 8. Dire Straits - Mark Knopfler (Strat Clean & Warm)
+
+**Character:** Fender Strat through Fender combo amps. Warm, clean tone with minimal effects. Tight, articulate fingerstyle clarity with just enough character to sing.
+
+### Tone Controls
+| Setting | Value | Notes |
+|---------|-------|-------|
+| **Bass** | 6-7 | Warm, full lows (Strat classic) |
+| **Mid** | 6-7 | Present midrange for warmth and body |
+| **Treble** | 6-7 | Clean, balanced highs (not bright) |
+| **Bright** | Off | Warm, natural tone (classic Fender) |
+| **Pre-Gain** | 4-5 | Clean, natural amp breakup at volume |
+| **Distortion** | 0-1 | Minimal or off - rely on amp breakup |
+
+### Amp & Cabinet
+| Setting | Recommendation |
+|---------|-----------------|
+| **Amp** | American Clean (Fender-style) or Blues |
+| **Power** | 50-100W for warm, driven tone at reasonable volume |
+| **Cabinet** | American 2x12 or Fender 1x12 (Closed or Open) |
+| **Microphone** | SM57 (Mid) for tight, present tone |
+
+### Effects Order
+| Effect | Setting | Character |
+|--------|---------|-----------|
+| **Compressor** | Ratio 3:1, Threshold mid | Sustain control, leveling for fingerstyle |
+| **Distortion/OD** | OFF - Focus on clean amp breakup | Natural, transparent tone |
+| **Modulation** | OPTIONAL - Very subtle Chorus (20%, 0.5Hz) | Light sheen (rarely used) |
+| **Delay** | MINIMAL - 250-375ms if used | Adds space without clutter |
+| **Reverb** | Spring Reverb, 25-35% | Subtle room, Fender-style |
+
+### Performance Tips
+- Fingerstyle playing (not pick) for warmth and touch
+- Minimal vibrato - let tone speak naturally
+- Fast attack for percussive rhythm patterns
+- Sustain through tone control, not effects
+- Play with dynamics (quiet to loud changes)
+
+---
+
+## 9. Metallica / Megadeth - Heavy Metal Precision
+
+**Character:** High-gain, aggressive distortion with tight, controlled tone. Palm-muted crunch with percussive attack. Lead clarity despite heavy distortion. No wasted frequencies.
+
+### Tone Controls
+| Setting | Value | Notes |
+|---------|-------|-------|
+| **Bass** | 6-7 | Powerful but controlled low-end |
+| **Mid** | 6-7 | Present for definition and clarity |
+| **Treble** | 7-8 | Bright for cutting through heavy distortion |
+| **Bright** | On | Essential for harmonic and lead clarity |
+| **Pre-Gain** | 8-9 | Maximum gain but controlled |
+| **Distortion** | 8-9 | Heavy, tight, articulate distortion |
+
+### Amp & Cabinet
+| Setting | Recommendation |
+|---------|-----------------|
+| **Amp** | Crunch or Metal (High-Gain British) |
+| **Power** | 50-100W for punchy response |
+| **Cabinet** | British 2x12 or 4x12 (Closed - tight tone) |
+| **Microphone** | SM57 (Near) for aggressive, tight tone |
+
+### Effects Order
+| Effect | Setting | Character |
+|--------|---------|-----------|
+| **Gate** | Threshold -8dB | Tight muting between notes, defines riffs |
+| **Compressor** | OPTIONAL - Ratio 2:1, low threshold | Tightens tone, adds punch |
+| **Distortion/OD** | HEAVY - Tight, articulate | High-gain metal precision |
+| **Modulation** | OFF or very subtle Flanger (15%, 0.5Hz) | Minimal, focus on riff tightness |
+| **Delay** | 250ms or OFF | Minimal delay, focus on punch |
+| **Reverb** | Plate Reverb, 15-25% | Tight room, not washed out |
+
+### Performance Tips
+- Palm-muted rhythm riffs (definition is key)
+- Fast picking attack for percussive feel
+- Clean, articulate lead lines (even with heavy distortion)
+- Gate control is essential (opens/closes cleanly)
+- Dynamic muting creates groove pocket
+
+---
+
+## 10. Rage Against the Machine - Tom Morello (Heavy & Experimental)
+
+**Character:** Heavy distortion with industrial, aggressive character. Layered tones combining clean funky rhythms with heavy solo crunch. Effects-heavy with wah, controlled feedback, and experimental textures.
+
+### Tone Controls
+| Setting | Value | Notes |
+|---------|-------|-------|
+| **Bass** | 7-8 | Heavy, thunderous foundation |
+| **Mid** | 5-6 | Slight mid-scoop for heaviness |
+| **Treble** | 6-7 | Warm highs, controlled (not piercing) |
+| **Bright** | Off | Dark, industrial character |
+| **Pre-Gain** | 8-9 | Heavy pre-amp saturation |
+| **Distortion** | 7-9 | Heavy, aggressive, industrial tone |
+
+### Amp & Cabinet
+| Setting | Recommendation |
+|---------|-----------------|
+| **Amp** | Crunch (High-Gain) or Metal-influenced |
+| **Power** | 100W+ for aggressive, loud tone |
+| **Cabinet** | British 4x12 (Closed) for heavy, full tone |
+| **Microphone** | SM57 (Near) for aggressive, roaring character |
+
+### Effects Order
+| Effect | Setting | Character |
+|--------|---------|-----------|
+| **Gate** | Threshold -12dB | Controlled feedback buildup |
+| **Distortion/OD** | HEAVY - Aggressive, overdriven | Wall of heavy distortion |
+| **Modulation** | WAH PEDAL simulation + FLANGER (40%, 1.2Hz) | Experimental, funky modulation |
+| **Delay** | 375-500ms | Adds rhythmic dimension |
+| **Reverb** | Plate Reverb, 30-40% mix | Heavy room ambience |
+
+### Performance Tips
+- Heavy palm-muting with dynamic control
+- Experiment with wah pedal movement (Morello trademark)
+- Layer clean funky rhythms beneath heavy lead tones
+- Controlled feedback for dramatic effect
+- Use dynamics - quiet rhythms exploding into heavy solos
+- Percussive muting patterns create groove
+
+---
+
 ## How to Create These Presets in Reaper
 
 1. **Configure the first preset** (Gilmour) exactly as shown above
@@ -302,5 +463,9 @@ Alternatively:
 - **Deep Purple**: Stratocaster through Marshall stack, purple-tinted, heavy sustain tone
 - **Iron Maiden**: British amp tone with high-gain, dual-lead guitar harmonies (Adrian Smith/Dave Murray)
 - **Nirvana**: Boss DS-1 distortion (Kurt Cobain), Fender Jaguar, Marshall JCM 800, heavily compressed tone
+- **Queen**: Brian May's Red Special through custom amps, lush reverb and chorus, orchestral warmth
+- **Dire Straits**: Mark Knopfler's Fender Strat through Fender combo amps, warm clean tone, fingerstyle articulation
+- **Metallica/Megadeth**: Marshall JCM800 or similar high-gain British amp, tight distortion, gate control for precision
+- **Rage Against the Machine**: Tom Morello's experimental tone blending heavy distortion with clean funky rhythms, wah effects
 
 Each tone is a starting point - adjust to your guitar, amplifier, and playing style!
