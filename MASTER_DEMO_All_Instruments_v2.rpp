@@ -1,387 +1,374 @@
-<REAPER_PROJECT 0.1 "7.84/linux-x86_64" 1795529583 0
-  RIPPLE 0 0
-  GROUPOVERRIDE 0 0 0 0
-  AUTOXFADE 128
-  ENVATTACH 3
-  POOLEDENVATTACH 0
-  TCPUIFLAGS 0
-  MIXERUIFLAGS 11 48 0
-  PEAKGAIN 1
-  FEEDBACK 0
-  PANLAW 1
-  PROJOFFS 0 0 0
-  MAXPROJLEN 0 0
-  GRID 3199 8 1 8 1 0 0 0
-  TIMEMODE 1 5 -1 30 0 0 -1 0
-  CURSOR 11
-  ZOOM 18.09988511555567 0 0
-  VZOOMEX 6 0
-  USE_REC_CFG 0
-  RECMODE 1
-  SMPTESYNC 0 30 100 40 1000 300 0 0 1 0 0
-  LOOP 0
-  LOOPGRAN 0 4
-  RECORD_PATH "Media" ""
-  <RECORD_CFG
-    ZXZhdxgAAQ==
-  >
-  <APPLYFX_CFG
-  >
-  RENDER_FILE ""
-  RENDER_PATTERN ""
-  RENDER_FMT 0 2 0
-  RENDER_1X 0 0
-  RENDER_RANGE 1 0 0 0 1000
-  RENDER_RESAMPLE 3 0 1
-  RENDER_ADDTOPROJ 0
-  RENDER_STEMS 0
-  RENDER_DITHER 0
-  RENDER_TRIM 0.000001 0.000001 0 0
-  TIMELOCKMODE 1
-  TEMPOENVLOCKMODE 1
-  ITEMMIX 1
-  DEFPITCHMODE 589824 0
-  TAKELANE 1
-  SAMPLERATE 44100 0 0
-  <RENDER_CFG
-    ZXZhdxgAAQ==
-  >
-  LOCK 1
-  <METRONOME 6 2
-    VOL 0.5 0.5
-    BEATLEN 4
-    FREQ 800 1600 1
-    SAMPLES "" "" "" ""
-    SPLIGNORE 0 0
-    SPLDEF 2 660 "" 0 ""
-    SPLDEF 3 440 "" 0 ""
-    PATTERN 0 169
-    PATTERNSTR ABBB
-    MULT 1
-  >
-  GLOBAL_AUTO -1
-  TEMPO 120 4 4 0
-  PLAYRATE 1 0 0.25 8
-  SELECTION 0 0
-  SELECTION2 0 0
-  MASTERAUTOMODE 0
-  MASTERTRACKHEIGHT 0 0
-  MASTERPEAKCOL 16576
-  MASTERMUTESOLO 0
-  MASTERTRACKVIEW 0 0.6667 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0
-  MASTERHWOUT 0 0 1 0 0 0 0 -1
-  MASTER_NCH 2 2
-  MASTER_VOLUME 1 0 -1 -1 1
-  MASTER_FX 1
-  MASTER_TRACKID {314E8FE8-B284-CC00-7DB7-2792366807DF}
-  MASTER_SEL 0
-  <MASTERPLAYSPEEDENV
-    EGUID {CD97451A-8789-97BD-3B23-55F8C9287A9B}
-    ACT 0 -1
-    VIS 0 1 1
-    LANEHEIGHT 0 0
-    ARM 0
-    DEFSHAPE 0 -1 -1
-  >
-  <TEMPOENVEX
-    EGUID {1B79B8EA-22AD-79EA-B66D-446FE0771B1F}
-    ACT 0 -1
-    VIS 1 0 1
-    LANEHEIGHT 0 0
-    ARM 0
-    DEFSHAPE 1 -1 -1
-  >
-  RULERHEIGHT 86 86
-  RULERLANE 1 4 "" 0 -1 0
-  RULERLANE 2 8 "" 0 -1 0
-  <PROJBAY
-  >
-  <TRACK {C29A2516-11F3-36B8-A447-11C25CEE9B95}
+<REAPER_PROJECT 0.1 "7.78/win64" 0
+  TEMPO 120 4 4
+  LOOP 1
+  <TRACK
     NAME "1. Mellotron - Lush String Pad"
-    PEAKCOL 16576
-    BEAT -1
-    AUTOMODE 0
-    VOLPAN 1 0 1 -1 1
-    MUTESOLO 0 0 0
-    IPHASE 0
-    PLAYOFFS 0 1
-    ISBUS 0 0
-    BUSCOMP 0 0 0 0 0
-    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
-    LANEREC -1 -1 -1 0
-    SEL 0
-    REC 0 0 1 0 0 0 0 0
-    TRACKHEIGHT 0 0 0 0 0 0 0
-    INQ 0 0 0 0.5 100 0 0 100
+    VOLPAN 0.5 -0.2 -1 -1 1
     NCHAN 2
-    FX 1
-    TRACKID {C29A2516-11F3-36B8-A447-11C25CEE9B95}
-    PERF 0
-    MIDIOUT -1 -1
-    MAINSEND 1 0
     <FXCHAIN
-      WNDRECT 32 87 809 425
-      SHOW 0
-      LASTSEL 0
-      DOCKED 0
-      BYPASS 0 0 0
-      <JS Mellotron Mellotron.jsfx
-        BYPASS 0 0 0
+      <JS "Mellotron/Mellotron.jsfx" ""
+        12 7 15 0.9 0.6 0.5 0 -30 30 0.2 0.3 1 
       >
-      MULTIFXLINK 0
-      FLOATPOS 0 0 0 0
-      FXID {4DC278FD-D853-0B53-739E-3EAD5F97F2CD}
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0100}
       WAK 0 0
     >
-  >
-  <TRACK {63FAEF46-DC7A-9E7F-5387-F3089CEEF201}
-    NAME "2. Organ - Rick Wakeman Owner of a Lonely Heart"
-    PEAKCOL 16576
-    BEAT -1
-    AUTOMODE 0
-    VOLPAN 1 0 1 -1 1
-    MUTESOLO 0 2 0
-    IPHASE 0
-    PLAYOFFS 0 1
-    ISBUS 0 0
-    BUSCOMP 0 0 0 0 0
-    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
-    LANEREC -1 -1 -1 0
-    SEL 0
-    REC 1 5088 1 0 0 0 0 0
-    TRACKHEIGHT 0 0 0 0 0 0 0
-    INQ 0 0 0 0.5 100 0 0 100
-    NCHAN 2
-    FX 1
-    TRACKID {63FAEF46-DC7A-9E7F-5387-F3089CEEF201}
-    PERF 0
-    MIDIOUT -1 -1
-    MAINSEND 1 0
-    <FXCHAIN
-      WNDRECT 32 87 809 425
-      SHOW 0
-      LASTSEL 0
-      DOCKED 0
-      BYPASS 0 0 0
-      <JS Organ OrganSingle.jsfx
-        BYPASS 0 0 0
+    <ITEM
+      POSITION 0
+      LENGTH 8
+      LOOP 1
+      NAME "1. Mellotron - Lush String Pad"
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 90 3c 64
+        E 480 90 40 64
+        E 432 80 3c 00
+        E 48 90 43 64
+        E 432 80 40 00
+        E 48 90 48 64
+        E 432 80 43 00
+        E 480 80 48 00
+        E 1488 90 3c 64
+        E 480 90 40 64
+        E 432 80 3c 00
+        E 48 90 43 64
+        E 432 80 40 00
+        E 48 90 48 64
+        E 432 80 43 00
+        E 480 80 48 00
+        E 1488 90 3c 64
+        E 480 90 40 64
+        E 432 80 3c 00
+        E 48 90 43 64
+        E 432 80 40 00
+        E 48 90 48 64
+        E 432 80 43 00
+        E 480 80 48 00
+        E 1488 90 3c 64
+        E 480 90 40 64
+        E 432 80 3c 00
+        E 48 90 43 64
+        E 432 80 40 00
+        E 48 90 48 64
+        E 432 80 43 00
+        E 480 80 48 00
       >
-      MULTIFXLINK 0
-      FLOATPOS 0 0 0 0
-      FXID {4E1ECAB8-3396-9C9E-1578-835F934A2AC3}
-      WAK 0 0
     >
   >
-  <TRACK {85C1C1C0-D48B-9DBA-6093-631C1CE114C1}
-    NAME "3. Piano - Warm Acoustic"
-    PEAKCOL 16576
-    BEAT -1
-    AUTOMODE 0
-    VOLPAN 1 0 1 -1 1
-    MUTESOLO 0 0 0
-    IPHASE 0
-    PLAYOFFS 0 1
-    ISBUS 0 0
-    BUSCOMP 0 0 0 0 0
-    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
-    LANEREC -1 -1 -1 0
-    SEL 0
-    REC 0 0 1 0 0 0 0 0
-    TRACKHEIGHT 0 0 0 0 0 0 0
-    INQ 0 0 0 0.5 100 0 0 100
+  <TRACK
+    NAME "2. Organ - Owner of a Lonely Heart (organ preset 21)"
+    VOLPAN 0.45 0.2 -1 -1 1
     NCHAN 2
-    FX 1
-    TRACKID {85C1C1C0-D48B-9DBA-6093-631C1CE114C1}
-    PERF 0
-    MIDIOUT -1 -1
-    MAINSEND 1 0
     <FXCHAIN
-      SHOW 0
-      LASTSEL 0
-      DOCKED 0
-      BYPASS 0 0 0
-      <JS Piano Piano.jsfx
-        BYPASS 0 0 0
+      <JS "Organ/OrganSingle.jsfx" ""
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 21 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       >
-      MULTIFXLINK 0
-      FLOATPOS 0 0 0 0
-      FXID {9EDD0668-8179-40C3-387A-0A3F121FE092}
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0200}
       WAK 0 0
     >
-  >
-  <TRACK {3673F3C7-993F-C3FC-C315-741912D8189C}
-    NAME "4. Synth - Gilmour Shine Lead"
-    PEAKCOL 16576
-    BEAT -1
-    AUTOMODE 0
-    VOLPAN 1 0 1 -1 1
-    MUTESOLO 0 0 0
-    IPHASE 0
-    PLAYOFFS 0 1
-    ISBUS 0 0
-    BUSCOMP 0 0 0 0 0
-    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
-    LANEREC -1 -1 -1 0
-    SEL 0
-    REC 0 0 1 0 0 0 0 0
-    TRACKHEIGHT 0 0 0 0 0 0 0
-    INQ 0 0 0 0.5 100 0 0 100
-    NCHAN 2
-    FX 1
-    TRACKID {3673F3C7-993F-C3FC-C315-741912D8189C}
-    PERF 0
-    MIDIOUT -1 -1
-    MAINSEND 1 0
-    <FXCHAIN
-      WNDRECT 32 87 809 425
-      SHOW 0
-      LASTSEL 0
-      DOCKED 0
-      BYPASS 0 0 0
-      <JS RetroSynth RetroSynth.jsfx
-        BYPASS 0 0 0
+    <ITEM
+      POSITION 0
+      LENGTH 8
+      LOOP 1
+      NAME "2. Organ - Owner of a Lonely Heart (organ preset 21)"
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 90 30 64
+        E 1824 80 30 00
+        E 96 90 34 64
+        E 1824 80 34 00
+        E 96 90 30 64
+        E 1824 80 30 00
+        E 96 90 34 64
+        E 1824 80 34 00
+        E 96 90 30 64
+        E 1824 80 30 00
+        E 96 90 34 64
+        E 1824 80 34 00
+        E 96 90 30 64
+        E 1824 80 30 00
+        E 96 90 34 64
+        E 1824 80 34 00
       >
-      MULTIFXLINK 0
-      FLOATPOS 0 0 0 0
-      FXID {7A5D063D-1C5E-5A51-BF06-E63865F00550}
-      WAK 0 0
     >
   >
-  <TRACK {A2914EC3-CC6A-CA45-7011-F18B4CE263FA}
-    NAME "5. Guitar - Gilmour Warm Lead"
-    PEAKCOL 16576
-    BEAT -1
-    AUTOMODE 0
-    VOLPAN 1 0 1 -1 1
-    MUTESOLO 0 2 0
-    IPHASE 0
-    PLAYOFFS 0 1
-    ISBUS 0 0
-    BUSCOMP 0 0 0 0 0
-    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
-    LANEREC -1 -1 -1 0
-    SEL 1
-    REC 0 0 1 0 0 0 0 0
-    TRACKHEIGHT 0 0 0 0 0 0 0
-    INQ 0 0 0 0.5 100 0 0 100
+  <TRACK
+    NAME "3. Piano - Warm Acoustic (Midnight Upright)"
+    VOLPAN 0.7 0.3 -1 -1 1
     NCHAN 2
-    FX 1
-    TRACKID {A2914EC3-CC6A-CA45-7011-F18B4CE263FA}
-    PERF 0
-    MIDIOUT -1 -1
-    MAINSEND 1 0
     <FXCHAIN
-      SHOW 0
-      LASTSEL 0
-      DOCKED 0
-      BYPASS 0 0 0
-      <JS Guitar Guitar.jsfx
-        BYPASS 0 0 0
+      <JS "Piano/Piano.jsfx" ""
+        0 0.25 0.6 0.4 2 
       >
-      MULTIFXLINK 0
-      FLOATPOS 0 0 0 0
-      FXID {46417F19-DC0D-66E0-35E9-AF76E6C37D43}
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0300}
       WAK 0 0
     >
-  >
-  <TRACK {9D6E15B5-2D45-C3E9-32BE-E176C94D6EEB}
-    NAME "6. Bass - Deep Foundation"
-    PEAKCOL 16576
-    BEAT -1
-    AUTOMODE 0
-    VOLPAN 1 0 1 -1 1
-    MUTESOLO 0 0 0
-    IPHASE 0
-    PLAYOFFS 0 1
-    ISBUS 0 0
-    BUSCOMP 0 0 0 0 0
-    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
-    LANEREC -1 -1 -1 0
-    SEL 0
-    REC 0 0 1 0 0 0 0 0
-    TRACKHEIGHT 0 0 0 0 0 0 0
-    INQ 0 0 0 0.5 100 0 0 100
-    NCHAN 2
-    FX 1
-    TRACKID {9D6E15B5-2D45-C3E9-32BE-E176C94D6EEB}
-    PERF 0
-    MIDIOUT -1 -1
-    MAINSEND 1 0
-  >
-  <TRACK {3CBEF5EB-B7B7-BB4D-A34F-15CC9AB097DA}
-    NAME "7. Synth Pad - Queen Lush"
-    PEAKCOL 16576
-    BEAT -1
-    AUTOMODE 0
-    VOLPAN 1 0 1 -1 1
-    MUTESOLO 0 0 0
-    IPHASE 0
-    PLAYOFFS 0 1
-    ISBUS 0 0
-    BUSCOMP 0 0 0 0 0
-    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
-    LANEREC -1 -1 -1 0
-    SEL 0
-    REC 0 0 1 0 0 0 0 0
-    TRACKHEIGHT 0 0 0 0 0 0 0
-    INQ 0 0 0 0.5 100 0 0 100
-    NCHAN 2
-    FX 1
-    TRACKID {3CBEF5EB-B7B7-BB4D-A34F-15CC9AB097DA}
-    PERF 0
-    MIDIOUT -1 -1
-    MAINSEND 1 0
-    <FXCHAIN
-      SHOW 0
-      LASTSEL 0
-      DOCKED 0
-      BYPASS 0 0 0
-      <JS RetroSynth RetroSynth.jsfx
-        BYPASS 0 0 0
+    <ITEM
+      POSITION 0
+      LENGTH 8
+      LOOP 1
+      NAME "3. Piano - Warm Acoustic (Midnight Upright)"
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 90 3c 64
+        E 912 80 3c 00
+        E 48 90 40 64
+        E 912 80 40 00
+        E 48 90 43 64
+        E 912 80 43 00
+        E 48 90 48 64
+        E 912 80 48 00
+        E 48 90 3c 64
+        E 912 80 3c 00
+        E 48 90 40 64
+        E 912 80 40 00
+        E 48 90 43 64
+        E 912 80 43 00
+        E 48 90 48 64
+        E 912 80 48 00
+        E 48 90 3c 64
+        E 912 80 3c 00
+        E 48 90 40 64
+        E 912 80 40 00
+        E 48 90 43 64
+        E 912 80 43 00
+        E 48 90 48 64
+        E 912 80 48 00
+        E 48 90 3c 64
+        E 912 80 3c 00
+        E 48 90 40 64
+        E 912 80 40 00
+        E 48 90 43 64
+        E 912 80 43 00
+        E 48 90 48 64
+        E 912 80 48 00
       >
-      MULTIFXLINK 0
-      FLOATPOS 0 0 0 0
-      FXID {5301B023-1F4C-006E-6673-778424ECA918}
-      WAK 0 0
     >
   >
-  <TRACK {1AB77DEC-E28E-CA17-B67A-1D4C0FD44AD1}
-    NAME "8. Lead Synth - Hendrix Fuzz"
-    PEAKCOL 16576
-    BEAT -1
-    AUTOMODE 0
-    VOLPAN 1 0 1 -1 1
-    MUTESOLO 0 0 0
-    IPHASE 0
-    PLAYOFFS 0 1
-    ISBUS 0 0
-    BUSCOMP 0 0 0 0 0
-    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
-    LANEREC -1 -1 -1 0
-    SEL 0
-    REC 0 0 1 0 0 0 0 0
-    TRACKHEIGHT 0 0 0 0 0 0 0
-    INQ 0 0 0 0.5 100 0 0 100
+  <TRACK
+    NAME "4. Synth - Shine Lead (synth preset 36)"
+    VOLPAN 0.3 -0.1 -1 -1 1
     NCHAN 2
-    FX 1
-    TRACKID {1AB77DEC-E28E-CA17-B67A-1D4C0FD44AD1}
-    PERF 0
-    MIDIOUT -1 -1
-    MAINSEND 1 0
     <FXCHAIN
-      SHOW 0
-      LASTSEL 0
-      DOCKED 0
-      BYPASS 0 0 0
-      <JS RetroSynth RetroSynth.jsfx
-        BYPASS 0 0 0
+      <JS "Synth/RetroSynth.jsfx" ""
+        36 
       >
-      MULTIFXLINK 0
-      FLOATPOS 0 0 0 0
-      FXID {E2A6874F-FCB0-2296-59EA-A63CCAD3BA3C}
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0400}
       WAK 0 0
     >
+    <ITEM
+      POSITION 0
+      LENGTH 8
+      LOOP 1
+      NAME "4. Synth - Shine Lead (synth preset 36)"
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 90 48 64
+        E 1824 80 48 00
+        E 96 90 4c 64
+        E 1824 80 4c 00
+        E 96 90 48 64
+        E 1824 80 48 00
+        E 96 90 4c 64
+        E 1824 80 4c 00
+        E 96 90 48 64
+        E 1824 80 48 00
+        E 96 90 4c 64
+        E 1824 80 4c 00
+        E 96 90 48 64
+        E 1824 80 48 00
+        E 96 90 4c 64
+        E 1824 80 4c 00
+      >
+    >
   >
-  <EXTENSIONS
+  <TRACK
+    NAME "5. Guitar - Warm Lead"
+    VOLPAN 0.35 -0.35 -1 -1 1
+    NCHAN 2
+    <FXCHAIN
+      <JS "Guitar/Guitar.jsfx" ""
+        0 0.35 0.8 0.5 0.3 380 0.4 1 2 1 0.5 1 
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0500}
+      WAK 0 0
+      <JS "GuitarRig/Guitar Station S2 (Tukan)" ""
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0501}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      LENGTH 8
+      LOOP 1
+      NAME "5. Guitar - Warm Lead"
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 90 3c 64
+        E 912 80 3c 00
+        E 48 90 40 64
+        E 912 80 40 00
+        E 48 90 43 64
+        E 912 80 43 00
+        E 48 90 48 64
+        E 912 80 48 00
+        E 48 90 3c 64
+        E 912 80 3c 00
+        E 48 90 40 64
+        E 912 80 40 00
+        E 48 90 43 64
+        E 912 80 43 00
+        E 48 90 48 64
+        E 912 80 48 00
+        E 48 90 3c 64
+        E 912 80 3c 00
+        E 48 90 40 64
+        E 912 80 40 00
+        E 48 90 43 64
+        E 912 80 43 00
+        E 48 90 48 64
+        E 912 80 48 00
+        E 48 90 3c 64
+        E 912 80 3c 00
+        E 48 90 40 64
+        E 912 80 40 00
+        E 48 90 43 64
+        E 912 80 43 00
+        E 48 90 48 64
+        E 912 80 48 00
+      >
+    >
+  >
+  <TRACK
+    NAME "6. Bass - Deep Foundation (Guitar sampler, low note)"
+    VOLPAN 0.45 0 -1 -1 1
+    NCHAN 2
+    <FXCHAIN
+      <JS "Guitar/Guitar.jsfx" ""
+        0 0 0.8 0.5 0 380 0.35 0 2 1 0.5 1 
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0600}
+      WAK 0 0
+      <JS "BassRig/Bass Station S2 (Tukan)" ""
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0601}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      LENGTH 8
+      LOOP 1
+      NAME "6. Bass - Deep Foundation (Guitar sampler, low note)"
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 80 00 00
+        E 0 80 04 00
+        E 0 80 24 00
+        E 0 80 64 00
+        E 0 90 00 
+        E 0 90 04 
+        E 0 90 24 
+        E 0 90 64 
+        E 3840 80 00 00
+        E 0 80 04 00
+        E 0 80 24 00
+        E 0 80 64 00
+        E 0 90 00 
+        E 0 90 04 
+        E 0 90 24 
+        E 0 90 64 
+        E 3840 80 00 00
+        E 0 80 04 00
+        E 0 80 24 00
+        E 0 80 64 00
+        E 0 90 00 
+        E 0 90 04 
+        E 0 90 24 
+        E 0 90 64 
+        E 3840 80 00 00
+        E 0 80 04 00
+        E 0 80 24 00
+        E 0 80 64 00
+        E 0 90 00 
+        E 0 90 04 
+        E 0 90 24 
+        E 0 90 64 
+      >
+    >
+  >
+  <TRACK
+    NAME "7. Synth Pad - Lush Choir (synth preset 9)"
+    VOLPAN 0.3 0.35 -1 -1 1
+    NCHAN 2
+    <FXCHAIN
+      <JS "Synth/RetroSynth.jsfx" ""
+        9 
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0700}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      LENGTH 8
+      LOOP 1
+      NAME "7. Synth Pad - Lush Choir (synth preset 9)"
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 90 30 64
+        E 0 90 34 64
+        E 3648 80 30 00
+        E 0 80 34 00
+        E 192 90 30 64
+        E 0 90 34 64
+        E 3648 80 30 00
+        E 0 80 34 00
+        E 192 90 30 64
+        E 0 90 34 64
+        E 3648 80 30 00
+        E 0 80 34 00
+        E 192 90 30 64
+        E 0 90 34 64
+        E 3648 80 30 00
+        E 0 80 34 00
+      >
+    >
+  >
+  <TRACK
+    NAME "8. Lead Synth - Overdriven Moore Lead (synth preset 11)"
+    VOLPAN 0.28 0 -1 -1 1
+    NCHAN 2
+    <FXCHAIN
+      <JS "Synth/RetroSynth.jsfx" ""
+        11 
+      >
+      FXID {7A1B2C3D-0000-4000-8000-0000000B0800}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      LENGTH 8
+      LOOP 1
+      NAME "8. Lead Synth - Overdriven Moore Lead (synth preset 11)"
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 90 40 64
+        E 1824 80 40 00
+        E 96 90 45 64
+        E 1824 80 45 00
+        E 96 90 40 64
+        E 1824 80 40 00
+        E 96 90 45 64
+        E 1824 80 45 00
+        E 96 90 40 64
+        E 1824 80 40 00
+        E 96 90 45 64
+        E 1824 80 45 00
+        E 96 90 40 64
+        E 1824 80 40 00
+        E 96 90 45 64
+        E 1824 80 45 00
+      >
+    >
   >
 >
