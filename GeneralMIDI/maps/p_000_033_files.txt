@@ -1,0 +1,9 @@
+GeneralMIDI/samples/0882_Finger_Bass_EO.wav
+GeneralMIDI/samples/0881_Finger_Bass_E2.wav
+GeneralMIDI/samples/0880_Finger_Bass_E4.wav
+GeneralMIDI/samples/0879_Finger_Bass_A1.wav
+GeneralMIDI/samples/0878_Finger_Bass_A3.wav
+GeneralMIDI/samples/0877_Finger_Bass_D1.wav
+GeneralMIDI/samples/0876_Finger_Bass_D3.wav
+GeneralMIDI/samples/0875_Finger_Bass_GO.wav
+GeneralMIDI/samples/0874_Finger_Bass_G5.wav

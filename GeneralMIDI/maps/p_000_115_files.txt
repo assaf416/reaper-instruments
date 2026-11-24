@@ -1,0 +1,2 @@
+GeneralMIDI/samples/1175_High_Woodblock_L_.wav
+GeneralMIDI/samples/1176_High_Woodblock_R_.wav

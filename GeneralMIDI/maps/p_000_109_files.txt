@@ -1,0 +1,12 @@
+GeneralMIDI/samples/0519_Bagpipe_A4.wav
+GeneralMIDI/samples/0518_Bagpipe_C6.wav
+GeneralMIDI/samples/0517_Bagpipe_D_6.wav
+GeneralMIDI/samples/0516_Bagpipe_D7.wav
+GeneralMIDI/samples/0515_Bagpipe_F5.wav
+GeneralMIDI/samples/0514_Bagpipe_G6.wav
+GeneralMIDI/samples/0519_Bagpipe_A4.wav
+GeneralMIDI/samples/0518_Bagpipe_C6.wav
+GeneralMIDI/samples/0517_Bagpipe_D_6.wav
+GeneralMIDI/samples/0516_Bagpipe_D7.wav
+GeneralMIDI/samples/0515_Bagpipe_F5.wav
+GeneralMIDI/samples/0514_Bagpipe_G6.wav

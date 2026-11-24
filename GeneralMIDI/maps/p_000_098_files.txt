@@ -1,0 +1,13 @@
+GeneralMIDI/samples/0720_Celesta_C_4_R_.wav
+GeneralMIDI/samples/0718_Celesta_C_5_R_.wav
+GeneralMIDI/samples/0716_Celesta_C_6_R_.wav
+GeneralMIDI/samples/0714_Celesta_C_7_R_.wav
+GeneralMIDI/samples/0712_Celesta_F_3_R_.wav
+GeneralMIDI/samples/0710_Celesta_F_4_R_.wav
+GeneralMIDI/samples/0708_Celesta_F_5_R_.wav
+GeneralMIDI/samples/0706_Celesta_F_6_R_.wav
+GeneralMIDI/samples/1375_Square_Wave_A1.wav
+GeneralMIDI/samples/1374_Square_Wave_A2.wav
+GeneralMIDI/samples/1373_Square_Wave_A3.wav
+GeneralMIDI/samples/1372_Square_Wave_A4.wav
+GeneralMIDI/samples/1371_Square_Wave_A5.wav

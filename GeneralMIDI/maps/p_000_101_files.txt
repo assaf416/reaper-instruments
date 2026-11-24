@@ -1,0 +1,3 @@
+GeneralMIDI/samples/0818_SynthVz_C_7_L_.wav
+GeneralMIDI/samples/1329_Wind.wav
+GeneralMIDI/samples/1332_Vox_C4.wav

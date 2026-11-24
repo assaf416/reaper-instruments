@@ -1,0 +1,9 @@
+GeneralMIDI/samples/0873_Picked_Bass_E0.wav
+GeneralMIDI/samples/0872_Picked_Bass_E2.wav
+GeneralMIDI/samples/0871_Picked_Bass_E4.wav
+GeneralMIDI/samples/0870_Picked_Bass_A1.wav
+GeneralMIDI/samples/0869_Picked_Bass_A3.wav
+GeneralMIDI/samples/0868_Picked_Bass_D1.wav
+GeneralMIDI/samples/0867_Picked_Bass_D3.wav
+GeneralMIDI/samples/0866_Picked_Bass_GO.wav
+GeneralMIDI/samples/0110_Picked_Bass_G5.wav

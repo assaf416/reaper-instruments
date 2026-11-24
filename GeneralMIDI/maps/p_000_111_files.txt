@@ -1,0 +1,6 @@
+GeneralMIDI/samples/0211_Shenai_F_4_L_.wav
+GeneralMIDI/samples/0210_Shenai_C5_L_.wav
+GeneralMIDI/samples/0209_Shenai_F_5_L_.wav
+GeneralMIDI/samples/0208_Shenai_C6_L_.wav
+GeneralMIDI/samples/0207_Shenai_F_6_L_.wav
+GeneralMIDI/samples/0206_Shenai_C7_L_.wav

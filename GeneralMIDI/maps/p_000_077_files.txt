@@ -1,0 +1,2 @@
+GeneralMIDI/samples/0425_shakhchi_c6_L_.wav
+GeneralMIDI/samples/0426_shakhchi_c6_R_.wav

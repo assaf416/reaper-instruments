@@ -15,7 +15,8 @@ $steps = @(
   'Organ\Install-Organ.ps1',
   'GuitarRig\Install-GuitarRig.ps1',
   'BassRig\Install-BassRig.ps1',
-  'Synth\Install-Synth.ps1'
+  'Synth\Install-Synth.ps1',
+  'GeneralMIDI\Install-GeneralMidi.ps1'
 )
 foreach ($s in $steps) {
   Write-Host "== $s" -ForegroundColor Cyan

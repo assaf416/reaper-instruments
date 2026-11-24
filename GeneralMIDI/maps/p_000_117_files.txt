@@ -1,0 +1,2 @@
+GeneralMIDI/samples/1004_Tom_Hi_L_.wav
+GeneralMIDI/samples/1005_Tom_Hi_R_.wav

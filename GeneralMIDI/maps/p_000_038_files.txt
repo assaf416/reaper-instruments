@@ -1,0 +1,8 @@
+GeneralMIDI/samples/1416_saw-110_L_.wav
+GeneralMIDI/samples/1417_saw-110_R_.wav
+GeneralMIDI/samples/1414_saw-220_L_.wav
+GeneralMIDI/samples/1415_saw-220_R_.wav
+GeneralMIDI/samples/1412_saw-440_L_.wav
+GeneralMIDI/samples/1413_saw-440_R_.wav
+GeneralMIDI/samples/1410_saw-880_L_.wav
+GeneralMIDI/samples/1411_saw-880_R_.wav

@@ -1,0 +1,4 @@
+GeneralMIDI/samples/0967_Halo_Pad_L_.wav
+GeneralMIDI/samples/0968_Halo_Pad_R_.wav
+GeneralMIDI/samples/0967_Halo_Pad_L_.wav
+GeneralMIDI/samples/0968_Halo_Pad_R_.wav

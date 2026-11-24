@@ -10,6 +10,7 @@ needs (plugin, samples it uses, images, licenses, install script) lives in its o
 | [`Drums/`](Drums/README.md) | **Drums** | Five velocity-layered kits, a 7-channel mixer, reverb, and a MIDI note / CC map editor with Learn for e-drums |
 | [`Guitar/`](Guitar/README.md) | **Guitar** | 62 Reissue Stratocaster, ASAT Clean, ASAT DI, with chorus and a (tempo-syncable) ping-pong delay |
 | [`Synth/`](Synth/README.md) | **Retro Synth** | 16-voice analog-style polysynth with 34 presets inspired by 70s / 80s pads, leads and basses |
+| [`GeneralMIDI/`](GeneralMIDI/README.md) | **General MIDI** | Fluid R3 GM2 SoundFont as a JSFX: 128 programs, variation banks, 31 drum kits, all samples as WAV |
 | [`GuitarRig/`](GuitarRig/README.md) | **Guitar Rig** | Tukan Studios' *Guitar Station S2* (amps, cabinets, pedals) wired up for the Guitar instrument - installer, FX chain and demo; the plugin files themselves are not redistributed |
 | [`BassRig/`](BassRig/README.md) | **Bass Rig** | Tukan Studios' *Bass Station S2* (bass amp, cabinets, gate, modulation) for any bass track - installer, FX chain and demo; plugin files not redistributed |
 | [`Organ/`](Organ/README.md) | **Organ** | Tonewheel organ with rotary speaker: *Lord of the Rinks* (original, by chmaha) plus a single-manual edition with a custom preset bank |

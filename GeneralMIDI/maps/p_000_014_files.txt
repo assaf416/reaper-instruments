@@ -1,0 +1,10 @@
+GeneralMIDI/samples/1342_Tubular_Bells_C7_L_.wav
+GeneralMIDI/samples/1343_Tubular_Bells_C7_R_.wav
+GeneralMIDI/samples/1342_Tubular_Bells_C7_L_.wav
+GeneralMIDI/samples/1343_Tubular_Bells_C7_R_.wav
+GeneralMIDI/samples/1342_Tubular_Bells_C7_L_.wav
+GeneralMIDI/samples/1343_Tubular_Bells_C7_R_.wav
+GeneralMIDI/samples/1342_Tubular_Bells_C7_L_.wav
+GeneralMIDI/samples/1343_Tubular_Bells_C7_R_.wav
+GeneralMIDI/samples/1342_Tubular_Bells_C7_L_.wav
+GeneralMIDI/samples/1343_Tubular_Bells_C7_R_.wav

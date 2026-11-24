@@ -1,0 +1,9 @@
+GeneralMIDI/samples/0109_Pop_E0.wav
+GeneralMIDI/samples/0108_Pop_E2.wav
+GeneralMIDI/samples/0107_Pop_E4.wav
+GeneralMIDI/samples/0106_Pop_A1.wav
+GeneralMIDI/samples/0105_Pop_A3.wav
+GeneralMIDI/samples/0104_Pop_D1.wav
+GeneralMIDI/samples/0103_Pop_D3.wav
+GeneralMIDI/samples/0102_Pop_G0.wav
+GeneralMIDI/samples/0101_Pop_G5.wav

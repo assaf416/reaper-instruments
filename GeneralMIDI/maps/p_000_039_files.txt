@@ -1,0 +1,8 @@
+GeneralMIDI/samples/0512_SB2_C3.wav
+GeneralMIDI/samples/0511_SB2_C4.wav
+GeneralMIDI/samples/0510_SB2_C5.wav
+GeneralMIDI/samples/0509_SB2_C6.wav
+GeneralMIDI/samples/0512_SB2_C3.wav
+GeneralMIDI/samples/0511_SB2_C4.wav
+GeneralMIDI/samples/0510_SB2_C5.wav
+GeneralMIDI/samples/0509_SB2_C6.wav

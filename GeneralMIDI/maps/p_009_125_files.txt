@@ -1,0 +1,14 @@
+GeneralMIDI/samples/0685_Harpsichord_D3.wav
+GeneralMIDI/samples/0684_Harpsichord_G3.wav
+GeneralMIDI/samples/0683_Harpsichord_C4.wav
+GeneralMIDI/samples/0682_Harpsichord_F4.wav
+GeneralMIDI/samples/0681_Harpsichord_C5.wav
+GeneralMIDI/samples/0680_Harpsichord_F5.wav
+GeneralMIDI/samples/0679_Harpsichord_B5.wav
+GeneralMIDI/samples/0678_Harpsichord_F6.wav
+GeneralMIDI/samples/0677_Harpsichord_D7.wav
+GeneralMIDI/samples/0676_Harpsichord_B7.wav
+GeneralMIDI/samples/0675_Harpsichord_C8.wav
+GeneralMIDI/samples/1255_Sea_Shore.wav
+GeneralMIDI/samples/1255_Sea_Shore.wav
+GeneralMIDI/samples/1255_Sea_Shore.wav

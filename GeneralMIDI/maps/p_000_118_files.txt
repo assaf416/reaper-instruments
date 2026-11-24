@@ -1,0 +1,4 @@
+GeneralMIDI/samples/1330_Electronic_Tom_R_.wav
+GeneralMIDI/samples/1335_Sine_Wave_A1.wav
+GeneralMIDI/samples/1334_Sine_Wave_A2.wav
+GeneralMIDI/samples/1333_Sine_Wave_A3.wav

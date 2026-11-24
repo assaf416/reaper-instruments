@@ -1,0 +1,4 @@
+GeneralMIDI/samples/1328_OcarE1.wav
+GeneralMIDI/samples/1327_OcarD2.wav
+GeneralMIDI/samples/1326_OcarE3.wav
+GeneralMIDI/samples/1325_OcarA4.wav

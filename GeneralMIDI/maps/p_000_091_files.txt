@@ -1,0 +1,11 @@
+GeneralMIDI/samples/1120_solo_vox_c2.wav
+GeneralMIDI/samples/1119_solo_vox_c3.wav
+GeneralMIDI/samples/1118_solo_vox_c4.wav
+GeneralMIDI/samples/1117_solo_vox_c5.wav
+GeneralMIDI/samples/1116_solo_vox_c6.wav
+GeneralMIDI/samples/1361_Fantasia.wav
+GeneralMIDI/samples/1120_solo_vox_c2.wav
+GeneralMIDI/samples/1119_solo_vox_c3.wav
+GeneralMIDI/samples/1118_solo_vox_c4.wav
+GeneralMIDI/samples/1117_solo_vox_c5.wav
+GeneralMIDI/samples/1116_solo_vox_c6.wav

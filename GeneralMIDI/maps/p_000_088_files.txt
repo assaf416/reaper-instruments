@@ -1,0 +1,7 @@
+GeneralMIDI/samples/1224_saw-fb-110.wav
+GeneralMIDI/samples/1223_saw-fb-220.wav
+GeneralMIDI/samples/1222_saw-fb-440.wav
+GeneralMIDI/samples/1221_saw-fb-880.wav
+GeneralMIDI/samples/0968_Halo_Pad_R_.wav
+GeneralMIDI/samples/1361_Fantasia.wav
+GeneralMIDI/samples/0967_Halo_Pad_L_.wav

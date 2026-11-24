@@ -1,0 +1,2 @@
+GeneralMIDI/samples/1173_High_Agogo_L_.wav
+GeneralMIDI/samples/1174_High_Agogo_R_.wav

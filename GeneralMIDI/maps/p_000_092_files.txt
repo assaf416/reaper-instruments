@@ -1,0 +1,3 @@
+GeneralMIDI/samples/0604_Bowed_Glass.wav
+GeneralMIDI/samples/1361_Fantasia.wav
+GeneralMIDI/samples/1329_Wind.wav

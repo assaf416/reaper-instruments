@@ -1,0 +1,8 @@
+GeneralMIDI/samples/0583_Steel_Drum_F_5_L_.wav
+GeneralMIDI/samples/0584_Steel_Drum_F_5_R_.wav
+GeneralMIDI/samples/0581_Steel_Drum_C_6_L_.wav
+GeneralMIDI/samples/0582_Steel_Drum_C_6_R_.wav
+GeneralMIDI/samples/0579_Steel_Drum_F_6_L_.wav
+GeneralMIDI/samples/0580_Steel_Drum_F_6_R_.wav
+GeneralMIDI/samples/0577_Steel_Drum_C_7_L_.wav
+GeneralMIDI/samples/0578_Steel_Drum_C_7_R_.wav

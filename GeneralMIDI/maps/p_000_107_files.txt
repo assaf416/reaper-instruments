@@ -1,0 +1,3 @@
+GeneralMIDI/samples/0568_Koto_C_5_R_.wav
+GeneralMIDI/samples/0567_Koto_F_5_R_.wav
+GeneralMIDI/samples/0566_Koto_F_6_R_.wav

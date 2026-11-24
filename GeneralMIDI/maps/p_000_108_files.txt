@@ -1,0 +1,6 @@
+GeneralMIDI/samples/1359_Kalimba_G4.wav
+GeneralMIDI/samples/1358_Kalimba_F5.wav
+GeneralMIDI/samples/1357_Kalimba_A5.wav
+GeneralMIDI/samples/1356_Kalimba_F6.wav
+GeneralMIDI/samples/1355_Kalimba_C7.wav
+GeneralMIDI/samples/1354_Kalimba_C8.wav

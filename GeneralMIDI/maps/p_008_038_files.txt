@@ -1,0 +1,17 @@
+GeneralMIDI/samples/1416_saw-110_L_.wav
+GeneralMIDI/samples/1417_saw-110_R_.wav
+GeneralMIDI/samples/1414_saw-220_L_.wav
+GeneralMIDI/samples/1415_saw-220_R_.wav
+GeneralMIDI/samples/1412_saw-440_L_.wav
+GeneralMIDI/samples/1413_saw-440_R_.wav
+GeneralMIDI/samples/1410_saw-880_L_.wav
+GeneralMIDI/samples/1411_saw-880_R_.wav
+GeneralMIDI/samples/0060_Slap_Bass_E0.wav
+GeneralMIDI/samples/0059_Slap_Bass_E2.wav
+GeneralMIDI/samples/0058_Slap_Bass_E4.wav
+GeneralMIDI/samples/0057_Slap_Bass_A1.wav
+GeneralMIDI/samples/0056_Slap_Bass_A3.wav
+GeneralMIDI/samples/0055_Slap_Bass_D1.wav
+GeneralMIDI/samples/0054_Slap_Bass_D3.wav
+GeneralMIDI/samples/0053_Slap_Bass_G0.wav
+GeneralMIDI/samples/0052_Slap_Bass_G5.wav

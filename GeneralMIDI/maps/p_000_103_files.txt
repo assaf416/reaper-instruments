@@ -1,0 +1,12 @@
+GeneralMIDI/samples/1132_Clean_F10.wav
+GeneralMIDI/samples/1131_Clean_F20.wav
+GeneralMIDI/samples/1130_Clean_F30.wav
+GeneralMIDI/samples/1129_Clean_F40.wav
+GeneralMIDI/samples/1128_Clean_F50.wav
+GeneralMIDI/samples/1127_Clean_F60.wav
+GeneralMIDI/samples/1126_Clean_F65.wav
+GeneralMIDI/samples/1125_Clean_F67.wav
+GeneralMIDI/samples/1124_Clean_F612.wav
+GeneralMIDI/samples/1123_Clean_F615.wav
+GeneralMIDI/samples/0952_Sweeper_C7_L_.wav
+GeneralMIDI/samples/0953_Sweeper_C7_R_.wav

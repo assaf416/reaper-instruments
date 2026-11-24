@@ -1,0 +1,4 @@
+GeneralMIDI/samples/1369_Orch_Hit_G_6_L_.wav
+GeneralMIDI/samples/1370_Orch_Hit_G_6_R_.wav
+GeneralMIDI/samples/1367_Orch_Hit_G_7_L_.wav
+GeneralMIDI/samples/1368_Orch_Hit_G_7_R_.wav

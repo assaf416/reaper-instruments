@@ -101,6 +101,14 @@ and a MIDI note / CC map editor with Learn for e-drums. Installs Effects/Drums/D
 kit files (Data/Drumkits). In REAPER: FX -> Add -> 'Drums'. Demo project: File -> New project from template.
 "@ $files
 }
+if (Want 'GeneralMIDI') {
+  $files = @(F "$repo\GeneralMIDI\GeneralMIDI.jsfx" 'Effects/GeneralMIDI/GeneralMIDI.jsfx') + @(FilesFrom "$repo\GeneralMIDI\maps" 'Data/GeneralMIDI/maps' '*.txt') + @(FilesFrom "$repo\GeneralMIDI\samples" 'Data/GeneralMIDI/samples') + @(Demo "$repo\GeneralMIDI\projects\GeneralMIDI_Demo.rpp" 'Reaper Instruments - General MIDI demo')
+  New-Package 'GeneralMIDI' 'General MIDI (Fluid R3 GM2, 189 presets, 31 drum kits)' @"
+A General MIDI sound module made from the Fluid R3 GM2 SoundFont (MIT license): 128 programs plus variation banks and 31 drum kits, with
+envelopes, loops, exclusive classes and reverb. Installs Effects/GeneralMIDI/GeneralMIDI.jsfx and Data/GeneralMIDI (preset maps and 1,418 WAV samples,
+about 140 MB). In REAPER: FX -> Add -> 'General MIDI'. Demo project: File -> New project from template.
+"@ $files
+}
 if (Want 'Guitar') {
   $files = @(F "$repo\Guitar\Guitar.jsfx" 'Effects/Guitar/Guitar.jsfx') + @(FilesFrom "$repo\Guitar\maps" 'Data/Guitars' '*.txt')
   foreach ($k in 'Strat62','AsatClean','AsatDI') { $files += @(ListedSamples "$repo\Guitar\maps\${k}_files.txt" "$repo\Guitar\samples" 'Data') }

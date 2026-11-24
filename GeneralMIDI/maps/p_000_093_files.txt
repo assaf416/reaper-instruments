@@ -1,0 +1,3 @@
+GeneralMIDI/samples/0606_Fine_Wire_C8.wav
+GeneralMIDI/samples/0605_Soft_Pad.wav
+GeneralMIDI/samples/1336_Synth_Strings_1_L_.wav

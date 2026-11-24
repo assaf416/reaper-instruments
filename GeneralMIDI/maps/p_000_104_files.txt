@@ -1,0 +1,16 @@
+GeneralMIDI/samples/0075_sitar_e2_L_.wav
+GeneralMIDI/samples/0076_sitar_e2_R_.wav
+GeneralMIDI/samples/0073_sitar_g2_L_.wav
+GeneralMIDI/samples/0074_sitar_g2_R_.wav
+GeneralMIDI/samples/0071_sitar_c3_L_.wav
+GeneralMIDI/samples/0072_sitar_c3_R_.wav
+GeneralMIDI/samples/0069_sitar_e3_L_.wav
+GeneralMIDI/samples/0070_sitar_e3_R_.wav
+GeneralMIDI/samples/0067_sitar_c4_L_.wav
+GeneralMIDI/samples/0068_sitar_c4_R_.wav
+GeneralMIDI/samples/0065_sitar_e4_L_.wav
+GeneralMIDI/samples/0066_sitar_e4_R_.wav
+GeneralMIDI/samples/0063_sitar_c5_L_.wav
+GeneralMIDI/samples/0064_sitar_c5_R_.wav
+GeneralMIDI/samples/0061_sitar_g5_L_.wav
+GeneralMIDI/samples/0062_sitar_g5_R_.wav

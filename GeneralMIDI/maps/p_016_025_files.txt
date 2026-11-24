@@ -1,0 +1,10 @@
+GeneralMIDI/samples/0901_Steel_E3.wav
+GeneralMIDI/samples/0900_Steel_A3.wav
+GeneralMIDI/samples/0899_Steel_D4.wav
+GeneralMIDI/samples/0898_Steel_G4.wav
+GeneralMIDI/samples/0897_Steel_B4.wav
+GeneralMIDI/samples/0896_Steel_E5.wav
+GeneralMIDI/samples/0895_Steel_A5.wav
+GeneralMIDI/samples/0894_Steel_B6.wav
+GeneralMIDI/samples/0893_Steel_E6.wav
+GeneralMIDI/samples/0513_Extension.wav

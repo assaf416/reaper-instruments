@@ -1,0 +1,10 @@
+GeneralMIDI/samples/0910_Nylon_E3.wav
+GeneralMIDI/samples/0909_Nylon_A3.wav
+GeneralMIDI/samples/0908_Nylon_D4.wav
+GeneralMIDI/samples/0907_Nylon_G4.wav
+GeneralMIDI/samples/0906_Nylon_B4.wav
+GeneralMIDI/samples/0905_Nylon_E5.wav
+GeneralMIDI/samples/0904_Nylon_A5.wav
+GeneralMIDI/samples/0903_Nylon_B6.wav
+GeneralMIDI/samples/0902_Nylon_E6.wav
+GeneralMIDI/samples/0513_Extension.wav

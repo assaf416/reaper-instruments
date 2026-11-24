@@ -1,0 +1,16 @@
+GeneralMIDI/samples/0564_Shamisen_C_4_L_.wav
+GeneralMIDI/samples/0565_Shamisen_C_4_R_.wav
+GeneralMIDI/samples/0562_Shamisen_F_4_L_.wav
+GeneralMIDI/samples/0563_Shamisen_F_4_R_.wav
+GeneralMIDI/samples/0560_Shamisen_C_5_L_.wav
+GeneralMIDI/samples/0561_Shamisen_C_5_R_.wav
+GeneralMIDI/samples/0558_Shamisen_F_5_L_.wav
+GeneralMIDI/samples/0559_Shamisen_F_5_R_.wav
+GeneralMIDI/samples/0556_Shamisen_C_6_L_.wav
+GeneralMIDI/samples/0557_Shamisen_C_6_R_.wav
+GeneralMIDI/samples/0554_Shamisen_F_6_L_.wav
+GeneralMIDI/samples/0555_Shamisen_F_6_R_.wav
+GeneralMIDI/samples/0552_Shamisen_C_7_L_.wav
+GeneralMIDI/samples/0553_Shamisen_C_7_R_.wav
+GeneralMIDI/samples/0550_Shamisen_F_7_L_.wav
+GeneralMIDI/samples/0551_Shamisen_F_7_R_.wav

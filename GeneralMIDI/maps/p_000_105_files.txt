@@ -1,0 +1,6 @@
+GeneralMIDI/samples/0480_Banjo_1.wav
+GeneralMIDI/samples/0479_Banjo_2.wav
+GeneralMIDI/samples/0478_Banjo_3.wav
+GeneralMIDI/samples/0477_Banjo_4.wav
+GeneralMIDI/samples/0476_Banjo_5.wav
+GeneralMIDI/samples/0475_Banjo_6.wav

@@ -1,0 +1,4 @@
+GeneralMIDI/samples/1340_Alien_Strings_L_.wav
+GeneralMIDI/samples/1341_Alien_Strings_R_.wav
+GeneralMIDI/samples/1336_Synth_Strings_1_L_.wav
+GeneralMIDI/samples/1337_Synth_Strings_1_R_.wav

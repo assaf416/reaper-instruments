@@ -37,3 +37,7 @@ BassRig/vendor/
 # built .ReaperPkg packages contain third-party samples / unlicensed plugin files
 Packages/dist/
 *.ReaperPkg
+
+# SoundFont sources are too big for GitHub (the Fluid R3 GM2 SF2 is 141 MB)
+*.sf2
+fluid-gm2/

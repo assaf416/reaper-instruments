@@ -1,0 +1,14 @@
+GeneralMIDI/samples/0585_Orch_Bass_Drum_L_.wav
+GeneralMIDI/samples/0586_Orch_Bass_Drum_R_.wav
+GeneralMIDI/samples/0585_Orch_Bass_Drum_L_.wav
+GeneralMIDI/samples/0586_Orch_Bass_Drum_R_.wav
+GeneralMIDI/samples/0585_Orch_Bass_Drum_L_.wav
+GeneralMIDI/samples/0586_Orch_Bass_Drum_R_.wav
+GeneralMIDI/samples/0585_Orch_Bass_Drum_L_.wav
+GeneralMIDI/samples/0586_Orch_Bass_Drum_R_.wav
+GeneralMIDI/samples/0585_Orch_Bass_Drum_L_.wav
+GeneralMIDI/samples/0586_Orch_Bass_Drum_R_.wav
+GeneralMIDI/samples/0585_Orch_Bass_Drum_L_.wav
+GeneralMIDI/samples/0586_Orch_Bass_Drum_R_.wav
+GeneralMIDI/samples/0585_Orch_Bass_Drum_L_.wav
+GeneralMIDI/samples/0586_Orch_Bass_Drum_R_.wav

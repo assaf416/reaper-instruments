@@ -1,0 +1,645 @@
+desc:General MIDI - Fluid R3 GM2 SoundFont instrument (128 programs, variations, 31 drum kits) v1.0
+tags:instrument sampler
+// A General MIDI sound module built from the Fluid R3 GM SoundFont. Every sample of the SoundFont is stored as a WAV file and every
+// preset as a zone map (see Build-GeneralMidi-Assets.ps1); this plugin plays them with key / velocity zones, loop points,
+// volume envelopes (delay / attack / hold / decay / sustain / release), tuning, pan, a low-pass per zone, exclusive classes (hi-hats),
+// pitch bend, sustain pedal, volume and a built-in reverb.
+// MIDI: notes, velocity, pitch bend (+-2), CC64 sustain, CC7 volume, CC0 bank select + program change, CC123 all notes off.
+
+options:maxmem=9000000
+
+slider1:0<0,128,1>-Bank
+slider2:0<0,127,1>-Program
+slider3:0.4<0,1,0.01>-Reverb Mix
+slider4:0.5<0,1,0.01>-Reverb Size
+slider5:1<0,2,0.01>-Volume
+
+in_pin:none
+out_pin:left output
+out_pin:right output
+
+@init
+NV = 64;            // voices
+MAXZ = 768;         // zones per preset
+ARENA = 280000;     // sample memory starts here
+ARENASZ = 8000000;
+REV = 50000;        // reverb delay lines
+
+// ---- voice tables (64 each) ----
+vact = 0; vgate = 64; vhold = 128; vpos = 192; vrate = 256; vbase = 320; vend = 384; vls = 448; vle = 512; vmode = 576;
+venv = 640; vstage = 704; vcnt = 768; vatk = 832; vhn = 896; vdm = 960; vsus = 1024; vrm = 1088; vgl = 1152; vgr = 1216;
+vlpa = 1280; vlp = 1344; vrev = 1408; vnote = 1472; vex = 1536;
+
+// ---- zone tables (MAXZ each) of the loaded preset ----
+zkl = 2000;     zkh = zkl + MAXZ;   zvl = zkh + MAXZ;   zvh = zvl + MAXZ;   zsb = zvh + MAXZ;   zsl = zsb + MAXZ;
+zroot = zsl + MAXZ; zcents = zroot + MAXZ; zscale = zcents + MAXZ; zgl = zscale + MAXZ; zgr = zgl + MAXZ; zmode = zgr + MAXZ;
+zst = zmode + MAXZ; zls = zst + MAXZ; zle = zls + MAXZ; zrate = zle + MAXZ; zex = zrate + MAXZ; zdel = zex + MAXZ;
+zatk = zdel + MAXZ; zhld = zatk + MAXZ; zdec = zhld + MAXZ; zsus = zdec + MAXZ; zrel = zsus + MAXZ; zlpa = zrel + MAXZ; zrev = zlpa + MAXZ;
+
+sbase = 24000;
+sfr = 26100;
+
+// ---- preset list ----
+pbank = 28200; pprog = pbank + 256; noff = pprog + 256; nlen = noff + 256; b0idx = nlen + 256; exist = b0idx + 128;   // exist: 129*128
+dkit = 46000;
+keys = 46100;
+ctl = 46300;
+fam = 46400;
+
+PP = 790;
+
+fam[0] = "Piano";          fam[1] = "Chromatic Perc";  fam[2] = "Organ";         fam[3] = "Guitar";
+fam[4] = "Bass";           fam[5] = "Strings";         fam[6] = "Ensemble";      fam[7] = "Brass";
+fam[8] = "Reed";           fam[9] = "Pipe";            fam[10] = "Synth Lead";   fam[11] = "Synth Pad";
+fam[12] = "Synth Effects"; fam[13] = "Ethnic";         fam[14] = "Percussive";   fam[15] = "Sound Effects";
+
+// bars: x, y, w, h, min, max, slider#, step, default
+co = ctl;      co[0] = 20;  co[1] = 436; co[2] = 270; co[3] = 26; co[4] = 0; co[5] = 2; co[6] = 5; co[7] = 0.01; co[8] = 1;
+co = ctl + 9;  co[0] = 315; co[1] = 436; co[2] = 270; co[3] = 26; co[4] = 0; co[5] = 1; co[6] = 3; co[7] = 0.01; co[8] = 0.4;
+co = ctl + 18; co[0] = 610; co[1] = 436; co[2] = 270; co[3] = 26; co[4] = 0; co[5] = 1; co[6] = 4; co[7] = 0.01; co[8] = 0.5;
+NC = 3;
+
+// ---- reverb (Freeverb layout) ----
+ctun0 = 23000; ctun = ctun0; atun = ctun0 + 10;
+cbase = 23100; clen = 23120; cidx = 23140; cst = 23160; abase = 23180; alen = 23190; aidx = 23200;
+ctun[0] = 1116; ctun[1] = 1188; ctun[2] = 1277; ctun[3] = 1356; ctun[4] = 1422; ctun[5] = 1491; ctun[6] = 1557; ctun[7] = 1617;
+atun[0] = 556; atun[1] = 441; atun[2] = 341; atun[3] = 225;
+rsc = srate / 44100; rp = REV; rj = 0;
+loop(16,
+  clen[rj] = floor((ctun[rj % 8] + (rj >= 8 ? 23 : 0)) * rsc);
+  cbase[rj] = rp; cidx[rj] = 0; cst[rj] = 0;
+  memset(rp, 0, clen[rj]); rp += clen[rj]; rj += 1;
+);
+rj = 0;
+loop(8,
+  alen[rj] = floor((atun[rj % 4] + (rj >= 4 ? 23 : 0)) * rsc);
+  abase[rj] = rp; aidx[rj] = 0;
+  memset(rp, 0, alen[rj]); rp += alen[rj]; rj += 1;
+);
+
+// ---- state ----
+ii = 0; loop(NV, vact[ii] = 0; vgate[ii] = 0; vhold[ii] = 0; venv[ii] = 0; ii += 1; );
+memset(keys, 0, 128);
+memset(sbase, -1, 2048);
+lb = -1; lp = -1;            // loaded bank / program
+plist_ok = 0; npr = 0; ndk = 0;
+nzones = 0; nsamp = 0; load_frames = 0; load_ok = 0; loads = 0;
+rr = 0; sustain = 0; pend_bank = 0; bendf = 1; mvol = 1;
+ui_tab = 0; ui_family = 0; last_p = -1;
+gdrag = -1; glmd = 0;
+pkm = 0;
+
+function nextnum(str, pos)
+  local(p, n, c, neg, v, scale)
+(
+  p = pos[0]; n = strlen(str);
+  while (p < n && (c = str_getchar(str, p)) != 45 && (c < 48 || c > 57) && c != 46) ( p += 1; );
+  neg = 0;
+  (p < n && str_getchar(str, p) == 45) ? ( neg = 1; p += 1; );
+  v = 0;
+  while (p < n && (c = str_getchar(str, p)) >= 48 && c <= 57) ( v = v * 10 + (c - 48); p += 1; );
+  (p < n && str_getchar(str, p) == 46) ? (
+    p += 1; scale = 0.1;
+    while (p < n && (c = str_getchar(str, p)) >= 48 && c <= 57) ( v += (c - 48) * scale; scale *= 0.1; p += 1; );
+  );
+  pos[0] = p;
+  neg ? -v : v;
+);
+
+function tanhx(x)
+  local(y, e)
+(
+  y = max(-8, min(8, x));
+  e = exp(2 * y);
+  (e - 1) / (e + 1);
+);
+
+@slider
+rv_wet = slider3 * 3;
+rv_fb = 0.7 + slider4 * 0.28;
+rv_damp = 0.3;
+
+// ---- the preset list (once) ----
+!plist_ok ? (
+  plist_ok = 1; npr = 0; ndk = 0;
+  memset(b0idx, -1, 128); memset(exist, 0, 129 * 128);
+  strcpy(#allnames, "");
+  ph = file_open("GeneralMIDI/maps/presets.txt");
+  ph > 0 ? (
+    pl_ok = 1;
+    while (pl_ok && npr < 256) (
+      file_string(ph, #pl);
+      strlen(#pl) > 2 ? (
+        PP[0] = 0;
+        pl_b = nextnum(#pl, PP); pl_p = nextnum(#pl, PP);
+        strcpy_substr(#pl_n, #pl, PP[0] + 1, 64);
+        pl_l = strlen(#pl_n);
+        while (pl_l > 0 && str_getchar(#pl_n, pl_l - 1) <= 32) ( pl_l -= 1; );
+        strcpy_substr(#pl_t, #pl_n, 0, pl_l);
+        pbank[npr] = pl_b; pprog[npr] = pl_p;
+        noff[npr] = strlen(#allnames); nlen[npr] = pl_l;
+        strcat(#allnames, #pl_t);
+        exist[pl_b * 128 + pl_p] = 1;
+        pl_b == 0 ? b0idx[pl_p] = npr;
+        pl_b == 128 && ndk < 40 ? ( dkit[ndk] = npr; ndk += 1; );
+        npr += 1;
+      ) : pl_ok = 0;
+    );
+    file_close(ph);
+  );
+);
+
+// ---- load the selected preset (bank slider1, program slider2) ----
+(slider1 != lb || slider2 != lp) ? (
+  lb = slider1; lp = slider2;
+  loads += 1;
+  ld_i = 0; loop(NV, vact[ld_i] = 0; ld_i += 1; );
+  memset(keys, 0, 128);
+  memset(sbase, -1, 2048);
+  nzones = 0; nsamp = 0; load_frames = 0; load_ok = 0;
+  ptr = ARENA;
+
+  sprintf(#ld_m, "GeneralMIDI/maps/p_%03d_%03d.txt", lb, lp);
+  sprintf(#ld_f, "GeneralMIDI/maps/p_%03d_%03d_files.txt", lb, lp);
+  mh = file_open(#ld_m);
+  fh = file_open(#ld_f);
+  (mh > 0 && fh > 0) ? (
+    file_string(mh, #ld_l);
+    PP[0] = 0;
+    ld_n = nextnum(#ld_l, PP);
+    ld_k = 0;
+    while (ld_k < ld_n && nzones < MAXZ) (
+      file_string(mh, #ld_l);
+      file_string(fh, #ld_p);
+      ld_len = strlen(#ld_p);
+      while (ld_len > 0 && str_getchar(#ld_p, ld_len - 1) <= 32) ( ld_len -= 1; );
+      strcpy_substr(#ld_t, #ld_p, 0, ld_len);
+      strcpy(#ld_p, #ld_t);
+
+      PP[0] = 0;
+      a_kl = nextnum(#ld_l, PP); a_kh = nextnum(#ld_l, PP); a_vl = nextnum(#ld_l, PP); a_vh = nextnum(#ld_l, PP);
+      a_sid = nextnum(#ld_l, PP); a_root = nextnum(#ld_l, PP); a_cents = nextnum(#ld_l, PP); a_scale = nextnum(#ld_l, PP);
+      a_pan = nextnum(#ld_l, PP); a_att = nextnum(#ld_l, PP); a_mode = nextnum(#ld_l, PP); a_st = nextnum(#ld_l, PP);
+      a_end = nextnum(#ld_l, PP); a_ls = nextnum(#ld_l, PP); a_le = nextnum(#ld_l, PP); a_rate = nextnum(#ld_l, PP);
+      a_ex = nextnum(#ld_l, PP); a_del = nextnum(#ld_l, PP); a_atk = nextnum(#ld_l, PP); a_hld = nextnum(#ld_l, PP);
+      a_dec = nextnum(#ld_l, PP); a_sus = nextnum(#ld_l, PP); a_rel = nextnum(#ld_l, PP); a_fc = nextnum(#ld_l, PP); a_rv = nextnum(#ld_l, PP);
+
+      // the sample of this zone (shared by all zones that use it)
+      a_ok = 0;
+      sbase[a_sid] >= 0 ? a_ok = 1 : (
+        sh = file_open(#ld_p);
+        sh > 0 ? (
+          s_nch = 0; s_fsr = 0;
+          file_riff(sh, s_nch, s_fsr);
+          s_fr = file_avail(sh);
+          (s_nch == 1 && s_fr > 8 && ptr + s_fr <= ARENA + ARENASZ) ? (
+            file_mem(sh, ptr, s_fr);
+            sbase[a_sid] = ptr; sfr[a_sid] = s_fr;
+            ptr += s_fr; load_frames += s_fr; nsamp += 1;
+            a_ok = 1;
+          );
+          file_close(sh);
+        );
+      );
+
+      a_ok ? (
+        z = nzones;
+        zkl[z] = a_kl; zkh[z] = a_kh; zvl[z] = a_vl; zvh[z] = a_vh;
+        zsb[z] = sbase[a_sid]; zsl[z] = min(a_end, sfr[a_sid]);
+        zroot[z] = a_root; zcents[z] = a_cents; zscale[z] = a_scale;
+        a_g = 10 ^ (-a_att / 200);
+        zgl[z] = sin(max(0, min(1, (500 - a_pan) / 1000)) * $pi / 2) * a_g;
+        zgr[z] = sin(max(0, min(1, (500 + a_pan) / 1000)) * $pi / 2) * a_g;
+        zmode[z] = a_mode; zst[z] = a_st; zls[z] = a_ls; zle[z] = a_le; zrate[z] = a_rate; zex[z] = a_ex;
+        zdel[z] = a_del; zatk[z] = a_atk; zhld[z] = a_hld; zdec[z] = a_dec;
+        zsus[z] = 10 ^ (-a_sus / 200);
+        zrel[z] = a_rel;
+        // low-pass from the initial filter cutoff (cents): off at >= 13000
+        a_hz = 8.176 * 2 ^ (a_fc / 1200);
+        zlpa[z] = (a_fc >= 13000 || a_hz >= srate * 0.45) ? 0 : 1 - exp(-2 * $pi * a_hz / srate);
+        zrev[z] = a_rv / 1000;
+        nzones += 1;
+      );
+      ld_k += 1;
+    );
+    load_ok = nzones > 0;
+  );
+  mh > 0 ? file_close(mh);
+  fh > 0 ? file_close(fh);
+);
+
+@block
+while (midirecv(boffs, m1, m2, m3)) (
+  bst = m1 & 0xF0;
+
+  (bst == 0x90 && m3 > 0) ? (
+    keys[m2] = m3;
+    bz = 0;
+    loop(nzones,
+      (m2 >= zkl[bz] && m2 <= zkh[bz] && m3 >= zvl[bz] && m3 <= zvh[bz]) ? (
+        // exclusive class (e.g. closed hi-hat cuts the open one): fast release of the older notes of that class
+        zex[bz] > 0 ? (
+          bk = 0;
+          loop(NV, (vact[bk] && vex[bk] == zex[bz]) ? ( vstage[bk] = 5; vrm[bk] = 0.9985; vgate[bk] = 0; ); bk += 1; );
+        );
+        bv = -1; bk = 0;
+        while (bk < NV && bv < 0) ( vact[bk] == 0 ? bv = bk; bk += 1; );
+        bv < 0 ? ( bv = rr; rr = (rr + 1) % NV; );
+
+        vbase[bv] = zsb[bz];
+        vend[bv] = zsl[bz] - 2;
+        vpos[bv] = zst[bz];
+        vls[bv] = zls[bz]; vle[bv] = zle[bz]; vmode[bv] = zmode[bz];
+        vrate[bv] = 2 ^ (((m2 - zroot[bz]) * zscale[bz] + zcents[bz]) / 1200) * zrate[bz] / srate;
+        bva = (m3 / 127) ^ 2;
+        vgl[bv] = zgl[bz] * bva; vgr[bv] = zgr[bz] * bva;
+        vlpa[bv] = zlpa[bz]; vlp[bv] = 0; vrev[bv] = zrev[bz];
+        vnote[bv] = m2; vex[bv] = zex[bz];
+        // volume envelope
+        venv[bv] = 0;
+        vcnt[bv] = zdel[bz] * srate;
+        vstage[bv] = (vcnt[bv] > 0) ? 0 : 1;
+        vatk[bv] = 1 / (max(zatk[bz], 0.002) * srate);
+        vhn[bv] = zhld[bz] * srate;
+        vdm[bv] = zdec[bz] > 0.0005 ? 10 ^ (-5 / (zdec[bz] * srate)) : 0;
+        vsus[bv] = zsus[bz];
+        vrm[bv] = 10 ^ (-5 / (max(zrel[bz], 0.01) * srate));
+        vact[bv] = 1; vgate[bv] = 1; vhold[bv] = 0;
+      );
+      bz += 1;
+    );
+  ) : (bst == 0x80 || (bst == 0x90 && m3 == 0)) ? (
+    keys[m2] = 0;
+    bk = 0;
+    loop(NV,
+      (vact[bk] && vgate[bk] && vnote[bk] == m2) ? (
+        sustain ? vhold[bk] = 1 : ( vgate[bk] = 0; vstage[bk] = 5; );
+      );
+      bk += 1;
+    );
+  ) : (bst == 0xB0) ? (
+    m2 == 64 ? (
+      sustain = (m3 >= 64);
+      !sustain ? ( bk = 0; loop(NV, vhold[bk] ? ( vhold[bk] = 0; vgate[bk] = 0; vstage[bk] = 5; ); bk += 1; ); );
+    ) : m2 == 7 ? ( mvol = (m3 / 127) ^ 2 * 1.2; )
+      : m2 == 0 ? ( pend_bank = m3; )
+      : (m2 == 123 || m2 == 120) ? ( bk = 0; loop(NV, vgate[bk] = 0; vhold[bk] = 0; vstage[bk] = 5; bk += 1; ); memset(keys, 0, 128); );
+  ) : (bst == 0xC0) ? (
+    bb = exist[pend_bank * 128 + m2] ? pend_bank : 0;
+    slider1 = bb; slider2 = m2;
+    sliderchange(3);
+  ) : (bst == 0xE0) ? (
+    bendf = 2 ^ ((((m3 << 7) | m2) - 8192) / 8192 * 2 / 12);
+  );
+);
+
+@sample
+l = 0; r = 0; rb = 0;
+si = 0;
+loop(NV,
+  vact[si] ? (
+    // ---- volume envelope ----
+    st = vstage[si]; e = venv[si];
+    st == 0 ? (
+      vcnt[si] -= 1;
+      vcnt[si] <= 0 ? vstage[si] = 1;
+    ) : st == 1 ? (
+      e += vatk[si];
+      e >= 1 ? ( e = 1; vstage[si] = 2; vcnt[si] = vhn[si]; );
+    ) : st == 2 ? (
+      vcnt[si] -= 1;
+      vcnt[si] <= 0 ? vstage[si] = 3;
+    ) : st == 3 ? (
+      vdm[si] > 0 ? e *= vdm[si] : e = vsus[si];
+      e <= vsus[si] ? ( e = vsus[si]; vstage[si] = 4; );
+    ) : st == 5 ? (
+      e *= vrm[si];
+    );
+    venv[si] = e;
+    (e < 0.00003 && st >= 3) ? vact[si] = 0;
+
+    // ---- sample read (linear interpolation) ----
+    sp = vpos[si];
+    sip = floor(sp);
+    sfr_ = sp - sip;
+    sb = vbase[si] + sip;
+    ssm = sb[0] + (sb[1] - sb[0]) * sfr_;
+
+    // one-pole low-pass (zone filter cutoff)
+    vlpa[si] > 0 ? ( vlp[si] += vlpa[si] * (ssm - vlp[si]); ssm = vlp[si]; );
+    ssm *= e;
+
+    l += ssm * vgl[si];
+    r += ssm * vgr[si];
+    rb += ssm * (vgl[si] + vgr[si]) * vrev[si];
+
+    // ---- advance, loop ----
+    sp += vrate[si] * bendf;
+    (vmode[si] == 1 || (vmode[si] == 3 && vgate[si])) ? (
+      sp >= vle[si] ? sp -= (vle[si] - vls[si]);
+    );
+    vpos[si] = sp;
+    sp >= vend[si] ? vact[si] = 0;
+  );
+  si += 1;
+);
+
+// ---- reverb (fed by each zone's reverb send) ----
+rin = rb * 0.06;
+rsumL = 0; rsumR = 0; rj = 0;
+loop(16,
+  rbp = cbase[rj]; rix = cidx[rj];
+  ry = rbp[rix];
+  cst[rj] = ry * (1 - rv_damp) + cst[rj] * rv_damp;
+  rbp[rix] = rin + cst[rj] * rv_fb;
+  rix += 1; rix >= clen[rj] ? rix = 0;
+  cidx[rj] = rix;
+  rj < 8 ? rsumL += ry : rsumR += ry;
+  rj += 1;
+);
+rj = 0;
+loop(8,
+  rbp = abase[rj]; rix = aidx[rj];
+  rbo = rbp[rix];
+  rj < 4 ? ( rbp[rix] = rsumL + rbo * 0.5; rsumL = rbo - rsumL; ) : ( rbp[rix] = rsumR + rbo * 0.5; rsumR = rbo - rsumR; );
+  rix += 1; rix >= alen[rj] ? rix = 0;
+  aidx[rj] = rix;
+  rj += 1;
+);
+
+outL = tanhx((l * 0.5 + rsumL * rv_wet)) * slider5 * mvol;
+outR = tanhx((r * 0.5 + rsumR * rv_wet)) * slider5 * mvol;
+spl0 = outL; spl1 = outR;
+pkm = max(pkm * 0.9998, max(abs(outL), abs(outR)));
+
+@gfx 900 620
+gfx_clear = 0x1a1a1a;
+
+// ====================== mouse ======================
+gmd = mouse_cap & 1;
+(slider2 != last_p) ? ( last_p = slider2; slider1 != 128 ? ui_family = floor(slider2 / 8); );
+
+gmd && !glmd ? (
+  gdrag = -1;
+
+  // tabs
+  (mouse_y >= 72 && mouse_y < 98) ? (
+    (mouse_x >= 20 && mouse_x < 140) ? ui_tab = 0;
+    (mouse_x >= 146 && mouse_x < 266) ? ui_tab = 1;
+  );
+
+  ui_tab == 0 ? (
+    // GM families (two columns of 8)
+    gf = 0;
+    loop(16,
+      gfxx = 20 + floor(gf / 8) * 132; gfy = 112 + (gf % 8) * 36;
+      (mouse_x >= gfxx && mouse_x < gfxx + 124 && mouse_y >= gfy && mouse_y < gfy + 30) ? (
+        ui_family = gf;
+        slider2 = gf * 8; slider1 = 0;
+        sliderchange(3); slider_automate(3);
+      );
+      gf += 1;
+    );
+    // the 8 programs of the family (two columns of 4)
+    gk = 0;
+    loop(8,
+      gpx = 300 + floor(gk / 4) * 296; gpy = 112 + (gk % 4) * 46;
+      (mouse_x >= gpx && mouse_x < gpx + 288 && mouse_y >= gpy && mouse_y < gpy + 40) ? (
+        slider2 = ui_family * 8 + gk; slider1 = 0;
+        sliderchange(3); slider_automate(3);
+      );
+      gk += 1;
+    );
+    // variations of the selected program (other banks that have it)
+    gv = 0; gi = 0;
+    loop(npr,
+      (pprog[gi] == slider2 && pbank[gi] != 128 && gv < 6) ? (
+        gvx = 300 + (gv % 3) * 198; gvy = 350 + floor(gv / 3) * 40;
+        (mouse_x >= gvx && mouse_x < gvx + 190 && mouse_y >= gvy && mouse_y < gvy + 34) ? (
+          slider1 = pbank[gi];
+          sliderchange(3); slider_automate(3);
+        );
+        gv += 1;
+      );
+      gi += 1;
+    );
+  ) : (
+    // drum kits (4 columns)
+    gk = 0;
+    loop(ndk,
+      gkx = 20 + (gk % 4) * 218; gky = 112 + floor(gk / 4) * 38;
+      (mouse_x >= gkx && mouse_x < gkx + 210 && mouse_y >= gky && mouse_y < gky + 32) ? (
+        slider1 = 128; slider2 = pprog[dkit[gk]];
+        sliderchange(3); slider_automate(3);
+      );
+      gk += 1;
+    );
+  );
+
+  // bars
+  gci = 0;
+  loop(NC,
+    gco = ctl + gci * 9;
+    (mouse_x >= gco[0] && mouse_x < gco[0] + gco[2] && mouse_y >= gco[1] && mouse_y < gco[1] + gco[3]) ? (
+      gdrag = gci;
+      (mouse_cap & 4) ? (
+        slider(gco[6]) = gco[8];
+        sliderchange(2 ^ (gco[6] - 1)); slider_automate(2 ^ (gco[6] - 1));
+        gdrag = -1;
+      );
+    );
+    gci += 1;
+  );
+);
+gmd && gdrag >= 0 ? (
+  gco = ctl + gdrag * 9;
+  gv_ = gco[4] + (gco[5] - gco[4]) * max(0, min(1, (mouse_x - gco[0]) / gco[2]));
+  gv_ = floor(gv_ / gco[7] + 0.5) * gco[7];
+  gv_ != slider(gco[6]) ? (
+    slider(gco[6]) = gv_;
+    sliderchange(2 ^ (gco[6] - 1)); slider_automate(2 ^ (gco[6] - 1));
+  );
+);
+!gmd ? gdrag = -1;
+glmd = gmd;
+
+// ====================== header ======================
+gfx_setfont(1, "Arial", 28);
+gfx_set(1, 1, 1, 1);
+gfx_x = 20; gfx_y = 12;
+gfx_drawstr("GENERAL MIDI");
+gfx_setfont(1, "Arial", 13);
+gfx_set(0.65, 0.65, 0.65, 1);
+gfx_x = 22; gfx_y = 46;
+gfx_drawstr("Fluid R3 GM SoundFont - 128 programs, variations, 31 drum kits");
+
+// current preset
+gcur = -1; gi = 0;
+loop(npr, (pbank[gi] == slider1 && pprog[gi] == slider2) ? gcur = gi; gi += 1; );
+gfx_setfont(1, "Arial", 20);
+gfx_set(0.95, 0.75, 0.3, 1);
+gfx_x = 330; gfx_y = 14;
+gcur >= 0 ? ( strcpy_substr(#gn, #allnames, noff[gcur], nlen[gcur]); sprintf(#gs, "%s", #gn); ) : sprintf(#gs, "(no preset)");
+gfx_drawstr(#gs);
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.7, 0.7, 0.7, 1);
+gfx_x = 330; gfx_y = 44;
+sprintf(#gs, "bank %d  program %d", slider1, slider2);
+gfx_drawstr(#gs);
+gfx_x = 560; gfx_y = 44;
+load_ok ? ( gfx_set(0.4, 0.8, 0.4, 1); sprintf(#gs, "loaded: %d zones, %d samples (%.1f MB)", nzones, nsamp, load_frames * 2 / 1048576); )
+        : ( gfx_set(1, 0.4, 0.4, 1); sprintf(#gs, "NOT loaded - run Install-GeneralMidi.ps1"); );
+gfx_drawstr(#gs);
+
+// tabs
+gt = 0;
+loop(2,
+  gbx = 20 + gt * 126;
+  gfx_set(0.18, 0.18, 0.18, 1);
+  ui_tab == gt ? gfx_set(0.3, 0.3, 0.3, 1);
+  gfx_rect(gbx, 72, 120, 26);
+  ui_tab == gt ? gfx_set(0.35, 0.65, 0.95, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+  gfx_rect(gbx, 72, 120, 26, 0);
+  gfx_setfont(1, "Arial", 13);
+  gfx_set(1, 1, 1, 1);
+  gfx_x = gbx + (gt == 0 ? 30 : 24); gfy = 78; gfx_y = gfy;
+  gt == 0 ? gfx_drawstr("MELODIC") : gfx_drawstr("DRUM KITS");
+  gt += 1;
+);
+
+// ====================== MELODIC ======================
+ui_tab == 0 ? (
+  gfx_setfont(1, "Arial", 13);
+  gf = 0;
+  loop(16,
+    gfxx = 20 + floor(gf / 8) * 132; gfy = 112 + (gf % 8) * 36;
+    gsel = (ui_family == gf);
+    ghov = (mouse_x >= gfxx && mouse_x < gfxx + 124 && mouse_y >= gfy && mouse_y < gfy + 30);
+    gsel ? gfx_set(0.22, 0.38, 0.55, 1) : gfx_set(0.2, 0.2, 0.2, 1);
+    gfx_rect(gfxx, gfy, 124, 30);
+    (gsel || ghov) ? gfx_set(0.35, 0.65, 0.95, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+    gfx_rect(gfxx, gfy, 124, 30, 0);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = gfxx + 8; gfx_y = gfy + 8;
+    gfx_drawstr(fam[gf]);
+    gf += 1;
+  );
+
+  gfx_set(0.7, 0.7, 0.7, 1);
+  gfx_x = 300; gfx_y = 92;
+  gfx_drawstr("PROGRAMS");
+  gk = 0;
+  loop(8,
+    gpx = 300 + floor(gk / 4) * 296; gpy = 112 + (gk % 4) * 46;
+    gp = ui_family * 8 + gk;
+    gsel = (slider1 != 128 && slider2 == gp);
+    ghov = (mouse_x >= gpx && mouse_x < gpx + 288 && mouse_y >= gpy && mouse_y < gpy + 40);
+    gsel ? gfx_set(0.55, 0.38, 0.12, 1) : gfx_set(0.2, 0.2, 0.2, 1);
+    gfx_rect(gpx, gpy, 288, 40);
+    (gsel || ghov) ? gfx_set(0.95, 0.65, 0.2, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+    gfx_rect(gpx, gpy, 288, 40, 0);
+    gfx_set(0.7, 0.7, 0.7, 1);
+    gfx_x = gpx + 10; gfx_y = gpy + 13;
+    sprintf(#gs, "%03d", gp + 1);
+    gfx_drawstr(#gs);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = gpx + 48; gfx_y = gpy + 13;
+    b0idx[gp] >= 0 ? ( strcpy_substr(#gn, #allnames, noff[b0idx[gp]], nlen[b0idx[gp]]); gfx_drawstr(#gn); ) : gfx_drawstr("-");
+    gk += 1;
+  );
+
+  gfx_set(0.7, 0.7, 0.7, 1);
+  gfx_x = 300; gfx_y = 330;
+  gfx_drawstr("VARIATIONS OF THE SELECTED PROGRAM");
+  gv = 0; gi = 0;
+  loop(npr,
+    (pprog[gi] == slider2 && pbank[gi] != 128 && gv < 6) ? (
+      gvx = 300 + (gv % 3) * 198; gvy = 350 + floor(gv / 3) * 40;
+      gsel = (slider1 == pbank[gi]);
+      ghov = (mouse_x >= gvx && mouse_x < gvx + 190 && mouse_y >= gvy && mouse_y < gvy + 34);
+      gsel ? gfx_set(0.3, 0.5, 0.3, 1) : gfx_set(0.2, 0.2, 0.2, 1);
+      gfx_rect(gvx, gvy, 190, 34);
+      (gsel || ghov) ? gfx_set(0.5, 0.85, 0.5, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+      gfx_rect(gvx, gvy, 190, 34, 0);
+      gfx_setfont(1, "Arial", 12);
+      gfx_set(1, 1, 1, 1);
+      gfx_x = gvx + 8; gfx_y = gvy + 10;
+      strcpy_substr(#gn, #allnames, noff[gi], nlen[gi]);
+      sprintf(#gs, "bank %d: %s", pbank[gi], #gn);
+      gfx_drawstr(#gs);
+      gv += 1;
+    );
+    gi += 1;
+  );
+) : (
+// ====================== DRUM KITS ======================
+  gfx_setfont(1, "Arial", 13);
+  gk = 0;
+  loop(ndk,
+    gkx = 20 + (gk % 4) * 218; gky = 112 + floor(gk / 4) * 38;
+    gsel = (slider1 == 128 && slider2 == pprog[dkit[gk]]);
+    ghov = (mouse_x >= gkx && mouse_x < gkx + 210 && mouse_y >= gky && mouse_y < gky + 32);
+    gsel ? gfx_set(0.55, 0.25, 0.2, 1) : gfx_set(0.2, 0.2, 0.2, 1);
+    gfx_rect(gkx, gky, 210, 32);
+    (gsel || ghov) ? gfx_set(0.95, 0.4, 0.3, 1) : gfx_set(0.4, 0.4, 0.4, 1);
+    gfx_rect(gkx, gky, 210, 32, 0);
+    gfx_set(1, 1, 1, 1);
+    gfx_x = gkx + 10; gfx_y = gky + 9;
+    strcpy_substr(#gn, #allnames, noff[dkit[gk]], nlen[dkit[gk]]);
+    sprintf(#gs, "%d  %s", pprog[dkit[gk]], #gn);
+    gfx_drawstr(#gs);
+    gk += 1;
+  );
+);
+
+// ====================== controls ======================
+gfx_set(0.2, 0.2, 0.2, 1);
+gfx_rect(20, 404, 860, 64);
+gfx_set(0.4, 0.4, 0.4, 1);
+gfx_rect(20, 404, 860, 64, 0);
+gci = 0;
+loop(NC,
+  gco = ctl + gci * 9;
+  gv_ = slider(gco[6]);
+  gci == 0 ? ( gnm = "Volume";      gfx_set(0.4, 0.8, 0.4, 1);    sprintf(#gs, "%d%%", floor(gv_ * 100 + 0.5)); );
+  gci == 1 ? ( gnm = "Reverb Mix";  gfx_set(0.35, 0.65, 0.95, 1); sprintf(#gs, "%d%%", floor(gv_ * 100 + 0.5)); );
+  gci == 2 ? ( gnm = "Reverb Size"; gfx_set(0.35, 0.65, 0.95, 1); sprintf(#gs, "%d%%", floor(gv_ * 100 + 0.5)); );
+  gcr = gfx_r; gcg = gfx_g; gcb = gfx_b;
+  gfx_setfont(1, "Arial", 12);
+  gfx_set(0.75, 0.75, 0.75, 1);
+  gfx_x = gco[0]; gfx_y = 410;
+  gfx_drawstr(gnm);
+  gfx_x = gco[0] + gco[2] - 40; gfx_y = 410;
+  gfx_drawstr(#gs);
+  gfx_set(0.1, 0.1, 0.1, 1);
+  gfx_rect(gco[0], gco[1], gco[2], 26);
+  gfx_set(gcr, gcg, gcb, 1);
+  gfx_rect(gco[0], gco[1], (gv_ - gco[4]) / (gco[5] - gco[4]) * gco[2], 26);
+  gfx_set(0.45, 0.45, 0.45, 1);
+  gfx_rect(gco[0], gco[1], gco[2], 26, 0);
+  gci += 1;
+);
+
+// ====================== keyboard (A0 .. C8) ======================
+gwk = 16.5; gkx = 20; gky = 490;
+gn = 21;
+loop(88,
+  gpc = gn % 12;
+  (gpc == 0 || gpc == 2 || gpc == 4 || gpc == 5 || gpc == 7 || gpc == 9 || gpc == 11) ? (
+    gwi = floor(gn / 12) * 7 + (gpc >= 11 ? 6 : (gpc >= 9 ? 5 : (gpc >= 7 ? 4 : (gpc >= 5 ? 3 : (gpc >= 4 ? 2 : (gpc >= 2 ? 1 : 0)))))) - 12;
+    keys[gn] > 0 ? gfx_set(1, 0.9 - 0.45 * keys[gn] / 127, 0.25, 1) : gfx_set(0.93, 0.93, 0.93, 1);
+    gfx_rect(gkx + gwi * gwk, gky, gwk - 1, 110);
+  );
+  gn += 1;
+);
+gn = 21;
+loop(88,
+  gpc = gn % 12;
+  (gpc == 1 || gpc == 3 || gpc == 6 || gpc == 8 || gpc == 10) ? (
+    gm = gn - 1; gq = gm % 12;
+    gwi = floor(gm / 12) * 7 + (gq >= 11 ? 6 : (gq >= 9 ? 5 : (gq >= 7 ? 4 : (gq >= 5 ? 3 : (gq >= 4 ? 2 : (gq >= 2 ? 1 : 0)))))) - 12;
+    keys[gn] > 0 ? gfx_set(1, 0.75 - 0.4 * keys[gn] / 127, 0.15, 1) : gfx_set(0.08, 0.08, 0.08, 1);
+    gfx_rect(gkx + (gwi + 1) * gwk - 5, gky, 10, 68);
+  );
+  gn += 1;
+);

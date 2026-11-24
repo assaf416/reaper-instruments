@@ -1,0 +1,2 @@
+GeneralMIDI/samples/0423_Taiko_Drum_L_.wav
+GeneralMIDI/samples/0424_Taiko_Drum_R_.wav

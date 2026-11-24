@@ -1,0 +1,11 @@
+GeneralMIDI/samples/0591_Sbrass_C4_L_.wav
+GeneralMIDI/samples/0592_Sbrass_C4_R_.wav
+GeneralMIDI/samples/0589_Sbrass_C5_L_.wav
+GeneralMIDI/samples/0590_Sbrass_C5_R_.wav
+GeneralMIDI/samples/0587_Sbrass_C7_L_.wav
+GeneralMIDI/samples/0588_Sbrass_C7_R_.wav
+GeneralMIDI/samples/1380_Sawtooth_Wave_A1.wav
+GeneralMIDI/samples/1379_Sawtooth_Wave_A2.wav
+GeneralMIDI/samples/1378_Sawtooth_Wave_A3.wav
+GeneralMIDI/samples/1377_Sawtooth_Wave_A4.wav
+GeneralMIDI/samples/1376_Sawtooth_Wave_A5.wav

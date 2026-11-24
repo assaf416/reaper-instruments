@@ -1,0 +1,8 @@
+GeneralMIDI/samples/1324_Fretless_E1.wav
+GeneralMIDI/samples/1323_Fretless_G1.wav
+GeneralMIDI/samples/1322_Fretless_A_1.wav
+GeneralMIDI/samples/1321_Fretless_D2.wav
+GeneralMIDI/samples/1320_Fretless_G_2.wav
+GeneralMIDI/samples/0474_Fretless_C3.wav
+GeneralMIDI/samples/1297_Fretless_A3.wav
+GeneralMIDI/samples/1319_Sine_Wave_E4.wav
