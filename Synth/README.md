@@ -15,8 +15,8 @@ pads, leads, basses, brass, keys and effects.
 
 ## The UI
 
-Click a preset in the browser (PADS / LEADS / BASS / KEYS & FX). Drag any fader; **Ctrl+click** resets it to the Init value.
-The faders are grouped: OSCILLATORS, FILTER, AMP ENV, FILTER ENV, LFO, PLAY & EFFECTS.
+Round knobs with coloured value arcs in dark panels (OSCILLATORS, FILTER, AMP ENVELOPE, FILTER ENVELOPE, LFO, PLAY, CHORUS, DELAY, REVERB, DRIVE), in the style of the JamSynth and Synthy McSynthface panels by chmaha.
+Click the preset display to browse (PADS / LEADS / BASS / KEYS and FX) or use its arrows. Drag a knob up or down (Shift = fine), use the mouse wheel, or double-click / **Ctrl+click** to reset it to the Init value. The wave boxes and MONO switch toggle on click.
 
 ## Presets
 

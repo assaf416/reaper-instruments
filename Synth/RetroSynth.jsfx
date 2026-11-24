@@ -478,159 +478,207 @@ outR = tanhx(r * dg) * s_vol / (1 + s_drive * 0.6);
 spl0 = outL; spl1 = outR;
 pkm = max(pkm * 0.9998, max(abs(outL), abs(outR)));
 
-@gfx 900 670
-gfx_clear = 0x1a1a1a;
+@gfx 1000 510
+// Look after the JamSynth and Synthy McSynthface panels (chmaha JSFX ports): dark panels with coloured section headers and round
+// knobs with a coloured value arc, a preset LCD with previous / next arrows. All drawing code here is new.
+gfx_clear = 0x181614;
+
+function ps_col(gi) (
+  gi < 12 ? ( pr = 0.96; pg = 0.62; pb = 0.18; ) :
+  gi < 16 ? ( pr = 0.25; pg = 0.72; pb = 0.88; ) :
+  gi < 20 ? ( pr = 0.36; pg = 0.82; pb = 0.50; ) :
+  gi < 24 ? ( pr = 0.35; pg = 0.60; pb = 0.95; ) :
+  gi < 27 ? ( pr = 0.68; pg = 0.48; pb = 0.92; ) :
+  gi < 29 ? ( pr = 0.95; pg = 0.38; pb = 0.50; ) :
+  gi < 35 ? ( pr = 0.45; pg = 0.60; pb = 0.98; ) :
+            ( pr = 0.92; pg = 0.92; pb = 0.92; );
+);
+
+function ps_pos(gi) local(idx, grp) (
+  gi < 12 ? ( pcx = 59 + gi * 78; pcy = 170; ) :
+  gi < 27 ? (
+    idx = gi - 12; grp = idx < 4 ? 0 : (idx < 8 ? 1 : (idx < 12 ? 2 : 3));
+    pcx = 51 + idx * 62 + grp * 12; pcy = 302;
+  ) :
+  gi < 35 ? (
+    idx = gi - 27; grp = idx < 2 ? 0 : (idx < 3 ? 1 : (idx < 6 ? 2 : (idx < 7 ? 3 : 4)));
+    pcx = 59 + idx * 78 + grp * 12; pcy = 434;
+  ) : ( pcx = 930; pcy = 52; );
+);
+
+function ps_fmt(gi, gv) local(gtm) (
+  (gi == 0 || gi == 2) ? ( gv == 0 ? sprintf(#gt, "SAW") : (gv == 1 ? sprintf(#gt, "PULSE") : (gv == 2 ? sprintf(#gt, "TRI") : sprintf(#gt, "SINE"))); ) :
+  (gi == 1 || gi == 3) ? sprintf(#gt, "%+d", gv) :
+  gi == 4 ? sprintf(#gt, "%+d ct", gv) :
+  gi == 10 ? sprintf(#gt, "%d", gv) :
+  gi == 12 ? sprintf(#gt, "%d Hz", floor(20 * 900 ^ gv)) :
+  (gi >= 16 && gi <= 23) ? (
+    (gi == 18 || gi == 22) ? sprintf(#gt, "%d%%", floor(gv * 100 + 0.5)) :
+    ( gtm = 0.001 * 8000 ^ gv; gtm < 1 ? sprintf(#gt, "%d ms", floor(gtm * 1000 + 0.5)) : sprintf(#gt, "%.1f s", gtm); );
+  ) :
+  gi == 24 ? sprintf(#gt, "%.1f Hz", 0.1 * 120 ^ gv) :
+  gi == 28 ? ( gv > 0.5 ? sprintf(#gt, "MONO") : sprintf(#gt, "POLY"); ) :
+  gi == 31 ? sprintf(#gt, "%d ms", floor(60 + gv * 840)) :
+  gi == 32 ? sprintf(#gt, "%d%%", floor(gv / 0.9 * 100 + 0.5)) :
+  gi == 14 ? sprintf(#gt, "%+d%%", floor(gv * 100 + (gv < 0 ? -0.5 : 0.5))) :
+  sprintf(#gt, "%d%%", floor(gv * 100 + 0.5));
+);
+
+function ps_panel(gA, gB, y, title) (
+  ps_col(gA); ps_pos(gA); px1 = pcx - 38; ps_pos(gB); px2 = pcx + 38;
+  gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(px1, y, px2 - px1, 124);
+  gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(px1, y, px2 - px1, 124, 0);
+  gfx_set(pr, pg, pb, 1); gfx_rect(px1, y, px2 - px1, 2);
+  gfx_setfont(1, "Arial", 12, 98);
+  gfx_x = px1 + 8; gfx_y = y + 6; gfx_drawstr(title);
+  gfx_setfont(1, "Arial", 12);
+);
+
+function ps_set(gs, v) (
+  slider(gs) = v; sliderchange(2 ^ (gs - 1)); slider_automate(2 ^ (gs - 1));
+);
+
+// ---- build the preset menu (rebuilt when the preset changes) ----
+!menu_ok ? (
+  menu_ok = 1; strcpy(#pm, "");
+  gp = 0;
+  loop(NP,
+    gp == cat0 ? strcat(#pm, ">PADS|");
+    gp == cat1 ? strcat(#pm, "<|>LEADS|");
+    gp == cat2 ? strcat(#pm, "<|>BASS|");
+    gp == cat3 ? strcat(#pm, "<|>KEYS and FX|");
+    gp == slider1 ? strcat(#pm, "!");
+    strcat(#pm, pname[gp]); strcat(#pm, "|");
+    gp += 1;
+  );
+  strcat(#pm, "<");
+);
+slider1 != menu_p ? ( menu_p = slider1; menu_ok = 0; );
 
 // ====================== mouse ======================
 gmd = mouse_cap & 1;
 gmd && !glmd ? (
   gdrag = -1;
-  // preset cells
-  gp = 0;
-  loop(NP,
-    gc = gp < cat1 ? 0 : (gp < cat2 ? 1 : (gp < cat3 ? 2 : 3));
-    gcs = gc == 0 ? cat0 : (gc == 1 ? cat1 : (gc == 2 ? cat2 : cat3));
-    gx = 20 + gc * 220; gy = 78 + (gp - gcs) * 17;
-    (mouse_x >= gx && mouse_x < gx + 208 && mouse_y >= gy && mouse_y < gy + 16) ? (
-      slider1 = gp; sliderchange(1); slider_automate(1);
+  (mouse_y >= 14 && mouse_y < 92) ? (
+    (mouse_x >= 270 && mouse_x < 302) ? ( ps_set(1, (slider1 + NP - 1) % NP); ) :
+    (mouse_x >= 638 && mouse_x < 670) ? ( ps_set(1, (slider1 + 1) % NP); ) :
+    (mouse_x >= 302 && mouse_x < 638) ? (
+      gfx_x = mouse_x; gfx_y = mouse_y; gsel = gfx_showmenu(#pm);
+      gsel > 0 ? ps_set(1, gsel - 1);
     );
-    gp += 1;
   );
-  // faders
   gi = 0;
   loop(NPAR,
-    gx = 30 + (gi < 12 ? gi : (gi < 27 ? gi - 12 : gi - 27)) * 56;
-    gy = gi < 12 ? 285 : (gi < 27 ? 407 : 529);
-    (mouse_x >= gx - 6 && mouse_x < gx + 34 && mouse_y >= gy + 26 && mouse_y < gy + 98) ? (
-      gdrag = gi;
-      (mouse_cap & 4) ? (
-        slider(gi + 2) = df[gi + 2];
-        sliderchange(2 ^ (gi + 1)); slider_automate(2 ^ (gi + 1));
-        gdrag = -1;
-      );
+    ps_pos(gi); gs = gi + 2;
+    (mouse_x >= pcx - 28 && mouse_x < pcx + 28 && mouse_y >= pcy - 28 && mouse_y < pcy + 24) ? (
+      gnow = time_precise();
+      (gi == 0 || gi == 2) ? ( ps_set(gs, (slider(gs) + 1) % 4); ) :
+      gi == 28 ? ( ps_set(gs, slider(gs) > 0.5 ? 0 : 1); ) :
+      ((mouse_cap & 4) || (gi == glast_k && gnow - glast_t < 0.45)) ? ( ps_set(gs, df[gs]); ) :
+      ( gdrag = gi; gdy0 = mouse_y; gdv0 = slider(gs); );
+      glast_k = gi; glast_t = gnow;
     );
     gi += 1;
   );
 );
 gmd && gdrag >= 0 ? (
   gs = gdrag + 2;
-  gy = gdrag < 12 ? 285 : (gdrag < 27 ? 407 : 529);
-  gfrac = 1 - (mouse_y - (gy + 30)) / 64;
-  gv = mn[gs] + (mx[gs] - mn[gs]) * max(0, min(1, gfrac));
+  gv = gdv0 + (gdy0 - mouse_y) / (mouse_cap & 8 ? 600 : 160) * (mx[gs] - mn[gs]);
+  gv = max(mn[gs], min(mx[gs], gv));
   gv = floor(gv / st[gs] + 0.5) * st[gs];
-  gv != slider(gs) ? (
-    slider(gs) = gv;
-    sliderchange(2 ^ (gs - 1)); slider_automate(2 ^ (gs - 1));
+  gv != slider(gs) ? ps_set(gs, gv);
+);
+mouse_wheel != 0 ? (
+  gi = 0;
+  loop(NPAR,
+    ps_pos(gi); gs = gi + 2;
+    (mouse_x >= pcx - 28 && mouse_x < pcx + 28 && mouse_y >= pcy - 28 && mouse_y < pcy + 24) ? (
+      gv = slider(gs) + (mouse_wheel > 0 ? 1 : -1) * max(st[gs], (mx[gs] - mn[gs]) * 0.04);
+      gv = max(mn[gs], min(mx[gs], gv)); gv = floor(gv / st[gs] + 0.5) * st[gs];
+      ps_set(gs, gv);
+    );
+    gi += 1;
   );
+  mouse_wheel = 0;
 );
 !gmd ? gdrag = -1;
 glmd = gmd;
 
 // ====================== header ======================
-gfx_setfont(1, "Arial", 28);
-gfx_set(1, 1, 1, 1);
-gfx_x = 20; gfx_y = 10;
-gfx_drawstr("RETRO SYNTH");
-gfx_setfont(1, "Arial", 14);
-gfx_set(0.95, 0.65, 0.2, 1);
-gfx_x = 250; gfx_y = 20;
-gfx_drawstr(pname[slider1]);
-gfx_set(0.6, 0.6, 0.6, 1);
-gfx_x = 20; gfx_y = 46;
-gfx_drawstr("Click a preset - drag a fader (Ctrl+click resets to the Init value)");
-// output meter
-gfx_set(0.1, 0.1, 0.1, 1); gfx_rect(700, 18, 180, 8);
-gfx_set(0.9, 0.9, 0.3, 1); gfx_rect(700, 18, min(1, pkm * 1.2) * 180, 8);
-gfx_set(0.45, 0.45, 0.45, 1); gfx_rect(700, 18, 180, 8, 0);
+gfx_setfont(1, "Arial", 30, 98);
+gfx_set(0.95, 0.38, 0.55, 1); gfx_x = 20; gfx_y = 14; gfx_drawstr("RETRO");
+gfx_set(1, 1, 1, 1); gfx_x = 120; gfx_y = 14; gfx_drawstr("SYNTH");
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.6, 0.6, 0.62, 1); gfx_x = 22; gfx_y = 54; gfx_drawstr("70s / 80s pads, leads and basses");
+gfx_x = 22; gfx_y = 70; gfx_drawstr("click the display to browse, arrows step presets");
 
-// ====================== preset browser ======================
-gfx_set(0.2, 0.2, 0.2, 1); gfx_rect(12, 62, 876, 214);
-gfx_set(0.4, 0.4, 0.4, 1); gfx_rect(12, 62, 876, 214, 0);
-gc = 0;
-loop(4,
-  gx = 20 + gc * 220;
-  gc == 0 ? ( gcr = 0.4; gcg = 0.65; gcb = 0.95; gnm = "PADS"; );
-  gc == 1 ? ( gcr = 0.95; gcg = 0.6; gcb = 0.2; gnm = "LEADS"; );
-  gc == 2 ? ( gcr = 0.9; gcg = 0.35; gcb = 0.35; gnm = "BASS"; );
-  gc == 3 ? ( gcr = 0.45; gcg = 0.85; gcb = 0.55; gnm = "KEYS & FX"; );
-  gfx_setfont(1, "Arial", 13);
-  gfx_set(gcr, gcg, gcb, 1);
-  gfx_x = gx; gfx_y = 64;
-  gfx_drawstr(gnm);
-  gfx_rect(gx, 77, 208, 1);
-  gc += 1;
-);
-gp = 0;
-loop(NP,
-  gc = gp < cat1 ? 0 : (gp < cat2 ? 1 : (gp < cat3 ? 2 : 3));
-  gcs = gc == 0 ? cat0 : (gc == 1 ? cat1 : (gc == 2 ? cat2 : cat3));
-  gx = 20 + gc * 220; gy = 78 + (gp - gcs) * 17;
-  gc == 0 ? ( gcr = 0.4; gcg = 0.65; gcb = 0.95; );
-  gc == 1 ? ( gcr = 0.95; gcg = 0.6; gcb = 0.2; );
-  gc == 2 ? ( gcr = 0.9; gcg = 0.35; gcb = 0.35; );
-  gc == 3 ? ( gcr = 0.45; gcg = 0.85; gcb = 0.55; );
-  ghov = (mouse_x >= gx && mouse_x < gx + 208 && mouse_y >= gy && mouse_y < gy + 16);
-  (slider1 == gp) ? ( gfx_set(gcr * 0.55, gcg * 0.55, gcb * 0.55, 1); gfx_rect(gx, gy, 208, 16); ) :
-  ghov ? ( gfx_set(0.3, 0.3, 0.3, 1); gfx_rect(gx, gy, 208, 16); );
-  gfx_setfont(1, "Arial", 12);
-  (slider1 == gp) ? gfx_set(1, 1, 1, 1) : gfx_set(0.82, 0.82, 0.82, 1);
-  gfx_x = gx + 6; gfx_y = gy + 2;
-  gfx_drawstr(pname[gp]);
-  gp += 1;
-);
+gfx_set(0.055, 0.04, 0.025, 1); gfx_rect(270, 14, 400, 78);
+gfx_set(0.25, 0.2, 0.12, 1); gfx_rect(270, 14, 400, 78, 0);
+gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(270, 14, 32, 78); gfx_rect(638, 14, 32, 78);
+gfx_set(0.95, 0.5, 0.2, 1);
+gfx_triangle(292, 38, 292, 68, 278, 53);
+gfx_triangle(648, 38, 648, 68, 662, 53);
+gcat = slider1 < cat1 ? "PADS" : (slider1 < cat2 ? "LEADS" : (slider1 < cat3 ? "BASS" : "KEYS and FX"));
+gfx_setfont(1, "Courier New", 13, 98);
+gfx_set(0.95, 0.6, 0.2, 1);
+gfx_x = 314; gfx_y = 22; gfx_drawstr(gcat);
+sprintf(#gs, "%03d/%03d", slider1 + 1, NP);
+gfx_measurestr(#gs, gw_, gh_); gfx_x = 628 - gw_; gfx_y = 22; gfx_drawstr(#gs);
+gfx_setfont(1, "Courier New", 26, 98);
+gfx_set(1, 0.72, 0.25, 1);
+gfx_measurestr(pname[slider1], gw_, gh_); gfx_x = 470 - gw_ / 2; gfx_y = 46; gfx_drawstr(pname[slider1]);
+gfx_setfont(1, "Arial", 12);
 
-// ====================== faders ======================
-gfx_setfont(1, "Arial", 11);
-// row panels
-gr = 0;
-loop(3,
-  gy = gr == 0 ? 285 : (gr == 1 ? 407 : 529);
-  gfx_set(0.2, 0.2, 0.2, 1); gfx_rect(12, gy - 6, 876, 118);
-  gfx_set(0.4, 0.4, 0.4, 1); gfx_rect(12, gy - 6, 876, 118, 0);
-  gr += 1;
-);
-gfx_set(0.95, 0.65, 0.2, 1);
-gfx_x = 20; gfx_y = 281; gfx_drawstr("OSCILLATORS");
-gfx_x = 20; gfx_y = 403; gfx_drawstr("FILTER");
-gfx_x = 20 + 4 * 56; gfx_y = 403; gfx_drawstr("AMP ENV");
-gfx_x = 20 + 8 * 56; gfx_y = 403; gfx_drawstr("FILTER ENV");
-gfx_x = 20 + 12 * 56; gfx_y = 403; gfx_drawstr("LFO");
-gfx_x = 20; gfx_y = 525; gfx_drawstr("PLAY  &  EFFECTS");
+gfx_set(0.1, 0.11, 0.12, 1); gfx_rect(880, 96, 100, 6);
+gfx_set(0.36, 0.82, 0.5, 1); gfx_rect(880, 96, min(1, pkm * 1.2) * 100, 6);
 
+// ====================== panels ======================
+ps_panel(0, 11, 108, "OSCILLATORS");
+ps_panel(12, 15, 240, "FILTER");
+ps_panel(16, 19, 240, "AMP ENVELOPE");
+ps_panel(20, 23, 240, "FILTER ENVELOPE");
+ps_panel(24, 26, 240, "LFO");
+ps_panel(27, 28, 372, "PLAY");
+ps_panel(29, 29, 372, "CHORUS");
+ps_panel(30, 32, 372, "DELAY");
+ps_panel(33, 33, 372, "REVERB");
+ps_panel(34, 34, 372, "DRIVE");
+
+// ====================== knobs ======================
 gi = 0;
 loop(NPAR,
-  gs = gi + 2;
-  gx = 30 + (gi < 12 ? gi : (gi < 27 ? gi - 12 : gi - 27)) * 56;
-  gy = gi < 12 ? 285 : (gi < 27 ? 407 : 529);
+  gs = gi + 2; ps_col(gi); ps_pos(gi);
   gv = slider(gs);
-  gfrac = (gv - mn[gs]) / (mx[gs] - mn[gs]);
-  // name
-  gfx_set(0.75, 0.75, 0.75, 1);
-  gfx_x = gx + 14 - strlen(cname[gi]) * 2.8; gfx_y = gy + 12;
-  gfx_drawstr(cname[gi]);
-  // track + fill
-  gfx_set(0.08, 0.08, 0.08, 1); gfx_rect(gx, gy + 30, 28, 64);
-  gi < 12 ? gfx_set(0.95, 0.65, 0.2, 1) : (gi < 27 ? gfx_set(0.4, 0.65, 0.95, 1) : gfx_set(0.45, 0.85, 0.55, 1));
-  gfx_rect(gx, gy + 30 + 64 * (1 - gfrac), 28, 64 * gfrac);
-  gfx_set(0.95, 0.95, 0.95, 1); gfx_rect(gx - 2, gy + 30 + 64 * (1 - gfrac) - 1, 32, 3);
-  gfx_set(0.45, 0.45, 0.45, 1); gfx_rect(gx, gy + 30, 28, 64, 0);
-  // value text
-  gfx_set(0.9, 0.9, 0.7, 1);
-  (gi == 0 || gi == 2) ? ( gv == 0 ? sprintf(#gt, "SAW") : (gv == 1 ? sprintf(#gt, "PULSE") : (gv == 2 ? sprintf(#gt, "TRI") : sprintf(#gt, "SINE"))); ) :
-  (gi == 1 || gi == 3) ? sprintf(#gt, "%+d", gv) :
-  gi == 4 ? sprintf(#gt, "%+d c", gv) :
-  gi == 10 ? sprintf(#gt, "%d", gv) :
-  gi == 12 ? sprintf(#gt, "%d Hz", floor(20 * 900 ^ gv)) :
-  (gi >= 16 && gi <= 19) || (gi >= 20 && gi <= 23) ? (
-    (gi == 18 || gi == 22) ? sprintf(#gt, "%d%%", floor(gv * 100 + 0.5)) :
-    ( gtm = 0.001 * 8000 ^ gv; gtm < 1 ? sprintf(#gt, "%d ms", floor(gtm * 1000 + 0.5)) : sprintf(#gt, "%.1f s", gtm); );
-  ) :
-  gi == 24 ? sprintf(#gt, "%.1f Hz", 0.1 * 120 ^ gv) :
-  gi == 28 ? ( gv > 0.5 ? sprintf(#gt, "ON") : sprintf(#gt, "OFF"); ) :
-  gi == 31 ? sprintf(#gt, "%d ms", floor(60 + gv * 840)) :
-  gi == 32 ? sprintf(#gt, "%d%%", floor(gv / 0.9 * 100 + 0.5)) :
-  sprintf(#gt, "%d%%", floor(gv * 100 + 0.5));
-  gfx_x = gx + 14 - strlen(#gt) * 2.8; gfx_y = gy + 98;
-  gfx_drawstr(#gt);
+  ps_fmt(gi, gv);
+  gfx_setfont(1, "Arial", 11);
+  gfx_set(0.85, 0.85, 0.85, 1);
+  gfx_measurestr(#gt, gw_, gh_); gfx_x = pcx - gw_ / 2; gfx_y = pcy - 40; gfx_drawstr(#gt);
+  gfx_set(0.62, 0.62, 0.66, 1);
+  gfx_measurestr(cname[gi], gw_, gh_); gfx_x = pcx - gw_ / 2; gfx_y = pcy + 26; gfx_drawstr(cname[gi]);
+  (gi == 0 || gi == 2) ? (
+    gfx_set(0.06, 0.065, 0.075, 1); gfx_rect(pcx - 24, pcy - 16, 48, 32);
+    gfx_set(pr, pg, pb, 1); gfx_rect(pcx - 24, pcy - 16, 48, 32, 0);
+    gwx = pcx - 18; gwy = pcy;
+    gv == 0 ? ( gfx_line(gwx, gwy + 9, gwx + 18, gwy - 9); gfx_line(gwx + 18, gwy - 9, gwx + 18, gwy + 9); gfx_line(gwx + 18, gwy + 9, gwx + 36, gwy - 9); ) :
+    gv == 1 ? ( gfx_line(gwx, gwy + 9, gwx, gwy - 9); gfx_line(gwx, gwy - 9, gwx + 18, gwy - 9); gfx_line(gwx + 18, gwy - 9, gwx + 18, gwy + 9); gfx_line(gwx + 18, gwy + 9, gwx + 36, gwy + 9); ) :
+    gv == 2 ? ( gfx_line(gwx, gwy + 9, gwx + 18, gwy - 9); gfx_line(gwx + 18, gwy - 9, gwx + 36, gwy + 9); ) :
+    ( gk = 0; loop(36, gfx_line(gwx + gk, gwy - sin(gk / 36 * 2 * $pi) * 9, gwx + gk + 1, gwy - sin((gk + 1) / 36 * 2 * $pi) * 9); gk += 1; ); );
+  ) : gi == 28 ? (
+    gv > 0.5 ? ( gfx_set(pr, pg, pb, 1); gfx_rect(pcx - 22, pcy - 11, 44, 22); gfx_set(0.08, 0.08, 0.09, 1); ) :
+               ( gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(pcx - 22, pcy - 11, 44, 22); gfx_set(0.7, 0.7, 0.72, 1); );
+    gfx_x = pcx - 13; gfx_y = pcy - 6; gv > 0.5 ? gfx_drawstr("ON") : gfx_drawstr("OFF");
+  ) : (
+    gk_frac = (gv - mn[gs]) / (mx[gs] - mn[gs]);
+    gk_rad = (gk_frac * 260 - 130) * $pi / 180;
+    gk_from = (mn[gs] < 0 && mx[gs] > 0) ? ((0 - mn[gs]) / (mx[gs] - mn[gs]) * 260 - 130) * $pi / 180 : -130 * $pi / 180;
+    gfx_set(0.16, 0.17, 0.19, 1);
+    gr_ = 23; loop(5, gfx_arc(pcx, pcy, gr_, -130 * $pi / 180, 130 * $pi / 180, 1); gr_ -= 0.5; );
+    gfx_set(pr, pg, pb, 1);
+    gr_ = 23; loop(5, gfx_arc(pcx, pcy, gr_, min(gk_from, gk_rad), max(gk_from, gk_rad), 1); gr_ -= 0.5; );
+    gfx_set(0.07, 0.075, 0.085, 1); gfx_circle(pcx, pcy, 18, 1, 1);
+    gfx_set(0.2, 0.21, 0.24, 1); gfx_circle(pcx, pcy, 15, 1, 1);
+    gfx_set(0.96, 0.96, 0.96, 1);
+    gfx_line(pcx + sin(gk_rad) * 5, pcy - cos(gk_rad) * 5, pcx + sin(gk_rad) * 13, pcy - cos(gk_rad) * 13, 1);
+  );
   gi += 1;
 );
