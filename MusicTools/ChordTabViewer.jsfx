@@ -1,0 +1,236 @@
+desc:Chord / Tab / Notes Viewer - chords, fretboard, tab and note names of the MIDI on this track v1.0
+tags:analyzer midi chords guitar tab
+// Shows what the MIDI on its own track is playing: detected chord name, note names, a piano keyboard, a guitar fretboard with the chord
+// shape (or every position of the played notes), the chord as tab, a tab strip of the last notes, and a CHORD CHART per bar that is
+// filled while the project plays (and saved with the project). MIDI is passed through unchanged, so it can sit anywhere on a track.
+//
+// A JSFX can only see MIDI that reaches its own track. Three ways to feed it:
+//   1. insert it on the track that holds the MIDI item (before the instrument) - it follows that track while the project plays,
+//   2. make a "Chord View" track and add MIDI sends from the tracks you want to analyse (one send per track, MIDI only),
+//   3. play your controller into it live.
+// Play the song once with REC on and the chart is complete; click a chart cell to inspect that chord on the fretboard.
+import MusicLib.jsfx-inc
+
+slider1:0<0,4,1>-Tuning
+slider2:0<0,1,1>-Dot labels (0 note names, 1 intervals)
+slider3:0<0,1,1>-Fretboard (0 chord shape, 1 all positions)
+slider4:1<0,1,1>-Record chord chart while playing
+
+in_pin:none
+out_pin:none
+
+@init
+hist_n = 0; cap_hi = 0; held_mask = 0; held_low = 0; held_n = 0; cpage = 0; insp_on = 0; last_mask = 0; last_root = -1; last_q = -1; last_bass = -1; tun_set = -1;
+function set_tuning(t) (
+  t == 0 ? ( OPEN_G[0] = 40; OPEN_G[1] = 45; OPEN_G[2] = 50; OPEN_G[3] = 55; OPEN_G[4] = 59; OPEN_G[5] = 64; );
+  t == 1 ? ( OPEN_G[0] = 38; OPEN_G[1] = 45; OPEN_G[2] = 50; OPEN_G[3] = 55; OPEN_G[4] = 59; OPEN_G[5] = 64; );
+  t == 2 ? ( OPEN_G[0] = 39; OPEN_G[1] = 44; OPEN_G[2] = 49; OPEN_G[3] = 54; OPEN_G[4] = 58; OPEN_G[5] = 63; );
+  t == 3 ? ( OPEN_G[0] = 38; OPEN_G[1] = 43; OPEN_G[2] = 50; OPEN_G[3] = 55; OPEN_G[4] = 59; OPEN_G[5] = 62; );
+  t == 4 ? ( OPEN_G[0] = 38; OPEN_G[1] = 45; OPEN_G[2] = 50; OPEN_G[3] = 55; OPEN_G[4] = 57; OPEN_G[5] = 62; );
+  tun_set = t;
+);
+function tun_name(t, d) (
+  t == 0 ? strcpy(d, "Standard  E A D G B E"); t == 1 ? strcpy(d, "Drop D  D A D G B E"); t == 2 ? strcpy(d, "Half step down  Eb Ab Db Gb Bb Eb");
+  t == 3 ? strcpy(d, "Open G  D G D G B D"); t == 4 ? strcpy(d, "DADGAD");
+);
+function ivl_name(semis, d) local(l) (
+  semis = mod12(semis);
+  l = str_getchar("R b22 b33 4 b55 #56 b77 ", semis * 2 + 1) == 32 ? 1 : 2;
+  strcpy_substr(d, "R b22 b33 4 b55 #56 b77 ", semis * 2, l);
+);
+strcpy(#m_tun, "Standard|Drop D|Half step down|Open G|DADGAD");
+VIS = 26700;
+set_tuning(0);
+
+@serialize
+file_var(0, cap_hi); cap_hi = clampf(cap_hi, 0, CAP_MAX - 1);
+file_mem(0, CAP_M, cap_hi + 1); file_mem(0, CAP_B, cap_hi + 1);
+
+@block
+slider1 != tun_set ? set_tuning(slider1);
+// record: the pitch classes held at the start of this block belong to the beat the block starts in (before this block's own events)
+(slider4 && (play_state & 1) && held_n > 0) ? ( bt_ = floor(beat_position); p_ = 0; loop(128, HELD[p_] ? cap_mark(bt_, p_); p_ += 1; ); );
+changed_ = 0;
+while (midirecv(off_, m1_, m2_, m3_)) (
+  midisend(off_, m1_, m2_, m3_);
+  st_ = m1_ & 0xF0;
+  (st_ == 0x90 && m3_ > 0) ? (
+    HELD[m2_] = 1; changed_ = 1;
+    HIST_P[hist_n % 16] = m2_; hist_n += 1;
+    (slider4 && (play_state & 1)) ? cap_mark(floor(beat_position + off_ / srate * tempo / 60 + 0.01), m2_);
+  ) : ( (st_ == 0x80 || st_ == 0x90) ? ( HELD[m2_] = 0; changed_ = 1; ); );
+  (st_ == 0xB0 && m2_ == 123) ? ( i_ = 0; loop(128, HELD[i_] = 0; i_ += 1; ); changed_ = 1; );
+);
+changed_ ? (
+  held_update();
+  held_n > 0 ? (
+    chord_detect(held_mask, held_low % 12);
+    last_mask = held_mask; last_root = cd_root; last_q = cd_q; last_bass = held_low % 12;
+  );
+);
+
+@gfx 1000 650
+gfx_clear = 0x181614;
+ui_begin();
+bpb_ = ts_num > 0 ? ts_num : 4;
+// ---------------------------------------------------------------- header
+gfx_setfont(1, "Arial", 30, 98);
+gfx_set(0.35, 0.6, 0.95, 1); gfx_x = 20; gfx_y = 14; gfx_drawstr("CHORD");
+gfx_set(1, 1, 1, 1); gfx_x = 118; gfx_y = 14; gfx_drawstr("TAB  NOTES");
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.6, 0.6, 0.62, 1); gfx_x = 22; gfx_y = 54; gfx_drawstr("shows the MIDI of this track: live chord, fretboard, tab and a per-bar chord chart");
+gfx_x = 22; gfx_y = 70; gfx_drawstr("MIDI passes through unchanged - insert it before the instrument, or feed it with MIDI sends");
+// transport read-out
+ui_panel(640, 10, 340, 66, "TRANSPORT", 0.36, 0.82, 0.5);
+cb_ = floor(beat_position / bpb_) + 1; bb_ = floor(beat_position - (cb_ - 1) * bpb_) + 1;
+gfx_setfont(1, "Courier New", 22, 98); gfx_set(1, 0.72, 0.25, 1);
+sprintf(#t_, "BAR %d  BEAT %d", cb_, bb_); gfx_x = 654; gfx_y = 34; gfx_drawstr(#t_);
+gfx_setfont(1, "Arial", 11); gfx_set(0.7, 0.7, 0.72, 1);
+sprintf(#t_, "%d BPM  %d/%d  %s", floor(tempo + 0.5), ts_num, ts_denom, (play_state & 1) ? "playing" : "stopped"); gfx_x = 800; gfx_y = 60; gfx_drawstr(#t_);
+gfx_setfont(1, "Arial", 12);
+
+// ---------------------------------------------------------------- what is shown: live / last chord, or an inspected chart cell
+show_root = insp_on ? insp_root : last_root; show_q = insp_on ? insp_q : last_q;
+show_mask = insp_on ? insp_mask : last_mask; show_bass = insp_on ? -1 : last_bass;
+// ---------------------------------------------------------------- NOW panel
+ui_panel(20, 88, 960, 134, insp_on ? "INSPECTING A CHART CELL" : "NOW PLAYING", insp_on ? 0.68 : 0.96, insp_on ? 0.48 : 0.62, insp_on ? 0.92 : 0.18);
+gfx_set(0.055, 0.04, 0.025, 1); gfx_rect(30, 112, 250, 100); gfx_set(0.25, 0.2, 0.12, 1); gfx_rect(30, 112, 250, 100, 0);
+show_q >= 0 ? ( chord_label(show_root, QMASK[show_q], #t_); show_bass >= 0 && show_bass != show_root ? ( pc_name(show_bass, #bn_); strcat(#t_, "/"); strcat(#t_, #bn_); ); ) :
+(show_q == -2 ? ( pc_name(show_root, #t_); ) : ( strcpy(#t_, show_mask ? "?" : "-"); ));
+gfx_setfont(1, "Courier New", 58, 98); gfx_set(1, 0.72, 0.25, 1); gfx_measurestr(#t_, w_, h_);
+gfx_x = 155 - w_ / 2; gfx_y = 124; gfx_drawstr(#t_);
+// note names of the shown chord / held notes
+gfx_setfont(1, "Arial", 13, 98); gfx_set(0.85, 0.85, 0.85, 1);
+strcpy(#nl_, ""); k_ = 0;
+insp_on ? (
+  loop(12, ((show_mask >> k_) & 1) ? ( pc_name(k_, #t_); strcat(#nl_, #t_); strcat(#nl_, "  "); ); k_ += 1; );
+) : (
+  loop(128, HELD[k_] ? ( note_name(k_, #t_); strcat(#nl_, #t_); strcat(#nl_, " "); ); k_ += 1; );
+  held_n == 0 && last_mask ? ( strcpy(#nl_, "(last chord - notes released)"); );
+);
+gfx_x = 36; gfx_y = 192; gfx_drawstr(#nl_);
+gfx_setfont(1, "Arial", 12);
+// keyboard
+insp_on ? ( k_ = 0; loop(128, VIS[k_] = (k_ >= 36 && k_ <= 95 && ((show_mask >> (k_ % 12)) & 1)) ? 1 : 0; k_ += 1; ); hk_base = VIS; ) : ( hk_base = HELD; );
+draw_keys(296, 116, 676, 98, 36, 95);
+hk_base = HELD;
+insp_on ? ( ui_btn(884, 94, 86, 20, "LIVE", 0, 0.35, 0.6, 0.95) ? ( insp_on = 0; ); );
+
+// ---------------------------------------------------------------- FRETBOARD panel
+ui_panel(20, 230, 960, 180, "FRETBOARD", 0.25, 0.72, 0.88);
+tun_name(slider1, #t_); ui_sel(110, 232, 250, 20, 1, 0, 4, #t_, #m_tun);
+ui_btn(372, 232, 120, 20, slider3 ? "ALL POSITIONS" : "CHORD SHAPE", slider3, 0.25, 0.72, 0.88) ? ui_setsl(3, !slider3);
+ui_btn(498, 232, 110, 20, slider2 ? "INTERVALS" : "NOTE NAMES", slider2, 0.36, 0.82, 0.5) ? ui_setsl(2, !slider2);
+bx_ = 56; by_ = 262; bw_ = 660; bh_ = 132; nf_ = 15;
+draw_board(bx_, by_, bw_, bh_, nf_, 6);
+// fret numbers under the board
+gfx_set(0.55, 0.55, 0.58, 1); gfx_setfont(1, "Arial", 10);
+f_ = 1; loop(nf_, sprintf(#t_, "%d", f_); ui_ctext((fb_x(f_ - 1, bx_, bw_, nf_) + fb_x(f_, bx_, bw_, nf_)) / 2, by_ + bh_ + 1, #t_); f_ += 1; );
+gfx_setfont(1, "Arial", 12);
+have_ = show_mask != 0 && show_root >= 0;
+rootpc_ = show_root;
+have_ && slider3 == 1 ? (
+  s_ = 0; loop(6,
+    f_ = 0; loop(nf_ + 1,
+      pc_ = mod12(OPEN_G[s_] + f_);
+      ((show_mask >> pc_) & 1) ? (
+        slider2 ? ivl_name(pc_ - rootpc_, #t_) : pc_name(pc_, #t_);
+        pc_ == rootpc_ ? draw_dot(bx_, by_, bw_, bh_, nf_, 6, s_, f_, 9, #t_, 0.96, 0.62, 0.18) : draw_dot(bx_, by_, bw_, bh_, nf_, 6, s_, f_, 9, #t_, 0.45, 0.65, 0.95);
+      );
+      f_ += 1;
+    );
+    s_ += 1;
+  );
+);
+shape_ok_ = 0;
+(have_ && show_q >= 0) ? ( shape_build(OPEN_G, 6, show_root, QMASK[show_q]); shape_ok_ = 1; );
+(shape_ok_ && slider3 == 0) ? (
+  s_ = 0; loop(6,
+    SH[s_] >= 0 ? (
+      pc_ = mod12(OPEN_G[s_] + SH[s_]);
+      slider2 ? ivl_name(pc_ - rootpc_, #t_) : pc_name(pc_, #t_);
+      pc_ == rootpc_ ? draw_dot(bx_, by_, bw_, bh_, nf_, 6, s_, SH[s_], 10, #t_, 0.96, 0.62, 0.18) : draw_dot(bx_, by_, bw_, bh_, nf_, 6, s_, SH[s_], 10, #t_, 0.45, 0.65, 0.95);
+    ) : (
+      gfx_set(0.8, 0.3, 0.3, 1); gfx_setfont(1, "Arial", 12, 98);
+      ui_ctext(bx_ - 14, by_ + bh_ * (5 - s_ + 0.5) / 6 - 7, "x"); gfx_setfont(1, "Arial", 12);
+    );
+    s_ += 1;
+  );
+);
+!have_ ? ( gfx_set(0.5, 0.5, 0.54, 1); ui_ctext(bx_ + bw_ / 2, by_ + bh_ / 2 - 6, "play some notes ..."); );
+// chord as tab (right of the board)
+gfx_set(0.07, 0.075, 0.085, 1); gfx_rect(750, 262, 220, 132); gfx_set(0.22, 0.23, 0.26, 1); gfx_rect(750, 262, 220, 132, 0);
+gfx_set(0.62, 0.62, 0.66, 1); gfx_setfont(1, "Arial", 11); gfx_x = 756; gfx_y = 265; gfx_drawstr("CHORD AS TAB");
+s_ = 0; loop(6,
+  yy_ = 292 + (5 - s_) * 17;
+  gfx_set(0.3, 0.31, 0.35, 1); gfx_line(760, yy_, 960, yy_, 1);
+  pc_ = mod12(OPEN_G[s_]); pc_name(pc_, #t_); gfx_set(0.62, 0.62, 0.66, 1); gfx_x = 752; gfx_y = yy_ - 6; gfx_drawstr(#t_);
+  (shape_ok_ && SH[s_] >= 0) ? ( sprintf(#t_, "%d", SH[s_]); gfx_set(1, 0.72, 0.25, 1); gfx_setfont(1, "Arial", 13, 98); ui_ctext(860, yy_ - 7, #t_); gfx_setfont(1, "Arial", 11); ) :
+  (shape_ok_ ? ( gfx_set(0.8, 0.3, 0.3, 1); ui_ctext(860, yy_ - 6, "x"); ));
+  s_ += 1;
+);
+gfx_setfont(1, "Arial", 12);
+
+// ---------------------------------------------------------------- TAB STRIP of the last notes
+ui_panel(20, 418, 960, 92, "LAST NOTES AS TAB   (single-line playing)", 0.96, 0.62, 0.18);
+pf_ = 3; ps_ = 2; n_ = min(hist_n, 16);
+gfx_set(0.07, 0.075, 0.085, 1); gfx_rect(30, 440, 940, 62);
+s_ = 0; loop(6, yy_ = 440 + 62 * (5 - s_ + 0.5) / 6; gfx_set(0.3, 0.31, 0.35, 1); gfx_line(30, yy_, 970, yy_, 1); s_ += 1; );
+gfx_setfont(1, "Arial", 11, 98);
+k_ = 0; loop(n_,
+  p_ = HIST_P[(hist_n - n_ + k_) % 16];
+  tab_single(OPEN_G, 6, p_, pf_, ps_);
+  ts_s >= 0 ? (
+    pf_ = ts_f; ps_ = ts_s; sprintf(#t_, "%d", ts_f);
+    xx_ = 50 + k_ * 56; yy_ = 440 + 62 * (5 - ts_s + 0.5) / 6;
+    gfx_measurestr(#t_, w_, h_); gfx_set(0.07, 0.075, 0.085, 1); gfx_rect(xx_ - 2, yy_ - h_ / 2, w_ + 4, h_);
+    gfx_set(1, 0.72, 0.25, 1); gfx_x = xx_; gfx_y = yy_ - h_ / 2; gfx_drawstr(#t_);
+    note_name(p_, #t_); gfx_setfont(1, "Arial", 9); gfx_set(0.5, 0.52, 0.56, 1); gfx_x = xx_ - 2; gfx_y = 490; gfx_drawstr(#t_); gfx_setfont(1, "Arial", 11, 98);
+  );
+  k_ += 1;
+);
+gfx_setfont(1, "Arial", 12);
+n_ == 0 ? ( gfx_set(0.5, 0.5, 0.54, 1); ui_text(40, 462, "notes you play (or that the project plays) appear here, oldest at the left"); );
+
+// ---------------------------------------------------------------- CHORD CHART
+ui_panel(20, 518, 960, 126, "CHORD CHART  (filled while the project plays)", 0.68, 0.48, 0.92);
+ui_btn(640, 520, 70, 18, "REC", slider4, 0.95, 0.38, 0.5) ? ui_setsl(4, !slider4);
+ui_btn(716, 520, 70, 18, "CLEAR", 0, 0.5, 0.5, 0.5) ? ( k_ = 0; loop(CAP_MAX, CAP_M[k_] = 0; CAP_B[k_] = 0; k_ += 1; ); cap_hi = 0; );
+ui_btn(800, 520, 30, 18, "<", 0, 0.5, 0.5, 0.5) ? ( cpage = max(0, cpage - 1); );
+ui_btn(836, 520, 30, 18, ">", 0, 0.5, 0.5, 0.5) ? ( cpage = cpage + 1; );
+sprintf(#t_, "bars %d-%d", cpage * 16 + 1, cpage * 16 + 16); gfx_set(0.7, 0.7, 0.72, 1); gfx_x = 876; gfx_y = 523; gfx_drawstr(#t_);
+(play_state & 1) ? ( cpage = floor((cb_ - 1) / 16); );
+half_ = ceil(bpb_ / 2);
+c_i = 0;
+loop(16,
+  bi_ = cpage * 16 + c_i; cx_ = 28 + (c_i % 8) * 118; cy_ = 542 + floor(c_i / 8) * 50;
+  gfx_set(0.07, 0.075, 0.085, 1); gfx_rect(cx_, cy_, 114, 46);
+  (play_state & 1) && bi_ + 1 == cb_ ? ( gfx_set(0.95, 0.38, 0.5, 1); ) : gfx_set(0.22, 0.23, 0.26, 1);
+  gfx_rect(cx_, cy_, 114, 46, 0);
+  gfx_set(0.5, 0.52, 0.56, 1); gfx_setfont(1, "Arial", 10); gfx_x = cx_ + 4; gfx_y = cy_ + 3; sprintf(#t_, "%d", bi_ + 1); gfx_drawstr(#t_);
+  // two halves per bar
+  cap_chord(bi_ * bpb_, half_); r1_ = cd_root; q1_ = cd_q; m1c_ = cd_mask; b1c_ = cd_bass;
+  cap_chord(bi_ * bpb_ + half_, bpb_ - half_); r2_ = cd_root; q2_ = cd_q; m2c_ = cd_mask; b2c_ = cd_bass;
+  same_ = (r1_ == r2_ && q1_ == q2_) || r2_ < 0 || r1_ < 0;
+  gfx_setfont(1, "Arial", 16, 98);
+  r1_ >= 0 ? (
+    q1_ >= 0 ? chord_label(r1_, QMASK[q1_], #t_) : pc_name(r1_, #t_);
+    gfx_set(1, 0.72, 0.25, 1);
+    same_ ? ui_ctext(cx_ + 57, cy_ + 20, #t_) : ui_text(cx_ + 6, cy_ + 20, #t_);
+  );
+  (!same_ && r2_ >= 0) ? (
+    q2_ >= 0 ? chord_label(r2_, QMASK[q2_], #t_) : pc_name(r2_, #t_);
+    gfx_set(1, 0.72, 0.25, 1); ui_text(cx_ + 60, cy_ + 20, #t_);
+  );
+  (r1_ < 0 && r2_ >= 0) ? (
+    q2_ >= 0 ? chord_label(r2_, QMASK[q2_], #t_) : pc_name(r2_, #t_);
+    gfx_set(1, 0.72, 0.25, 1); ui_ctext(cx_ + 57, cy_ + 20, #t_);
+  );
+  gfx_setfont(1, "Arial", 12);
+  // click: inspect the first chord of the bar
+  (ui_clk && ui_hit(cx_, cy_, 114, 46)) ? (
+    r1_ >= 0 && q1_ >= 0 ? ( insp_on = 1; insp_root = r1_; insp_q = q1_; insp_mask = m1c_; ) :
+    (r2_ >= 0 && q2_ >= 0 ? ( insp_on = 1; insp_root = r2_; insp_q = q2_; insp_mask = m2c_; ));
+  );
+  c_i += 1;
+);

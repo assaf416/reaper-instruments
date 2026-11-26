@@ -1,0 +1,641 @@
+// MusicLib.jsfx-inc - shared code of the Music Tools (Chord / Tab Viewer, Solo Generator, Riff Generator).
+// Music theory (chord names, scales, chord parser for "/Am,Dm6/..." strings), guitar tab fitting, a transport-synced MIDI event
+// player and the dark knob-style UI widgets. Imported with:  import MusicLib.jsfx-inc
+// Everything lives in @init because only @init sections of imported files are shared.
+
+@init
+// ------------------------------------------------------------------ memory layout (each plugin has its own memory)
+EV_T = 4096;  EV_L = 6144;  EV_P = 8192;  EV_V = 10240; EV_C = 12288; EV_GRP = 14336; EV_MAX = 2000;
+SND_P = 14400; SND_C = 14480; SND_MAX = 60;
+CS_ROOT = 15000; CS_MASK = 15300; CS_BEAT = 15600; CS_LEN = 15900; CS_MAX = 250;
+TAB_S = 16400; TAB_F = 18448;
+CAP_M = 21000; CAP_B = 23100; CAP_MAX = 2000;
+SC = 25200;
+HELD = 25400; HIST_P = 25600; HIST_B = 25640;
+TMP = 26000; QMASK = 26300; SCM = 26400; OPEN_G = 26500; OPEN_B = 26520; SH = 26540; KB = 26560; SCI = 26600; AR = 26620;
+TK_ROOT = 27000; TK_MASK = 27300; TK_BAR = 27600;
+
+// ------------------------------------------------------------------ tables
+QN = 20;
+QMASK[0]=145; QMASK[1]=137; QMASK[2]=1169; QMASK[3]=1161; QMASK[4]=2193; QMASK[5]=657; QMASK[6]=649; QMASK[7]=73; QMASK[8]=585; QMASK[9]=1097;
+QMASK[10]=273; QMASK[11]=161; QMASK[12]=133; QMASK[13]=129; QMASK[14]=1173; QMASK[15]=1177; QMASK[16]=1165; QMASK[17]=149; QMASK[18]=1185; QMASK[19]=2197;
+SCM[0]=2741; SCM[1]=1453; SCM[2]=1709; SCM[3]=1451; SCM[4]=2773; SCM[5]=1717; SCM[6]=1193; SCM[7]=661; SCM[8]=1257; SCM[9]=2477;
+NSCALES = 10;
+OPEN_G[0]=40; OPEN_G[1]=45; OPEN_G[2]=50; OPEN_G[3]=55; OPEN_G[4]=59; OPEN_G[5]=64;
+OPEN_B[0]=28; OPEN_B[1]=33; OPEN_B[2]=38; OPEN_B[3]=43;
+LET = 27900; LET[0]=9; LET[1]=11; LET[2]=0; LET[3]=2; LET[4]=4; LET[5]=5; LET[6]=7;   // A..G -> pitch class
+pl_sent = 0; rseed = 12345; HELD_ = 0; hk_base = 25400;
+gen_lock = 0;
+
+function rnd() ( rseed = (rseed * 16807) % 2147483647; rseed / 2147483647; );
+function rnd_seed(s) ( rseed = floor(abs(s)) % 2147483000 + 1; rnd(); rnd(); );
+function clampf(v, lo, hi) ( v < lo ? lo : (v > hi ? hi : v); );
+function mod12(v) ( ((floor(v) % 12) + 12) % 12; );
+
+function q_name(qi, dst) (
+  qi == 0 ? strcpy(dst, "");   qi == 1 ? strcpy(dst, "m");   qi == 2 ? strcpy(dst, "7");    qi == 3 ? strcpy(dst, "m7");
+  qi == 4 ? strcpy(dst, "maj7"); qi == 5 ? strcpy(dst, "6");  qi == 6 ? strcpy(dst, "m6");   qi == 7 ? strcpy(dst, "dim");
+  qi == 8 ? strcpy(dst, "dim7"); qi == 9 ? strcpy(dst, "m7b5"); qi == 10 ? strcpy(dst, "aug"); qi == 11 ? strcpy(dst, "sus4");
+  qi == 12 ? strcpy(dst, "sus2"); qi == 13 ? strcpy(dst, "5"); qi == 14 ? strcpy(dst, "9");    qi == 15 ? strcpy(dst, "7#9");
+  qi == 16 ? strcpy(dst, "m9");  qi == 17 ? strcpy(dst, "add9"); qi == 18 ? strcpy(dst, "7sus4"); qi == 19 ? strcpy(dst, "maj9");
+  qi < 0 ? strcpy(dst, "?");
+);
+
+function scale_name(si, dst) (
+  si == 0 ? strcpy(dst, "Major (Ionian)"); si == 1 ? strcpy(dst, "Natural Minor"); si == 2 ? strcpy(dst, "Dorian");
+  si == 3 ? strcpy(dst, "Phrygian"); si == 4 ? strcpy(dst, "Lydian"); si == 5 ? strcpy(dst, "Mixolydian");
+  si == 6 ? strcpy(dst, "Minor Pentatonic"); si == 7 ? strcpy(dst, "Major Pentatonic"); si == 8 ? strcpy(dst, "Blues");
+  si == 9 ? strcpy(dst, "Harmonic Minor");
+);
+
+function pc_name(pc, dst) local(l) (
+  pc = mod12(pc);
+  l = str_getchar("C C#D D#E F F#G G#A A#B ", pc * 2 + 1) == 32 ? 1 : 2;
+  strcpy_substr(dst, "C C#D D#E F F#G G#A A#B ", pc * 2, l);
+);
+
+function note_name(p, dst) ( pc_name(p, #nn_t); sprintf(dst, "%s%d", #nn_t, floor(p / 12) - 1); );
+
+function pop12(m) local(c, i) ( c = 0; i = 0; loop(12, c += (m >> i) & 1; i += 1; ); c; );
+function rotr12(m, r) ( ((m >> r) | (m << (12 - r))) & 4095; );     // absolute mask -> relative to root r
+function rotl12(m, k) ( ((m << k) | (m >> (12 - k))) & 4095; );     // relative mask -> absolute for root k
+function scale_abs(key, mode) ( rotl12(SCM[mode], key); );
+
+// chord from a set of pitch classes. Result in cd_root / cd_q (cd_q -1 = none, -2 = single note)
+function chord_detect(m, bass) local(r, q, rel, qmk, req, have, miss, extra, sc, best) (
+  cd_root = -1; cd_q = -1; best = -100;
+  pop12(m) == 1 ? ( r = 0; loop(12, (m >> r) & 1 ? (cd_root = r); r += 1; ); cd_q = -2; ) :
+  pop12(m) >= 2 ? (
+    r = 0;
+    loop(12,
+      (m >> r) & 1 ? (
+        rel = rotr12(m, r); q = 0;
+        loop(QN,
+          qmk = QMASK[q];
+          req = pop12(qmk) >= 4 ? (qmk & (4095 - 128)) : qmk;       // the fifth of 7th / 9th chords may be left out
+          have = pop12(rel & qmk); miss = pop12(req & (4095 - rel)); extra = pop12(rel & (4095 - qmk));
+          (miss == 0 && have >= 2) ? (
+            sc = have * 3 - extra * 2 + (r == bass ? 2.5 : 0) - q * 0.01 - ((rel & 128) ? 0 : (pop12(qmk) >= 4 ? 0.5 : 0));
+            sc > best ? ( best = sc; cd_root = r; cd_q = q; );
+          );
+          q += 1;
+        );
+      );
+      r += 1;
+    );
+  );
+);
+
+// chord label from root + (relative) mask; exact quality match else root name only
+function chord_label(root, rel, dst) local(q, f) (
+  pc_name(root, dst); f = -1; q = 0;
+  loop(QN, QMASK[q] == rel ? (f = q); q += 1; );
+  f >= 0 ? ( q_name(f, #cl_q); strcat(dst, #cl_q); ) : (
+    // unknown stack: describe by third / seventh
+    strcat(dst, (rel & 16) ? ((rel & 1024) ? "7" : "") : ((rel & 8) ? "m" : ""));
+  );
+);
+
+// ------------------------------------------------------------------ chord string parser: "/Am,Dm6/E7/Am/"
+function q_parse(s) local(r) (
+  r = -1;
+  (strcmp(s, "") == 0 || strcmp(s, "maj") == 0 || strcmp(s, "M") == 0) ? (r = 0);
+  (strcmp(s, "m") == 0 || strcmp(s, "min") == 0 || strcmp(s, "-") == 0) ? (r = 1);
+  (strcmp(s, "7") == 0 || strcmp(s, "dom7") == 0) ? (r = 2);
+  (strcmp(s, "m7") == 0 || strcmp(s, "min7") == 0 || strcmp(s, "-7") == 0) ? (r = 3);
+  (strcmp(s, "maj7") == 0 || strcmp(s, "M7") == 0 || strcmp(s, "Maj7") == 0) ? (r = 4);
+  strcmp(s, "6") == 0 ? (r = 5);
+  (strcmp(s, "m6") == 0 || strcmp(s, "min6") == 0) ? (r = 6);
+  (strcmp(s, "dim") == 0 || strcmp(s, "o") == 0) ? (r = 7);
+  (strcmp(s, "dim7") == 0 || strcmp(s, "o7") == 0) ? (r = 8);
+  (strcmp(s, "m7b5") == 0 || strcmp(s, "min7b5") == 0) ? (r = 9);
+  (strcmp(s, "aug") == 0 || strcmp(s, "+") == 0) ? (r = 10);
+  (strcmp(s, "sus4") == 0 || strcmp(s, "sus") == 0) ? (r = 11);
+  strcmp(s, "sus2") == 0 ? (r = 12);
+  strcmp(s, "5") == 0 ? (r = 13);
+  (strcmp(s, "9") == 0 || strcmp(s, "13") == 0 || strcmp(s, "11") == 0) ? (r = 14);
+  strcmp(s, "7#9") == 0 ? (r = 15);
+  (strcmp(s, "m9") == 0 || strcmp(s, "m11") == 0 || strcmp(s, "m13") == 0) ? (r = 16);
+  (strcmp(s, "add9") == 0 || strcmp(s, "2") == 0) ? (r = 17);
+  strcmp(s, "7sus4") == 0 ? (r = 18);
+  strcmp(s, "maj9") == 0 ? (r = 19);
+  r;
+);
+
+// one chord token -> TK_ROOT / TK_MASK entry (returns 1 if added)
+function cp_token(tk, bar) local(c, root, l, qi) (
+  cp_added = 0;
+  c = str_getchar(tk, 0);
+  (c >= 97 && c <= 103) ? (c -= 32);                      // lower-case a..g
+  (c >= 65 && c <= 71 && cp_ntok < CS_MAX) ? (
+    root = LET[c - 65]; l = 1;
+    str_getchar(tk, 1) == 35 ? ( root += 1; l = 2; ) : (str_getchar(tk, 1) == 98 ? ( root -= 1; l = 2; ));
+    strcpy_substr(#cp_s, tk, l, 20);
+    qi = q_parse(#cp_s);
+    qi < 0 ? ( qi = 0; cp_warn = 1; );
+    TK_ROOT[cp_ntok] = mod12(root); TK_MASK[cp_ntok] = QMASK[qi]; TK_BAR[cp_ntok] = bar;
+    cp_ntok += 1; cp_added = 1;
+  ) : ( cp_warn = 1; );
+  cp_added;
+);
+
+function cp_parse(s) local(i, n, c, st, bar, inbar) (
+  cp_ntok = 0; cp_nsrc = 0; cp_warn = 0;
+  n = strlen(s); i = 0; st = 0; bar = 0; inbar = 0;
+  while (i <= n) (
+    c = i < n ? str_getchar(s, i) : 47;
+    (c == 47 || c == 44 || c == 32 || c == 124) ? (
+      i > st ? (
+        strcpy_substr(#cp_t, s, st, i - st);
+        cp_token(#cp_t, bar) ? (inbar += 1);
+      );
+      st = i + 1;
+      (c == 47 || c == 124) && inbar > 0 ? ( bar += 1; inbar = 0; );
+    );
+    i += 1;
+  );
+  cp_nsrc = inbar > 0 ? bar + 1 : bar;
+  cp_nsrc;
+);
+
+// default progression from key / scale / style when no chord string was typed
+function cp_default(key, mode, sevenths) local(par, k, d, i, b, root, rel, deg0, deg1, deg2, deg3) (
+  par = (mode == 6 || mode == 8 || mode == 9 || mode == 1 || mode == 2 || mode == 3) ? 1 : 0;       // parent: minor
+  d = SCM[par]; k = 0; i = 0;
+  loop(12, (d >> k) & 1 ? ( SCI[i] = k; i += 1; ); k += 1; );
+  cp_ntok = 0;
+  par == 0 ? ( deg0 = 0; deg1 = 3; deg2 = 4; deg3 = 3; ) : ( deg0 = 0; deg1 = 5; deg2 = 6; deg3 = 5; );
+  b = 0;
+  loop(4,
+    d = b == 0 ? deg0 : (b == 1 ? deg1 : (b == 2 ? deg2 : deg3));
+    root = SCI[d];
+    rel = 1 | (1 << mod12(SCI[(d + 2) % 7] - root)) | (1 << mod12(SCI[(d + 4) % 7] - root));
+    sevenths ? ( sevenths == 2 ? (rel = QMASK[2]) : (rel = rel | (1 << mod12(SCI[(d + 6) % 7] - root))); );
+    TK_ROOT[cp_ntok] = mod12(key + root); TK_MASK[cp_ntok] = rel; TK_BAR[cp_ntok] = b; cp_ntok += 1;
+    b += 1;
+  );
+  cp_nsrc = 4;
+);
+
+// source bars -> time ordered chord segments for bars first..first+nb-1 (cs_n segments, CS_BEAT relative to the first bar)
+function cs_expand(first, nb, bpb) local(b, src, k, cnt, j) (
+  cs_n = 0; b = 0;
+  cp_nsrc > 0 ? (
+    loop(nb,
+      src = (first + b) % cp_nsrc; cnt = 0; k = 0;
+      loop(cp_ntok, TK_BAR[k] == src ? (cnt += 1); k += 1; );
+      j = 0; k = 0;
+      loop(cp_ntok,
+        (TK_BAR[k] == src && cs_n < CS_MAX) ? (
+          CS_ROOT[cs_n] = TK_ROOT[k]; CS_MASK[cs_n] = TK_MASK[k];
+          CS_BEAT[cs_n] = b * bpb + j * bpb / cnt; CS_LEN[cs_n] = bpb / cnt;
+          cs_n += 1; j += 1;
+        );
+        k += 1;
+      );
+      b += 1;
+    );
+  );
+);
+function cs_find(t) local(i, r) ( r = 0; i = 0; loop(cs_n, CS_BEAT[i] <= t + 0.0001 ? (r = i); i += 1; ); r; );
+
+// ------------------------------------------------------------------ scales / voicings
+function sc_build(absmask) local(p) (
+  sc_n = 0; p = 24;
+  loop(84, ((absmask >> (p % 12)) & 1) ? ( SC[sc_n] = p; sc_n += 1; ); p += 1; );
+);
+function sc_idx(pit) local(i, best, bd, d) (
+  best = 0; bd = 1000; i = 0;
+  loop(sc_n, d = abs(SC[i] - pit); d < bd ? ( bd = d; best = i; ); i += 1; );
+  best;
+);
+function is_ctone(pit, root, rel) ( (rel >> mod12(pit - root)) & 1; );
+function tmp_sort(n) local(i, j, v) (
+  i = 1;
+  loop(n - 1, v = TMP[i]; j = i - 1; while (j >= 0 && TMP[j] > v) ( TMP[j + 1] = TMP[j]; j -= 1; ); TMP[j + 1] = v; i += 1; );
+);
+function bass_root(root) ( 28 + mod12(root - 4); );          // E1 .. D#2
+function gtr_root(root) ( 40 + mod12(root - 4); );           // E2 .. D#3
+function third_of(rel) ( (rel & 16) ? 4 : ((rel & 8) ? 3 : ((rel & 32) ? 5 : ((rel & 4) ? 2 : 0))); );
+function seventh_of(rel) ( (rel & 1024) ? 10 : ((rel & 2048) ? 11 : ((rel & 512) ? 9 : 0)); );
+
+// guitar voicing of a chord stab into TMP[0..n-1] (returns n): shell for 7th chords, triad + octave otherwise
+function vo_stab(root, rel) local(R, n, t3, s7) (
+  R = gtr_root(root); TMP[0] = R; n = 1; t3 = third_of(rel); s7 = seventh_of(rel);
+  s7 > 0 && t3 > 0 ? (
+    TMP[n] = R + s7; n += 1; TMP[n] = R + 12 + t3; n += 1;
+    ((rel & 16) && (rel & 8)) ? ( TMP[n] = R + 15; n += 1; ) : ( (rel & 4) ? ( TMP[n] = R + 14; n += 1; ); );
+  ) : (
+    TMP[n] = R + 7; n += 1; TMP[n] = R + 12; n += 1;
+    t3 > 0 ? ( TMP[n] = R + 12 + t3; n += 1; );
+  );
+  tmp_sort(n); n;
+);
+function vo_power(root) ( TMP[0] = gtr_root(root); TMP[1] = TMP[0] + 7; TMP[2] = TMP[0] + 12; 3; );
+// chord tones for arpeggios, two octaves ascending from C3..B3 -> AR[0..n-1]
+function vo_arp(root, rel) local(base, k, n, o) (
+  base = 48 + mod12(root); n = 0; o = 0;
+  loop(2, k = 0; loop(12, (rel >> k) & 1 ? ( AR[n] = base + k + o * 12; n += 1; ); k += 1; ); o += 1; );
+  n;
+);
+
+// ------------------------------------------------------------------ guitar tab fitting
+// pitches TMP[0..n-1] ascending -> TMP[40+i] string (0 = lowest), TMP[60+i] fret (-1 = not playable)
+function tab_fit(ob, ns, n) local(c, i, s, f, ps, cost, bc, best, bs, bf, bcst, tot) (
+  best = 100000; c = 0;
+  loop(10,
+    tot = 0; ps = -1; i = 0;
+    loop(n,
+      bcst = 1000; bs = -1; bf = -1; s = ps + 1;
+      loop(ns - ps - 1,
+        f = TMP[i] - ob[s];
+        (f >= 0 && f <= 17) ? (
+          cost = abs(f - c - 1.5) + (f == 0 ? -1.2 : 0) + (s - ps - 1) * 0.4;
+          cost < bcst ? ( bcst = cost; bs = s; bf = f; );
+        );
+        s += 1;
+      );
+      bs >= 0 ? ( ps = bs; tot += bcst; ) : (tot += 6);
+      TMP[80 + i] = bs; TMP[100 + i] = bf;
+      i += 1;
+    );
+    tot < best ? ( best = tot; i = 0; loop(n, TMP[40 + i] = TMP[80 + i]; TMP[60 + i] = TMP[100 + i]; i += 1; ); );
+    c += 1;
+  );
+);
+// single note near the previous fret / string -> ts_s, ts_f
+function tab_single(ob, ns, pit, pf, ps) local(s, f, cost, best, o, p) (
+  best = 100000; ts_s = -1; ts_f = -1; o = 0;
+  loop(3,
+    p = pit + o * 12;
+    ts_s < 0 ? (
+      s = 0;
+      loop(ns,
+        f = p - ob[s];
+        (f >= 0 && f <= 22) ? (
+          cost = abs(f - pf) * 0.7 + abs(s - ps) * 0.35 + f * 0.15 + (f > 12 ? (f - 12) * 0.9 : 0) + (f == 0 ? -0.6 : 0);
+          cost < best ? ( best = cost; ts_s = s; ts_f = f; );
+        );
+        s += 1;
+      );
+    );
+    o += 1;
+  );
+);
+// chord shape from relative mask on strings ob[0..ns-1] -> SH[0..5] frets (-1 muted); lowest played string is the root
+function shape_build(ob, ns, root, rel) local(w, s, k, fr, f, pc, started, cov, cnt, mut, scr, best, i, found, bit, ivl, csc, bsc) (
+  best = -1000; i = 0; loop(6, SH[6 + i] = -1; i += 1; );
+  w = 0;
+  loop(10,
+    started = 0; cov = 0; cnt = 0; mut = 0; s = 0;
+    loop(ns,
+      found = -1; bsc = -100; k = -1;
+      loop(6,
+        fr = k < 0 ? 0 : w + k;
+        pc = mod12(ob[s] + fr); ivl = mod12(pc - root); bit = (rel >> ivl) & 1;
+        (bit && (started || pc == root)) ? (
+          csc = ((cov >> ivl) & 1) ? 0 : 10;                                       // a new chord tone is worth most
+          (ivl == 3 || ivl == 4 || ivl == 10 || ivl == 11) ? (csc += 5);          // thirds and sevenths define the chord
+          k < 0 ? (csc += 1);                                                      // open strings are easy
+          k > 0 ? (csc -= k * 0.2);
+          csc > bsc ? ( bsc = csc; found = fr; );
+        );
+        k += 1;
+      );
+      found >= 0 ? (
+        started = 1; SH[12 + s] = found; cnt += 1;
+        cov = cov | (1 << mod12(ob[s] + found - root));
+      ) : ( SH[12 + s] = -1; started ? (mut += 1); );
+      s += 1;
+    );
+    scr = started ? pop12(cov) * 10 + cnt * 2 - w * 0.4 - mut * 3 + ((cov & 24) ? 6 : 0) + ((cov & 3072) ? 6 : 0) : -1000;
+    scr > best ? ( best = scr; i = 0; loop(6, SH[i] = SH[12 + i]; i += 1; ); );
+    w += 1;
+  );
+  i = ns; loop(6 - ns, SH[i] = -1; i += 1; );
+  best;
+);
+// ------------------------------------------------------------------ MIDI event list + transport-synced player
+function ev_clear() ( ev_n = 0; ev_g = 0; );
+function ev_add(t, len, pit, vel, ch) (
+  ev_n < EV_MAX && pit >= 0 && pit <= 127 ? (
+    EV_T[ev_n] = t; EV_L[ev_n] = max(len, 0.04); EV_P[ev_n] = pit; EV_V[ev_n] = clampf(floor(vel + 0.5), 1, 127); EV_C[ev_n] = ch; EV_GRP[ev_n] = ev_g;
+    ev_n += 1;
+  );
+);
+function snd_add(p, c) ( snd_n < SND_MAX ? ( SND_P[snd_n] = p; SND_C[snd_n] = c; snd_n += 1; ); );
+function snd_del(p, c) local(i, j) (
+  i = 0;
+  while (i < snd_n) ( (SND_P[i] == p && SND_C[i] == c) ? ( snd_n -= 1; SND_P[i] = SND_P[snd_n]; SND_C[i] = SND_C[snd_n]; i = 1000; ) : i += 1; );
+);
+function pl_alloff() local(i) (
+  i = 0; loop(snd_n, midisend(0, 0x80 + SND_C[i], SND_P[i], 0); i += 1; );
+  snd_n = 0;
+);
+// absolute time of event time te for the occurrence at/after b0
+function pl_abs(te, b0, startb, L, loopf) local(n) (
+  loopf ? ( n = ceil((b0 - startb - te) / L - 0.000001); n < 0 ? (n = 0); startb + n * L + te; ) : startb + te;
+);
+// emit events with absolute beat time in [b0, b1) as MIDI at the right sample offsets. out_mode: 0 both, 1 channel 0 only, 2 channel 1 only
+function pl_range(b0, b1, nsamp, startb, L, loopf, outm, chbase) local(i, ab, off, span, ok, ch) (
+  span = max(b1 - b0, 0.0000001);
+  i = 0;
+  loop(ev_n,
+    ch = EV_C[i]; ok = (outm == 0 || outm == ch + 1);
+    ok ? (
+      ab = pl_abs(EV_T[i] + EV_L[i], b0, startb, L, loopf);
+      (ab >= b0 - 0.000001 && ab < b1 - 0.000001) ? (
+        off = clampf(floor((ab - b0) / span * nsamp), 0, nsamp - 1);
+        midisend(off, 0x80 + chbase + ch, EV_P[i], 0); snd_del(EV_P[i], chbase + ch);
+      );
+    );
+    i += 1;
+  );
+  i = 0;
+  loop(ev_n,
+    ch = EV_C[i]; ok = (outm == 0 || outm == ch + 1);
+    ok ? (
+      ab = pl_abs(EV_T[i], b0, startb, L, loopf);
+      (ab >= b0 - 0.000001 && ab < b1 - 0.000001) ? (
+        off = clampf(floor((ab - b0) / span * nsamp), 0, nsamp - 1);
+        midisend(off, 0x90 + chbase + ch, EV_P[i], EV_V[i]); snd_add(EV_P[i], chbase + ch); pl_sent += 1;
+      );
+    );
+    i += 1;
+  );
+);
+
+// ------------------------------------------------------------------ held-note / capture helpers (viewer + learned chords)
+function held_update() local(p) (
+  held_mask = 0; held_low = 0; held_n = 0; p = 0;
+  loop(128, HELD[p] ? ( held_mask = held_mask | (1 << (p % 12)); held_low == 0 ? (held_low = p); held_n += 1; ); p += 1; );
+);
+function cap_mark(beat, pit) (
+  beat >= 0 && beat < CAP_MAX ? (
+    CAP_M[beat] = CAP_M[beat] | (1 << (pit % 12));
+    (CAP_B[beat] == 0 || pit < CAP_B[beat]) ? (CAP_B[beat] = pit);
+    beat > cap_hi ? (cap_hi = beat);
+  );
+);
+function cap_chord(b0, nb) local(i, m, lo) (
+  m = 0; lo = 0; i = 0;
+  loop(nb,
+    (b0 + i >= 0 && b0 + i < CAP_MAX) ? (
+      m = m | CAP_M[b0 + i];
+      (CAP_B[b0 + i] > 0 && (lo == 0 || CAP_B[b0 + i] < lo)) ? (lo = CAP_B[b0 + i]);
+    );
+    i += 1;
+  );
+  cd_root = -1; cd_q = -1; cd_bass = lo > 0 ? lo % 12 : -1; cd_mask = m;
+  m > 0 ? chord_detect(m, lo > 0 ? lo % 12 : -1);
+);
+
+// ------------------------------------------------------------------ UI widgets (call only from @gfx)
+function ui_begin() (
+  ui_mx = mouse_x; ui_my = mouse_y;
+  ui_down = mouse_cap & 1; ui_clk = ui_down && !ui_pdown; ui_pdown = ui_down;
+  ui_rdown = mouse_cap & 2; ui_rclk = ui_rdown && !ui_prdown; ui_prdown = ui_rdown;
+  ui_wheel = mouse_wheel; mouse_wheel = 0;
+  !ui_down ? (ui_kid = -1);
+  ui_chg = 0; ui_nkey = 0;
+  while (ui_nkey < 16 && (ui_k = gfx_getchar()) > 0) ( KB[ui_nkey] = ui_k; ui_nkey += 1; );
+);
+function ui_hit(x, y, w, h) ( ui_mx >= x && ui_mx < x + w && ui_my >= y && ui_my < y + h; );
+function ui_setsl(n, v) ( slider(n) = v; sliderchange(2 ^ (n - 1)); slider_automate(2 ^ (n - 1)); ui_chg = 1; );
+function ui_ctext(cx, y, s) local(w, h) ( gfx_measurestr(s, w, h); gfx_x = cx - w / 2; gfx_y = y; gfx_drawstr(s); );
+function ui_text(x, y, s) ( gfx_x = x; gfx_y = y; gfx_drawstr(s); );
+
+function ui_panel(x, y, w, h, title, cr, cg, cb) (
+  gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(x, y, w, h);
+  gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(x, y, w, h, 0);
+  gfx_set(cr, cg, cb, 1); gfx_rect(x, y, w, 2);
+  gfx_setfont(1, "Arial", 12, 98); ui_text(x + 8, y + 6, title);
+  gfx_setfont(1, "Arial", 12);
+);
+function ui_btn(x, y, w, h, s, on, cr, cg, cb) local(hov, tw, th) (
+  hov = ui_hit(x, y, w, h);
+  on ? ( gfx_set(cr, cg, cb, 1); ) : ( hov ? gfx_set(0.24, 0.25, 0.28, 1) : gfx_set(0.16, 0.17, 0.19, 1); );
+  gfx_rect(x, y, w, h);
+  on ? gfx_set(0.08, 0.08, 0.09, 1) : gfx_set(0.78, 0.78, 0.8, 1);
+  gfx_setfont(1, "Arial", 12, 98);
+  gfx_measurestr(s, tw, th); gfx_x = x + (w - tw) / 2; gfx_y = y + (h - th) / 2; gfx_drawstr(s);
+  gfx_setfont(1, "Arial", 12);
+  hov && ui_clk;
+);
+// amber LCD with arrows. returns -1 (left arrow), +1 (right arrow), 2 (display clicked), else 0
+function ui_lcd(x, y, w, h, s, big) local(r, tw, th) (
+  r = 0;
+  gfx_set(0.055, 0.04, 0.025, 1); gfx_rect(x, y, w, h);
+  gfx_set(0.25, 0.2, 0.12, 1); gfx_rect(x, y, w, h, 0);
+  gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(x, y, h * 0.6, h); gfx_rect(x + w - h * 0.6, y, h * 0.6, h);
+  gfx_set(0.95, 0.5, 0.2, 1);
+  gfx_triangle(x + h * 0.43, y + h * 0.25, x + h * 0.43, y + h * 0.75, x + h * 0.17, y + h * 0.5);
+  gfx_triangle(x + w - h * 0.43, y + h * 0.25, x + w - h * 0.43, y + h * 0.75, x + w - h * 0.17, y + h * 0.5);
+  gfx_setfont(1, "Courier New", big ? 20 : 14, 98); gfx_measurestr(s, tw, th);
+  (tw > w - h * 1.3 && !big) ? ( gfx_setfont(1, "Courier New", 11, 98); gfx_measurestr(s, tw, th); );
+  gfx_set(1, 0.72, 0.25, 1);
+  gfx_measurestr(s, tw, th); gfx_x = x + w / 2 - tw / 2; gfx_y = y + (h - th) / 2; gfx_drawstr(s);
+  gfx_setfont(1, "Arial", 12);
+  ui_clk ? (
+    ui_hit(x, y, w, h) ? (r = 2);
+    ui_hit(x + w - h * 0.6, y, h * 0.6, h) ? (r = 1);
+    ui_hit(x, y, h * 0.6, h) ? (r = -1);
+  );
+  (ui_wheel != 0 && ui_hit(x, y, w, h)) ? ( r = ui_wheel > 0 ? -1 : 1; ui_wheel = 0; );
+  r;
+);
+// LCD bound to a slider. menu: string handle of a gfx_showmenu string, or 0
+function ui_sel(x, y, w, h, n, mn, mx, s, menu) local(r, v) (
+  r = ui_lcd(x, y, w, h, s, 0); v = slider(n);
+  r == -1 ? ( v -= 1; v < mn ? (v = mx); ui_setsl(n, v); );
+  r == 1 ? ( v += 1; v > mx ? (v = mn); ui_setsl(n, v); );
+  (r == 2 && menu) ? (
+    gfx_x = x; gfx_y = y + h; r = gfx_showmenu(menu);
+    r > 0 ? ui_setsl(n, mn + r - 1);
+  );
+);
+function ui_label(cx, y, s) ( gfx_set(0.62, 0.62, 0.66, 1); gfx_setfont(1, "Arial", 11); ui_ctext(cx, y, s); gfx_setfont(1, "Arial", 12); );
+// round knob bound to slider n (drag / wheel), value text above, caption below
+function ui_knob(n, cx, cy, mn, mx, step, cr, cg, cb, cap, vtxt) local(v, nv, fr, rad, from, r, hov) (
+  v = slider(n); nv = v; hov = ui_hit(cx - 24, cy - 24, 48, 48);
+  (hov && ui_clk) ? ( ui_kid = n; ui_kv = v; ui_ky = ui_my; );
+  ui_kid == n && ui_down ? (nv = clampf(ui_kv + (ui_ky - ui_my) / 150 * (mx - mn), mn, mx));
+  (hov && ui_wheel != 0) ? ( nv = clampf(v + (ui_wheel > 0 ? 1 : -1) * (mx - mn) / 40, mn, mx); ui_wheel = 0; );
+  step > 0 ? (nv = floor(nv / step + 0.5) * step);
+  nv != v ? ui_setsl(n, nv);
+  v = slider(n);
+  fr = (v - mn) / (mx - mn); rad = (fr * 260 - 130) * $pi / 180;
+  from = (mn < 0 && mx > 0) ? ((0 - mn) / (mx - mn) * 260 - 130) * $pi / 180 : -130 * $pi / 180;
+  gfx_setfont(1, "Arial", 11); gfx_set(0.85, 0.85, 0.85, 1); ui_ctext(cx, cy - 40, vtxt);
+  gfx_set(0.62, 0.62, 0.66, 1); ui_ctext(cx, cy + 26, cap);
+  gfx_set(0.16, 0.17, 0.19, 1);
+  r = 23; loop(5, gfx_arc(cx, cy, r, -130 * $pi / 180, 130 * $pi / 180, 1); r -= 0.5; );
+  gfx_set(cr, cg, cb, 1);
+  r = 23; loop(5, gfx_arc(cx, cy, r, min(from, rad), max(from, rad), 1); r -= 0.5; );
+  gfx_set(0.07, 0.075, 0.085, 1); gfx_circle(cx, cy, 18, 1, 1);
+  gfx_set(0.2, 0.21, 0.24, 1); gfx_circle(cx, cy, 15, 1, 1);
+  gfx_set(0.96, 0.96, 0.96, 1);
+  gfx_line(cx + sin(rad) * 5, cy - cos(rad) * 5, cx + sin(rad) * 13, cy - cos(rad) * 13, 1);
+  gfx_setfont(1, "Arial", 12);
+);
+// click-to-focus text field editing the string s (handle). Returns 1 when text changed (Enter / each keystroke)
+function ui_tfield(id, x, y, w, h, s) local(i, k, ch, l) (
+  ch = 0;
+  ui_clk ? ( ui_hit(x, y, w, h) ? (ui_focus = id) : ( ui_focus == id ? (ui_focus = 0); ); );
+  ui_focus == id ? (
+    i = 0;
+    loop(ui_nkey,
+      k = KB[i];
+      (k == 13 || k == 27) ? ( ui_focus = 0; k == 13 ? (ch = 2); ) :
+      (k == 8) ? ( l = strlen(s); l > 0 ? ( strcpy_substr(#tf_t, s, 0, l - 1); strcpy(s, #tf_t); ch = 1; ); ) :
+      (k >= 32 && k < 127 && strlen(s) < 200) ? ( strcpy(#tf_t, s); sprintf(s, "%s%c", #tf_t, k); ch = 1; );
+      i += 1;
+    );
+  );
+  gfx_set(0.055, 0.06, 0.07, 1); gfx_rect(x, y, w, h);
+  ui_focus == id ? gfx_set(0.96, 0.62, 0.18, 1) : gfx_set(0.25, 0.26, 0.3, 1);
+  gfx_rect(x, y, w, h, 0);
+  gfx_setfont(1, "Courier New", 15, 98); gfx_set(0.95, 0.85, 0.6, 1);
+  gfx_x = x + 8; gfx_y = y + (h - 15) / 2; gfx_drawstr(s);
+  ui_focus == id && (floor(time_precise() * 2) % 2) ? ( gfx_drawstr("|"); );
+  gfx_setfont(1, "Arial", 12);
+  ch;
+);
+
+// ------------------------------------------------------------------ fretboard / keyboard drawing
+function fb_x(f, x0, w, nf) ( x0 + w * (1 - 2 ^ (-f / 12)) / (1 - 2 ^ (-nf / 12)); );
+function draw_board(x, y, w, h, nf, ns) local(f, s, yy, mk) (
+  gfx_set(0.16, 0.115, 0.08, 1); gfx_rect(x, y, w, h);
+  gfx_set(0.1, 0.07, 0.05, 1); gfx_rect(x, y, w, h, 0);
+  mk = 3;
+  f = 1; loop(nf,
+    ((f == 3 || f == 5 || f == 7 || f == 9 || f == 15) ? 1 : 0) ? (
+      gfx_set(0.3, 0.26, 0.2, 1); gfx_circle((fb_x(f - 1, x, w, nf) + fb_x(f, x, w, nf)) / 2, y + h / 2, 4, 1, 1);
+    );
+    f == 12 ? (
+      gfx_set(0.3, 0.26, 0.2, 1);
+      gfx_circle((fb_x(11, x, w, nf) + fb_x(12, x, w, nf)) / 2, y + h * 0.3, 4, 1, 1);
+      gfx_circle((fb_x(11, x, w, nf) + fb_x(12, x, w, nf)) / 2, y + h * 0.7, 4, 1, 1);
+    );
+    f += 1;
+  );
+  f = 1; loop(nf, gfx_set(0.55, 0.55, 0.58, 1); gfx_line(fb_x(f, x, w, nf), y, fb_x(f, x, w, nf), y + h, 1); f += 1; );
+  gfx_set(0.9, 0.88, 0.8, 1); gfx_rect(x - 3, y, 4, h);
+  s = 0; loop(ns,
+    yy = y + h * (ns - 1 - s + 0.5) / ns;
+    gfx_set(0.82, 0.8, 0.72, 1); gfx_line(x, yy, x + w, yy, 1);
+    s < 3 ? gfx_line(x, yy + 1, x + w, yy + 1, 1);
+    s < 2 ? gfx_line(x, yy - 1, x + w, yy - 1, 1);
+    s += 1;
+  );
+);
+// dot at string s (0 = lowest) fret f; txt is drawn inside
+function draw_dot(x, y, w, h, nf, ns, s, f, rad, txt, cr, cg, cb) local(cx, cy, tw, th) (
+  cx = f == 0 ? x - 14 : (fb_x(f - 1, x, w, nf) + fb_x(f, x, w, nf)) / 2;
+  cy = y + h * (ns - 1 - s + 0.5) / ns;
+  gfx_set(cr, cg, cb, 1); gfx_circle(cx, cy, rad, 1, 1);
+  gfx_set(0.07, 0.07, 0.08, 1); gfx_circle(cx, cy, rad, 0, 1);
+  gfx_setfont(1, "Arial", 10, 98); gfx_measurestr(txt, tw, th); gfx_x = cx - tw / 2; gfx_y = cy - th / 2; gfx_drawstr(txt);
+  gfx_setfont(1, "Arial", 12);
+);
+// piano keyboard lo..hi (both white keys), keys in HELD[] highlighted
+function draw_keys(x, y, w, h, lo, hi) local(p, nw, kw, wi, pc, bw, bx) (
+  nw = 0; p = lo; loop(hi - lo + 1, pc = p % 12; (pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10) ? 0 : (nw += 1); p += 1; );
+  kw = w / nw; bw = kw * 0.62; wi = 0; p = lo;
+  loop(hi - lo + 1,
+    pc = p % 12;
+    (pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10) ? 0 : (
+      hk_base[p] ? gfx_set(0.96, 0.62, 0.18, 1) : gfx_set(0.93, 0.93, 0.9, 1);
+      gfx_rect(x + wi * kw, y, kw - 1, h);
+      pc == 0 ? ( gfx_set(0.4, 0.4, 0.42, 1); gfx_setfont(1, "Arial", 10); note_name(p, #kn_t); ui_text(x + wi * kw + 2, y + h - 13, #kn_t); gfx_setfont(1, "Arial", 12); );
+      wi += 1;
+    );
+    p += 1;
+  );
+  wi = 0; p = lo;
+  loop(hi - lo + 1,
+    pc = p % 12;
+    (pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10) ? (
+      bx = x + wi * kw - bw / 2;
+      hk_base[p] ? gfx_set(0.96, 0.62, 0.18, 1) : gfx_set(0.1, 0.1, 0.11, 1);
+      gfx_rect(bx, y, bw, h * 0.62);
+    ) : (wi += 1);
+    p += 1;
+  );
+);
+
+// piano-roll lane for events of channel ch between beats t0..t0+tw, drawn into x,y,w,h. returns nothing
+function draw_roll(x, y, w, h, ch, t0, tw, cr, cg, cb, bpb) local(i, lo, hi, nh, xx, ww, yy, b, ppb) (
+  gfx_set(0.07, 0.075, 0.085, 1); gfx_rect(x, y, w, h);
+  lo = 200; hi = -1; i = 0;
+  loop(ev_n, EV_C[i] == ch ? ( lo = min(lo, EV_P[i]); hi = max(hi, EV_P[i]); ); i += 1; );
+  hi < 0 ? ( lo = 40; hi = 76; );
+  lo -= 1; hi += 1; nh = hi - lo + 1; ppb = w / tw;
+  // octave lines (C)
+  i = lo; loop(nh, i % 12 == 0 ? ( gfx_set(0.16, 0.17, 0.19, 1); yy = y + h - (i - lo + 1) * h / nh; gfx_line(x, yy, x + w, yy, 1); ); i += 1; );
+  // beat / bar lines
+  b = 0; loop(ceil(tw) + 1,
+    xx = x + b * ppb;
+    ((t0 + b) % bpb == 0) ? gfx_set(0.38, 0.4, 0.45, 1) : gfx_set(0.14, 0.15, 0.17, 1);
+    xx < x + w + 1 ? gfx_line(xx, y, xx, y + h, 1);
+    b += 1;
+  );
+  i = 0;
+  loop(ev_n,
+    (EV_C[i] == ch && EV_T[i] + EV_L[i] > t0 && EV_T[i] < t0 + tw) ? (
+      xx = x + (EV_T[i] - t0) * ppb; ww = max(2, EV_L[i] * ppb - 1);
+      xx < x ? ( ww -= x - xx; xx = x; );
+      xx + ww > x + w ? (ww = x + w - xx);
+      yy = y + h - (EV_P[i] - lo + 1) * h / nh;
+      gfx_set(cr * (0.45 + EV_V[i] / 230), cg * (0.45 + EV_V[i] / 230), cb * (0.45 + EV_V[i] / 230), 1);
+      gfx_rect(xx, yy, ww, max(2, h / nh - 1));
+    );
+    i += 1;
+  );
+  gfx_set(0.22, 0.23, 0.26, 1); gfx_rect(x, y, w, h, 0);
+);
+// tab lane (ns strings) for events of channel ch in beats t0..t0+tw
+function draw_tab(x, y, w, h, ns, ch, t0, tw, cr, cg, cb) local(i, s, yy, xx, ppb, tx, th) (
+  ppb = w / tw;
+  gfx_set(0.07, 0.075, 0.085, 1); gfx_rect(x, y, w, h);
+  s = 0; loop(ns, yy = y + h * (ns - 1 - s + 0.5) / ns; gfx_set(0.3, 0.31, 0.35, 1); gfx_line(x, yy, x + w, yy, 1); s += 1; );
+  gfx_setfont(1, "Arial", 11, 98);
+  i = 0;
+  loop(ev_n,
+    (EV_C[i] == ch && EV_T[i] >= t0 - 0.001 && EV_T[i] < t0 + tw - 0.001 && TAB_S[i] >= 0) ? (
+      xx = x + (EV_T[i] - t0) * ppb + 1; yy = y + h * (ns - 1 - TAB_S[i] + 0.5) / ns;
+      sprintf(#dt_t, "%d", TAB_F[i]); gfx_measurestr(#dt_t, tx, th);
+      gfx_set(0.07, 0.075, 0.085, 1); gfx_rect(xx - 1, yy - th / 2, tx + 2, th);
+      gfx_set(cr, cg, cb, 1); gfx_x = xx; gfx_y = yy - th / 2; gfx_drawstr(#dt_t);
+    );
+    i += 1;
+  );
+  gfx_setfont(1, "Arial", 12);
+  gfx_set(0.22, 0.23, 0.26, 1); gfx_rect(x, y, w, h, 0);
+);
+// fills TAB_S / TAB_F for all events (ch 0 on the guitar strings, ch 1 on the bass strings); grouped notes (same EV_GRP) are fitted together
+function tab_all(ob, ns, obb, nsb) local(i, j, n, pf, ps, pfb, psb) (
+  pf = 3; ps = 2; pfb = 3; psb = 1; i = 0;
+  while (i < ev_n) (
+    EV_C[i] == 0 ? (
+      j = i; n = 0;
+      while (j < ev_n && EV_GRP[j] == EV_GRP[i] && EV_C[j] == 0 && n < 8) ( TMP[n] = EV_P[j]; n += 1; j += 1; );
+      n > 1 ? (
+        tmp_sort(n); tab_fit(ob, ns, n);
+        j = i; n = 0;
+        // map back by pitch order: events of a stab are ascending already
+        while (j < ev_n && EV_GRP[j] == EV_GRP[i] && EV_C[j] == 0 && n < 8) ( TAB_S[j] = TMP[40 + n]; TAB_F[j] = TMP[60 + n]; n += 1; j += 1; );
+        pf = TMP[60]; ps = TMP[40];
+        i = j;
+      ) : (
+        tab_single(ob, ns, EV_P[i], pf, ps); TAB_S[i] = ts_s; TAB_F[i] = ts_f;
+        ts_s >= 0 ? ( pf = ts_f; ps = ts_s; );
+        i += 1;
+      );
+    ) : (
+      tab_single(obb, nsb, EV_P[i], pfb, psb); TAB_S[i] = ts_s; TAB_F[i] = ts_f;
+      ts_s >= 0 ? ( pfb = ts_f; psb = ts_s; );
+      i += 1;
+    );
+  );
+);

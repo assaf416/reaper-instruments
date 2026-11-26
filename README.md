@@ -14,6 +14,7 @@ needs (plugin, samples it uses, images, licenses, install script) lives in its o
 | [`GuitarRig/`](GuitarRig/README.md) | **Guitar Rig** | Tukan Studios' *Guitar Station S2* (amps, cabinets, pedals) wired up for the Guitar instrument - installer, FX chain and demo; the plugin files themselves are not redistributed |
 | [`BassRig/`](BassRig/README.md) | **Bass Rig** | Tukan Studios' *Bass Station S2* (bass amp, cabinets, gate, modulation) for any bass track - installer, FX chain and demo; plugin files not redistributed |
 | [`Organ/`](Organ/README.md) | **Organ** | Tonewheel organ with rotary speaker: *Lord of the Rinks* (original, by chmaha) plus a single-manual edition with a custom preset bank |
+| [`MusicTools/`](MusicTools/README.md) | **Music Tools** | Three MIDI helpers, pure JSFX: **Chord / Tab / Notes Viewer** (chords, fretboard, tab and a per-bar chord chart of the project), **Solo Generator** (a lead line for the bars you pick) and **Riff Generator** (chord bars `/Am,Dm6/..` -> guitar + bass riff, Hendrix-style preset in G at 80 BPM) |
 
 ## Quick install with REAPER packages (REAPER 7.86+)
 

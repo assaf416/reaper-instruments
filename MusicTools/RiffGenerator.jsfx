@@ -1,0 +1,417 @@
+desc:Riff Generator - chord bars to guitar + bass riff (MIDI) v1.0
+tags:generator midi riff guitar bass
+// Type the chord bars of a riff like  /Am,Dm6/E7/Am/  (bars separated by "/", chords inside a bar separated by ","),
+// pick style, number of bars, key and mode, press GENERATE: a guitar riff (MIDI channel 1) and a bass line (channel 2) are
+// created, shown as piano roll and guitar / bass tab, and played in sync with the transport (or with AUDITION).
+// The presets are original riffs "in the style of" famous players and songs - patterns of a style, not copies of any recording.
+// No audio: put an instrument after it (Guitar.jsfx, RetroSynth.jsfx, GeneralMIDI ...) or route the MIDI to other tracks.
+import MusicLib.jsfx-inc
+
+slider1:0<0,13,1>-Preset
+slider2:0<0,7,1>-Style
+slider3:4<1,16,1>-Bars
+slider4:7<0,11,1>-Key
+slider5:8<0,9,1>-Mode
+slider6:80<40,220,1>-Own tempo (BPM, used by AUDITION)
+slider7:0.8<0,1,0.01>-Density
+slider8:0.5<0,1,0.01>-Variation
+slider9:0.4<0,1,0.01>-Humanize
+slider10:1<0,999,1>-Seed
+slider11:0<0,2,1>-Output (0 guitar+bass, 1 guitar, 2 bass)
+slider12:1<0,1,1>-Sync to transport
+slider13:1<1,64,1>-Start bar
+slider14:1<0,1,0.01>-Guitar level
+slider15:1<0,1,0.01>-Bass level
+slider16:1<1,15,1>-Guitar MIDI channel (bass = next)
+
+in_pin:none
+out_pin:none
+
+@init
+need_init = 1; regen_req = 0; last_pre = -1; aud = 0; ab_pos = 0; pl_last = -1000; snd_n = 0; was_play = 0; gen_L = 16; ph_beat = -1; page = 0; gen_ok = 0;
+strcpy(#chords, "");
+// ---- presets: style, key, mode, bars, bpm, density%, variation%
+PRE = 28000;
+function pre_def(i, sty, key, mode, bars, bpm, den, var) ( PRE[i*8] = sty; PRE[i*8+1] = key; PRE[i*8+2] = mode; PRE[i*8+3] = bars; PRE[i*8+4] = bpm; PRE[i*8+5] = den; PRE[i*8+6] = var; );
+pre_def(0, 0, 7, 8, 4, 80, 85, 55);     // Hendrix style, G, 80 BPM
+pre_def(1, 0, 4, 8, 4, 110, 90, 50);
+pre_def(2, 1, 7, 8, 12, 78, 85, 45);
+pre_def(3, 2, 4, 1, 4, 108, 90, 25);
+pre_def(4, 3, 4, 1, 4, 125, 100, 30);
+pre_def(5, 4, 9, 2, 4, 104, 85, 50);
+pre_def(6, 5, 7, 0, 4, 76, 75, 35);
+pre_def(7, 6, 4, 9, 4, 150, 100, 35);
+pre_def(8, 7, 2, 0, 4, 120, 90, 25);
+pre_def(9, 1, 9, 8, 4, 104, 90, 40);
+pre_def(10, 0, 0, 7, 4, 68, 70, 45);
+pre_def(11, 2, 9, 3, 4, 92, 90, 35);
+pre_def(12, 0, 9, 6, 4, 90, 85, 45);
+NPRE = 14;
+function pre_name(i, d) (
+  i == 0 ? strcpy(d, "Hendrix Style - G Funk-Blues Stabs (80 BPM)");
+  i == 1 ? strcpy(d, "Hendrix Style - E7#9 Chord Stabs (110 BPM)");
+  i == 2 ? strcpy(d, "Slow 12-Bar Blues Shuffle in G (78 BPM)");
+  i == 3 ? strcpy(d, "Classic Rock Power Riff in Em (Deep Purple style)");
+  i == 4 ? strcpy(d, "Metal Chug in E (Thrash style, palm mutes)");
+  i == 5 ? strcpy(d, "Funk Chank in A Dorian (Nile Rodgers style)");
+  i == 6 ? strcpy(d, "Reggae Skank in G (Marley style one-drop)");
+  i == 7 ? strcpy(d, "Surf / Spy Riff in E Harm. Minor (Dick Dale style)");
+  i == 8 ? strcpy(d, "Dotted-Eighth Arpeggios in D (U2 / The Edge style)");
+  i == 9 ? strcpy(d, "Blues Boogie in A (Cream / ZZ Top style)");
+  i == 10 ? strcpy(d, "Hendrix Style - Soul Ballad in C (68 BPM)");
+  i == 11 ? strcpy(d, "Dark Minor Riff Am-G-F-E (Phrygian)");
+  i == 12 ? strcpy(d, "Hendrix Style - Slow Minor Blues in Am (90 BPM)");
+  i == 13 ? strcpy(d, "Custom - type your own chord bars");
+);
+function pre_chords(i, d) (
+  i == 0 ? strcpy(d, "/G7#9/C9/G7#9/D9,C9/");
+  i == 1 ? strcpy(d, "/E7#9/E7#9/G,A/E7#9/");
+  i == 2 ? strcpy(d, "/G7/C7/G7/G7/C7/C7/G7/G7/D7/C7/G7/D7/");
+  i == 3 ? strcpy(d, "/Em/Em/G/A/");
+  i == 4 ? strcpy(d, "/E5/E5,F5/E5/G5,F5/");
+  i == 5 ? strcpy(d, "/Am7/D9/Am7/D9,E7#9/");
+  i == 6 ? strcpy(d, "/G/C/G/D,C/");
+  i == 7 ? strcpy(d, "/Em/Em/B7/Em,B7/");
+  i == 8 ? strcpy(d, "/D/Bm/G/A/");
+  i == 9 ? strcpy(d, "/A7/A7/D7/E7/");
+  i == 10 ? strcpy(d, "/C/Dm7/Em7/F,G/");
+  i == 11 ? strcpy(d, "/Am/G/F/E/");
+  i == 12 ? strcpy(d, "/Am7/Dm7/Am7/E7#9,Am7/");
+);
+function ex_name(i, d) (
+  i == 0 ? strcpy(d, "12-bar blues in A");
+  i == 1 ? strcpy(d, "Minor jam  /Am,Dm6/E7/Am,Dm6/E7/");
+  i == 2 ? strcpy(d, "Pop  C - G - Am - F");
+  i == 3 ? strcpy(d, "Andalusian  Am - G - F - E");
+  i == 4 ? strcpy(d, "Jazz  ii - V - I in C");
+  i == 5 ? strcpy(d, "Rock  I - bVII - IV in D");
+  i == 6 ? strcpy(d, "Minor blues in Em");
+);
+function ex_chords(i, d) (
+  i == 0 ? strcpy(d, "/A7/D7/A7/A7/D7/D7/A7/A7/E7/D7/A7/E7/");
+  i == 1 ? strcpy(d, "/Am,Dm6/E7/Am,Dm6/E7/");
+  i == 2 ? strcpy(d, "/C/G/Am/F/");
+  i == 3 ? strcpy(d, "/Am/G/F/E/");
+  i == 4 ? strcpy(d, "/Dm7/G7/Cmaj7/Cmaj7/");
+  i == 5 ? strcpy(d, "/D/C/G/D/");
+  i == 6 ? strcpy(d, "/Em7/Em7/Am7/Em7/B7/Am7/Em7/B7/");
+);
+function sty_name(i, d) (
+  i == 0 ? strcpy(d, "Hendrix Funk-Blues"); i == 1 ? strcpy(d, "Blues Shuffle"); i == 2 ? strcpy(d, "Rock Power Riff");
+  i == 3 ? strcpy(d, "Metal Chug"); i == 4 ? strcpy(d, "Funk Chank"); i == 5 ? strcpy(d, "Reggae Skank");
+  i == 6 ? strcpy(d, "Surf / Spy"); i == 7 ? strcpy(d, "Pop Arpeggio");
+);
+function out_name(i, d) ( i == 0 ? strcpy(d, "GUITAR + BASS"); i == 1 ? strcpy(d, "GUITAR ONLY"); i == 2 ? strcpy(d, "BASS ONLY"); );
+// 16-step (sixteenth) patterns. Guitar: C chord stab, c short stab, g ghost, p power chord, m palm mute, r root, L lick note, h hammer-on pair,
+// a arpeggio note, . rest.  Bass: R root, o octave, f fifth, t third, w approach note, n passing note, g ghost, . rest.
+function pat_g(sty, typ, d) (
+  sty == 0 ? ( typ == 0 ? strcpy(d, "Cg.c.cL.C.h.Lc.g") : strcpy(d, "C..c.C.hLhL.L.cC") );
+  sty == 1 ? ( typ == 0 ? strcpy(d, "p.m.p.m.p.m.p.m.") : strcpy(d, "p.m.p.m.L.L.hL.p") );
+  sty == 2 ? ( typ == 0 ? strcpy(d, "p..p..p.p..p..p.") : strcpy(d, "p..p..p.p..p.pp.") );
+  sty == 3 ? ( typ == 0 ? strcpy(d, "mmmm.mmm.m.mmmm.") : strcpy(d, "mmmmmm.mp...pppp") );
+  sty == 4 ? ( typ == 0 ? strcpy(d, "cgc.gcgcgc.cgcg.") : strcpy(d, "cgc.gcgcgc.cL.Lh") );
+  sty == 5 ? ( typ == 0 ? strcpy(d, "..c...c...c...c.") : strcpy(d, "..c...c...c.cc.c") );
+  sty == 6 ? ( typ == 0 ? strcpy(d, "LLLLLLLLLLLLLLLL") : strcpy(d, "LLLLLLLLLLLLhLhL") );
+  sty == 7 ? ( typ == 0 ? strcpy(d, "a.a.a.a.a.a.a.a.") : strcpy(d, "a.a.a.a.a.a.aaaa") );
+);
+function pat_b(sty, typ, d) (
+  sty == 0 ? ( typ == 0 ? strcpy(d, "R..gR.o.R..gf.nw") : strcpy(d, "R..gR.o.R.f.ntwt") );
+  sty == 1 ? ( typ == 0 ? strcpy(d, "R.t.f.t.R.t.f.w.") : strcpy(d, "R.t.f.t.R.f.o.ww") );
+  sty == 2 ? ( typ == 0 ? strcpy(d, "R..R..R.R..R..R.") : strcpy(d, "R..R..R.R..R.fR.") );
+  sty == 3 ? ( typ == 0 ? strcpy(d, "RRRR.RRR.R.RRRR.") : strcpy(d, "RRRRRR.Rf...ffff") );
+  sty == 4 ? ( typ == 0 ? strcpy(d, "R..gR.o.g.Rg.f.o") : strcpy(d, "R..gR.o.g.R.fnwt") );
+  sty == 5 ? ( typ == 0 ? strcpy(d, "R..f..o...R.f.o.") : strcpy(d, "R..f..o...R.f.nw") );
+  sty == 6 ? ( typ == 0 ? strcpy(d, "R.R.R.R.R.R.R.R.") : strcpy(d, "R.R.R.R.R.R.fnwR") );
+  sty == 7 ? ( typ == 0 ? strcpy(d, "R.......R.....f.") : strcpy(d, "R.......R...f.nw") );
+);
+function pat_gap(s, st) local(j, c) (
+  j = st + 1; c = 0;
+  while (j < 16 && c == 0) ( str_getchar(s, j) != 46 ? (c = 1) : (j += 1); );
+  j - st;
+);
+
+// menus
+strcpy(#m_pre, ""); i_ = 0; loop(NPRE, pre_name(i_, #nm_t); strcat(#m_pre, #nm_t); i_ < NPRE - 1 ? strcat(#m_pre, "|"); i_ += 1; );
+strcpy(#m_sty, ""); i_ = 0; loop(8, sty_name(i_, #nm_t); strcat(#m_sty, #nm_t); i_ < 7 ? strcat(#m_sty, "|"); i_ += 1; );
+strcpy(#m_mode, ""); i_ = 0; loop(NSCALES, scale_name(i_, #nm_t); strcat(#m_mode, #nm_t); i_ < NSCALES - 1 ? strcat(#m_mode, "|"); i_ += 1; );
+strcpy(#m_ex, ""); i_ = 0; loop(7, ex_name(i_, #nm_t); strcat(#m_ex, #nm_t); i_ < 6 ? strcat(#m_ex, "|"); i_ += 1; );
+strcpy(#m_key, "C|C#|D|D#|E|F|F#|G|G#|A|A#|B");
+strcpy(#m_out, "GUITAR + BASS|GUITAR ONLY|BASS ONLY");
+
+function pre_apply(i) (
+  i < 13 ? (
+    slider2 = PRE[i*8]; slider4 = PRE[i*8+1]; slider5 = PRE[i*8+2]; slider3 = PRE[i*8+3]; slider6 = PRE[i*8+4];
+    slider7 = PRE[i*8+5] / 100; slider8 = PRE[i*8+6] / 100;
+    pre_chords(i, #chords);
+    sliderchange(2^16 - 1);
+  );
+);
+
+// ---------------------------------------------------------------- generator
+function g_note(t, len, pit, vel) ( ev_add(clampf(t, 0, gen_L - 0.05), min(len, gen_L - clampf(t, 0, gen_L - 0.05)), pit, vel * slider14, 0); );
+function b_note(t, len, pit, vel) ( ev_add(clampf(t, 0, gen_L - 0.05), min(len, gen_L - clampf(t, 0, gen_L - 0.05)), pit, vel * slider15, 1); );
+function v_acc(st, base, hum) ( base + (st % 4 == 0 ? 10 : (st % 2 == 0 ? 3 : -5)) + (rnd() - 0.5) * 22 * hum; );
+function lick_step(strong, root, rel) local(i, r, d, j, k, bd) (
+  i = sc_idx(lk_p);
+  rnd() < 0.2 ? (lk_dir = -lk_dir);
+  lk_p > lk_hi ? (lk_dir = -1);
+  lk_p < lk_lo ? (lk_dir = 1);
+  r = rnd();
+  d = r < 0.55 ? 1 : (r < 0.85 ? 2 : (r < 0.93 ? 0 : 3));
+  i = clampf(i + d * lk_dir, 0, sc_n - 1);
+  lk_p = SC[i];
+  (strong && rnd() < 0.6) ? (
+    j = -3; bd = 100;
+    loop(7,
+      k = i + j;
+      (k >= 0 && k < sc_n) ? ( (is_ctone(SC[k], root, rel) && abs(j) < bd) ? ( bd = abs(j); lk_p = SC[k]; ); );
+      j += 1;
+    );
+  );
+  lk_p;
+);
+function bass_pass(root, scl) local(k, iv, c) (
+  k = floor(rnd() * 4); c = 0; iv = 0;
+  loop(4,
+    iv == 0 ? (
+      c = k % 4 == 0 ? 3 : (k % 4 == 1 ? 2 : (k % 4 == 2 ? 5 : 4));
+      ((scl >> mod12(root + c)) & 1) ? (iv = c);
+    );
+    k += 1;
+  );
+  iv == 0 ? (iv = 2);
+  bass_root(root) + iv;
+);
+
+function rg_generate() local(nb, sty, key, mode, dens, vr, hum, scl, swing, b, pt, st, t, seg, nxt, root, rel, cgc, cbc, n, j, len, gap, v, bp, ph, tg, k, lo) (
+  gen_busy = 1; ev_clear();
+  nb = slider3; sty = slider2; key = slider4; mode = slider5; dens = slider7; vr = slider8; hum = slider9;
+  rnd_seed(slider10 * 977 + sty * 31 + key * 7 + 1);
+  cp_parse(#chords);
+  cp_nsrc > 0 ? 0 : cp_default(key, mode, (sty == 0 || sty == 1) ? 2 : 0);
+  cs_expand(0, nb, 4);
+  gen_L = nb * 4; scl = scale_abs(key, mode);
+  swing = sty == 1 ? 0.1667 : (sty == 0 ? 0.03 : 0);
+  lk_lo = sty == 6 ? 62 : 60; lk_hi = sty == 6 ? 81 : 77; lk_p = 67; lk_dir = 1; lk_seg = -1; ar_i = 0;
+  b = 0;
+  loop(nb,
+    pt = (b == nb - 1 && nb > 1) ? 1 : 0;
+    pat_g(sty, pt, #pg_); pat_b(sty, pt, #pb_);
+    st = 0;
+    loop(16,
+      tg = (b * 16 + st) * 0.25;
+      t = tg + ((st % 4) == 2 ? swing : 0);
+      seg = cs_find(tg); root = CS_ROOT[seg]; rel = CS_MASK[seg];
+      nxt = seg + 1 < cs_n ? seg + 1 : 0;
+      seg != lk_seg ? ( lk_seg = seg; sc_build(scl | rotl12(rel, root)); lk_p = SC[sc_idx(lk_p)]; );
+      cgc = str_getchar(#pg_, st); cbc = str_getchar(#pb_, st);
+      // density: thin out weak positions; variation: ghost notes in the gaps
+      (st % 4 != 0 && cgc != 46 && rnd() > 0.35 + dens * 0.65) ? (cgc = 46);
+      (st % 4 != 0 && cbc != 46 && rnd() > 0.35 + dens * 0.65) ? (cbc = 46);
+      (cgc == 46 && st % 2 == 1 && (sty == 0 || sty == 4 || sty == 1) && rnd() < vr * 0.25) ? (cgc = 103);
+      (cbc == 46 && st % 2 == 1 && sty != 5 && sty != 7 && rnd() < vr * 0.15) ? (cbc = 103);
+      ph = t + (rnd() - 0.5) * 0.04 * hum;
+      // ---- guitar
+      cgc != 46 ? (
+        gap = pat_gap(#pg_, st); ev_g += 1;
+        cgc == 67 || cgc == 99 ? (        // C / c stabs
+          n = vo_stab(root, rel); len = cgc == 67 ? min(0.4, gap * 0.25) : 0.17; v = v_acc(st, cgc == 67 ? 98 : 82, hum); j = 0;
+          loop(n, g_note(ph + j * 0.012 * (0.3 + hum), len, TMP[j], v - j * 2); j += 1; );
+        ) : cgc == 103 ? (                 // ghost
+          g_note(ph, 0.07, gtr_root(root) + 12, 36 + rnd() * 10);
+        ) : cgc == 112 ? (                 // power chord
+          n = vo_power(root); len = min(gap * 0.25 * 0.92, 1); v = v_acc(st, 100, hum); j = 0;
+          loop(n, g_note(ph + j * 0.008 * hum, len, TMP[j], v - j); j += 1; );
+        ) : cgc == 109 ? (                 // palm mute
+          v = v_acc(st, 92, hum);
+          g_note(ph, 0.2, gtr_root(root), v);
+          sty == 3 ? ( g_note(ph, 0.2, gtr_root(root) + 7, v - 6); );
+        ) : cgc == 114 ? (                 // root
+          g_note(ph, min(gap * 0.25 * 0.92, 1), gtr_root(root) + 12, v_acc(st, 96, hum));
+        ) : cgc == 76 ? (                  // lick
+          g_note(ph, min(gap, 2) * 0.25 * 0.9, lick_step(st % 4 == 0, root, rel), v_acc(st, 94, hum));
+        ) : cgc == 104 ? (                 // hammer-on pair
+          k = lick_step(st % 4 == 0, root, rel);
+          g_note(ph, 0.11, k, v_acc(st, 92, hum));
+          g_note(ph + 0.125, min(gap, 2) * 0.25 * 0.85, lick_step(0, root, rel), v_acc(st, 80, hum));
+        ) : cgc == 97 ? (                  // arpeggio
+          n = vo_arp(root, rel); k = (ar_i % (2 * n - 2)); k = k < n ? k : 2 * n - 2 - k; ar_i += 1;
+          g_note(ph, 0.42, AR[k] + (sty == 7 ? 12 : 0), v_acc(st, 88, hum));
+        );
+      );
+      // ---- bass
+      cbc != 46 ? (
+        gap = pat_gap(#pb_, st); ev_g += 1;
+        len = min(gap * 0.25 * ((sty == 3 || sty == 4) ? 0.55 : 0.92), 1);
+        v = v_acc(st, 100, hum);
+        bp = bass_root(root);
+        cbc == 82 ? ( b_note(ph, len, bp, v); ) :
+        cbc == 111 ? ( b_note(ph, len, bp + 12, v - 6); ) :
+        cbc == 102 ? ( b_note(ph, len, bp + ((rel & 128) ? 7 : ((rel & 64) ? 6 : 7)), v - 4); ) :
+        cbc == 116 ? ( k = third_of(rel); b_note(ph, len, bp + (k > 0 ? k : 7), v - 4); ) :
+        cbc == 103 ? ( b_note(ph, 0.08, bp, 34 + rnd() * 12); ) :
+        cbc == 110 ? ( b_note(ph, len, bass_pass(root, scl), v - 6); ) :
+        cbc == 119 ? (
+          // approach note: chromatic step into the next chord root, passing note when the chord does not change
+          CS_ROOT[nxt] != root ? (
+            tg = bass_root(CS_ROOT[nxt]); k = tg > bp ? tg - 1 : tg + 1; k < 28 ? (k = tg + 1);
+            b_note(ph, len, k, v - 8);
+          ) : ( b_note(ph, len, bass_pass(root, scl), v - 8); );
+        );
+      );
+      st += 1;
+    );
+    b += 1;
+  );
+  tab_all(OPEN_G, 6, OPEN_B, 4);
+  gen_ok = 1; gen_busy = 0;
+);
+
+@slider
+regen_req = 1;
+
+@serialize
+file_avail(0) >= 0 ? (
+  file_var(0, ser_ver);
+  ser_ver == 1 ? ( file_string(0, #chords); need_init = 0; regen_req = 1; );
+) : ( ser_ver = 1; file_var(0, ser_ver); file_string(0, #chords); );
+
+@block
+need_init ? ( need_init = 0; pre_apply(slider1); last_pre = slider1; regen_req = 1; );
+(regen_req && !gen_busy) ? ( regen_req = 0; rg_generate(); );
+bpb_ = 4; hp_ = play_state & 1;
+nbeats_ = samplesblock / srate * tempo / 60;
+gen_L = max(gen_L, 4);
+outm_ = slider11; chb_ = slider16 - 1;
+ph_beat = -1;
+(!gen_busy && gen_ok) ? (
+  hp_ && slider12 ? (
+    aud ? ( aud = 0; pl_alloff(); );
+    b0_ = beat_position; b1_ = b0_ + nbeats_;
+    abs(b0_ - pl_last) > 0.05 ? pl_alloff();
+    pl_range(b0_, b1_, samplesblock, (slider13 - 1) * bpb_, gen_L, 1, outm_, chb_);
+    pl_last = b1_;
+    rel_ = b0_ - (slider13 - 1) * bpb_;
+    rel_ >= 0 ? (ph_beat = rel_ - floor(rel_ / gen_L) * gen_L);
+  ) : ( aud && !hp_ ) ? (
+    b0_ = ab_pos; b1_ = b0_ + samplesblock / srate * slider6 / 60;
+    pl_range(b0_, b1_, samplesblock, 0, gen_L, 1, outm_, chb_);
+    ab_pos = b1_; pl_last = -1000;
+    ph_beat = b0_ - floor(b0_ / gen_L) * gen_L;
+  ) : ( was_play || was_aud ? pl_alloff(); pl_last = -1000; );
+);
+was_play = hp_ && slider12; was_aud = aud && !hp_;
+gen_busy ? pl_alloff();
+
+@gfx 1000 720
+gfx_clear = 0x181614;
+ui_begin();
+// ---------------------------------------------------------------- header
+gfx_setfont(1, "Arial", 30, 98);
+gfx_set(0.95, 0.38, 0.55, 1); gfx_x = 20; gfx_y = 14; gfx_drawstr("RIFF");
+gfx_set(1, 1, 1, 1); gfx_x = 92; gfx_y = 14; gfx_drawstr("GENERATOR");
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.6, 0.6, 0.62, 1); gfx_x = 22; gfx_y = 54; gfx_drawstr("chord bars in - guitar + bass riff out (MIDI)");
+gfx_x = 22; gfx_y = 70; gfx_drawstr("presets: riffs in the style of famous players");
+pre_name(slider1, #pn_);
+r_ = ui_lcd(270, 14, 400, 78, "", 1);
+gfx_set(0.95, 0.6, 0.2, 1); gfx_setfont(1, "Courier New", 13, 98);
+sty_name(slider2, #sn_); sprintf(#t_, "%s", #sn_); gfx_x = 314; gfx_y = 22; gfx_drawstr(#t_);
+sprintf(#t_, "%02d/%02d", slider1 + 1, NPRE); gfx_measurestr(#t_, w_, h_); gfx_x = 628 - w_; gfx_y = 22; gfx_drawstr(#t_);
+gfx_setfont(1, "Arial", 15, 98); gfx_set(1, 0.72, 0.25, 1);
+gfx_measurestr(#pn_, w_, h_); w_ > 300 ? gfx_setfont(1, "Arial", 12, 98); gfx_measurestr(#pn_, w_, h_);
+gfx_x = 470 - w_ / 2; gfx_y = 54; gfx_drawstr(#pn_);
+gfx_setfont(1, "Arial", 12);
+r_ == -1 ? ( v_ = slider1 - 1; v_ < 0 ? (v_ = NPRE - 1); ui_setsl(1, v_); );
+r_ == 1 ? ( v_ = slider1 + 1; v_ >= NPRE ? (v_ = 0); ui_setsl(1, v_); );
+r_ == 2 ? ( gfx_x = 270; gfx_y = 92; v_ = gfx_showmenu(#m_pre); v_ > 0 ? ui_setsl(1, v_ - 1); );
+slider1 != last_pre ? ( pre_apply(slider1); last_pre = slider1; regen_req = 1; page = 0; );
+
+ui_btn(700, 14, 92, 30, "GENERATE", 0, 0.96, 0.62, 0.18) ? ( regen_req = 1; );
+ui_btn(798, 14, 92, 30, "NEW IDEA", 0, 0.36, 0.82, 0.5) ? ( ui_setsl(10, floor(rnd() * 1000)); regen_req = 1; );
+ui_btn(896, 14, 92, 30, aud ? "STOP" : "AUDITION", aud, 0.95, 0.38, 0.5) ? ( aud = !aud; ab_pos = 0; !aud ? (gen_stop = 1); );
+ui_btn(700, 52, 92, 26, "SYNC", slider12, 0.35, 0.6, 0.95) ? ui_setsl(12, !slider12);
+gfx_set(0.6, 0.6, 0.62, 1); gfx_setfont(1, "Arial", 11);
+slider12 ? ( sprintf(#t_, "follows transport, project %d BPM", floor(tempo + 0.5)); ) : ( strcpy(#t_, "sync off - use AUDITION"); );
+gfx_x = 800; gfx_y = 58; gfx_drawstr(#t_);
+gfx_x = 700; gfx_y = 82; gfx_drawstr("guitar = MIDI ch "); sprintf(#t_, "%d, bass = ch %d", slider16, slider16 + 1); gfx_drawstr(#t_);
+gfx_setfont(1, "Arial", 12);
+
+// ---------------------------------------------------------------- setup + feel
+ui_panel(20, 104, 540, 102, "SETUP", 0.96, 0.62, 0.18);
+ui_label(105, 128, "STYLE"); sty_name(slider2, #t_); ui_sel(30, 142, 150, 28, 2, 0, 7, #t_, #m_sty);
+ui_label(225, 128, "KEY"); pc_name(slider4, #t_); ui_sel(190, 142, 70, 28, 4, 0, 11, #t_, #m_key);
+ui_label(345, 128, "MODE / SCALE"); scale_name(slider5, #t_); ui_sel(270, 142, 150, 28, 5, 0, NSCALES - 1, #t_, #m_mode);
+ui_label(465, 128, "BARS"); sprintf(#t_, "%d", slider3); ui_sel(430, 142, 70, 28, 3, 1, 16, #t_, 0);
+gfx_set(0.55, 0.55, 0.58, 1); gfx_setfont(1, "Arial", 11);
+sprintf(#t_, "scale: %s %s", #kn_, #sc_); pc_name(slider4, #kn_); scale_name(slider5, #sc_);
+sprintf(#t_, "scale: %s %s", #kn_, #sc_); gfx_x = 30; gfx_y = 182; gfx_drawstr(#t_);
+gfx_setfont(1, "Arial", 12);
+
+ui_panel(570, 104, 410, 102, "FEEL", 0.36, 0.82, 0.5);
+sprintf(#t_, "%d", slider6); ui_knob(6, 604, 160, 40, 220, 1, 0.96, 0.62, 0.18, "TEMPO", #t_);
+sprintf(#t_, "%d%%", floor(slider7 * 100 + 0.5)); ui_knob(7, 668, 160, 0, 1, 0.01, 0.36, 0.82, 0.5, "DENSITY", #t_);
+sprintf(#t_, "%d%%", floor(slider8 * 100 + 0.5)); ui_knob(8, 732, 160, 0, 1, 0.01, 0.36, 0.82, 0.5, "VARIATION", #t_);
+sprintf(#t_, "%d%%", floor(slider9 * 100 + 0.5)); ui_knob(9, 796, 160, 0, 1, 0.01, 0.25, 0.72, 0.88, "HUMANIZE", #t_);
+sprintf(#t_, "%d%%", floor(slider14 * 100 + 0.5)); ui_knob(14, 860, 160, 0, 1, 0.01, 0.95, 0.38, 0.5, "GUITAR", #t_);
+sprintf(#t_, "%d%%", floor(slider15 * 100 + 0.5)); ui_knob(15, 924, 160, 0, 1, 0.01, 0.68, 0.48, 0.92, "BASS", #t_);
+
+// ---------------------------------------------------------------- chords + output
+ui_panel(20, 214, 630, 74, "CHORD BARS     /  = next bar     , = next chord in the bar     e.g.  /Am,Dm6/E7/Am/", 0.25, 0.72, 0.88);
+c_ = ui_tfield(1, 30, 240, 500, 34, #chords);
+c_ ? ( regen_req = 1; c_ == 2 ? ( cp_parse(#chords); cp_nsrc > 0 ? ui_setsl(3, min(16, cp_nsrc)); ); );
+ui_btn(540, 240, 100, 34, "EXAMPLES", 0, 0.25, 0.72, 0.88) ? (
+  gfx_x = 540; gfx_y = 274; v_ = gfx_showmenu(#m_ex);
+  v_ > 0 ? ( ex_chords(v_ - 1, #chords); cp_parse(#chords); cp_nsrc > 0 ? ui_setsl(3, min(16, cp_nsrc)); ui_setsl(1, 13); last_pre = 13; regen_req = 1; );
+);
+ui_panel(660, 214, 320, 74, "OUTPUT", 0.68, 0.48, 0.92);
+ui_label(720, 238, "SEND"); out_name(slider11, #t_); ui_sel(670, 252, 100, 26, 11, 0, 2, #t_, #m_out);
+ui_label(825, 238, "START BAR"); sprintf(#t_, "%d", slider13); ui_sel(790, 252, 70, 26, 13, 1, 64, #t_, 0);
+ui_label(925, 238, "SEED"); sprintf(#t_, "%03d", slider10); ui_sel(880, 252, 90, 26, 10, 0, 999, #t_, 0);
+
+ui_chg ? (regen_req = 1);
+(regen_req && !gen_busy) ? ( regen_req = 0; rg_generate(); );
+gen_stop ? ( gen_stop = 0; );
+
+// ---------------------------------------------------------------- piano roll + tab (one page = 4 bars)
+npg_ = max(1, ceil(gen_L / 16));
+page >= npg_ ? (page = npg_ - 1);
+t0_ = page * 16;
+ui_panel(20, 296, 960, 190, "RIFF  -  PIANO ROLL     guitar (amber)   bass (green)", 0.96, 0.62, 0.18);
+draw_roll(30, 318, 940, 106, 0, t0_, 16, 0.96, 0.62, 0.18, 4);
+draw_roll(30, 428, 940, 50, 1, t0_, 16, 0.36, 0.82, 0.5, 4);
+// chord names + bar numbers
+gfx_setfont(1, "Arial", 11, 98);
+k_ = 0; loop(cs_n,
+  (CS_BEAT[k_] >= t0_ - 0.01 && CS_BEAT[k_] < t0_ + 16) ? (
+    chord_label(CS_ROOT[k_], CS_MASK[k_], #t_);
+    gfx_x = 30 + (CS_BEAT[k_] - t0_) / 16 * 940 + 3; gfx_y = 319;
+    gfx_set(1, 0.72, 0.25, 1); gfx_drawstr(#t_);
+  );
+  k_ += 1;
+);
+k_ = 0; loop(4,
+  (t0_ + k_ * 4 < gen_L) ? ( sprintf(#t_, "bar %d", floor(t0_ / 4) + k_ + 1); gfx_set(0.5, 0.52, 0.56, 1); gfx_x = 30 + k_ * 235 + 3; gfx_y = 467; gfx_drawstr(#t_); );
+  k_ += 1;
+);
+gfx_setfont(1, "Arial", 12);
+ph_beat >= t0_ && ph_beat < t0_ + 16 ? ( gfx_set(0.95, 0.38, 0.5, 1); xph_ = 30 + (ph_beat - t0_) / 16 * 940; gfx_line(xph_, 318, xph_, 478, 1); gfx_line(xph_ + 1, 318, xph_ + 1, 478, 1); );
+
+ui_panel(20, 494, 960, 178, "RIFF  -  TAB", 0.35, 0.6, 0.95);
+gfx_set(0.62, 0.62, 0.66, 1); gfx_x = 100; gfx_y = 500; gfx_drawstr("GUITAR");  gfx_x = 160; gfx_drawstr("(standard tuning E A D G B E)    BASS (E A D G)");
+draw_tab(30, 518, 940, 96, 6, 0, t0_, 16, 0.96, 0.62, 0.18);
+draw_tab(30, 618, 940, 48, 4, 1, t0_, 16, 0.36, 0.82, 0.5);
+ph_beat >= t0_ && ph_beat < t0_ + 16 ? ( gfx_set(0.95, 0.38, 0.5, 1); gfx_line(xph_, 518, xph_, 666, 1); );
+
+// ---------------------------------------------------------------- footer: pages + status
+ui_btn(20, 684, 34, 26, "<", 0, 0.5, 0.5, 0.5) ? ( page = max(0, page - 1); );
+ui_btn(60, 684, 34, 26, ">", 0, 0.5, 0.5, 0.5) ? ( page = min(npg_ - 1, page + 1); );
+gfx_set(0.7, 0.7, 0.72, 1);
+sprintf(#t_, "bars %d-%d of %d     %d guitar notes, %d bass notes", page * 4 + 1, min(gen_L / 4, page * 4 + 4), gen_L / 4, 0, 0);
+cg_ = 0; cb_ = 0; k_ = 0; loop(ev_n, EV_C[k_] == 0 ? (cg_ += 1) : (cb_ += 1); k_ += 1; );
+sprintf(#t_, "bars %d-%d of %d     %d guitar notes, %d bass notes", page * 4 + 1, min(gen_L / 4, page * 4 + 4), gen_L / 4, cg_, cb_);
+gfx_x = 108; gfx_y = 690; gfx_drawstr(#t_);
+gfx_set(0.5, 0.52, 0.56, 1); sprintf(#t_, "MIDI notes sent: %d", pl_sent); gfx_x = 880; gfx_y = 690; gfx_drawstr(#t_);
+gfx_set(0.7, 0.7, 0.72, 1);
+cp_warn ? ( gfx_set(0.95, 0.5, 0.3, 1); gfx_x = 560; gfx_y = 690; gfx_drawstr("some chord names were not understood (played as major)"); ) :
+(cp_nsrc == 0 ? ( gfx_set(0.6, 0.8, 0.95, 1); gfx_x = 560; gfx_y = 690; gfx_drawstr("no chords typed - progression built from key and mode"); ));
