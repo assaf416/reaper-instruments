@@ -62,7 +62,7 @@ vs1 = 160; vs2 = 176; vs3 = 192; vs4 = 208; vg = 224; vdt1 = 240; vdt2 = 256; vs
 vph1 = 320;      // 16 x 4 unison phases for oscillator 1  (320..383)
 vph2 = 384;      // 16 x 4 unison phases for oscillator 2  (384..447)
 mn = 500; mx = 540; st = 580; df = 620;      // slider ranges / steps / defaults, indexed by slider number
-PR = 700;                                    // preset table: NP x 36 values
+PR = 4000;                                   // preset table: NP x 36 values
 pname = 1950;                                // preset names
 ms = 2000;                                   // mono note stack
 ufac = 2020;                                 // unison detune factors
@@ -302,7 +302,7 @@ while (midirecv(offs, m1, m2, m3)) (
         vsub[v] = 0;
       );
     ) : (
-      v = -1; i = 0; best = 1e12;
+      v = -1; i = 0; best = 1000000000000;
       while (i < NV && v < 0) ( vact[i] == 0 ? v = i; i += 1; );
       v < 0 ? ( i = 0; loop(NV, vord[i] < best ? ( best = vord[i]; v = i; ); i += 1; ); );
       vnote[v] = m2; vvel[v] = m3; vtgt[v] = m2; vpitch[v] = (s_gl > 0.001) ? lastpitch : m2;

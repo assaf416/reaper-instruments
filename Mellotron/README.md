@@ -2,7 +2,7 @@
 
 > **Current layout:** this folder is self-contained. Run `Install-Mellotron.ps1` (or `..\Install-All.ps1`) and add the
 > **Mellotron** JSFX to a track. `Mellotron.jsfx` now plays the DecenTron samples in `samples\DecenTron` directly
-> (no ReaSampler needed), has a clickable graphic UI (tape selector per panel, level / pan / wow / saturation bars), and a demo
+> (no ReaSampler needed), has a clickable graphic UI (tape selector per panel, level / pan / wow / saturation knobs; same look as the other instruments, after the chmaha Jexed and JamSynth panels), and a demo
 > project in `projects\`. The guides in `docs\` describe the original ReaSampler-based setup and are kept for reference.
 
 A vintage Mellotron emulation for Reaper with **three simultaneous tape selections**, **beautiful mixing UI**, and support for 25 authentic tape keyboard sounds from the DecenTron sample library.

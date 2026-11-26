@@ -268,192 +268,179 @@ pk2 = max(pk2 * 0.9998, abs(o2));
 pk3 = max(pk3 * 0.9998, abs(o3));
 pkm = max(pkm * 0.9998, max(abs(l), abs(r)));
 
-@gfx 900 480
-gfx_clear = 0x1a1a1a;
+@gfx 1000 490
+// Same look as the other instruments (after the chmaha Jexed / JamSynth panels): dark panels, LCD with arrows, round knobs.
+// All drawing code here is new.
+gfx_clear = 0x181614;
 
-// ---------- mouse handling ----------
+function ml_set(gs, v) ( slider(gs) = v; sliderchange(2 ^ (gs - 1)); slider_automate(2 ^ (gs - 1)); );
+function ml_tape(t, v) ( slider(t + 1) = (v + 24) % 24; sliderchange(2 ^ t); slider_automate(2 ^ t); );
+
+// knob k: 0..5 = level / pan of tape 1..3, 6 wow and flutter, 7 saturation, 8 master
+function ml_pos(k) local(t) (
+  k < 6 ? ( t = floor(k / 2); kx = 12 + t * 330 + (k % 2 ? 230 : 90); ky = 246; ) :
+  k == 6 ? ( kx = 100; ky = 404; ) :
+  k == 7 ? ( kx = 220; ky = 404; ) : ( kx = 790; ky = 404; );
+  k < 6 ? ( t = floor(k / 2); t == 0 ? ( pr = 0.30; pg = 0.80; pb = 0.35; ) : t == 1 ? ( pr = 0.95; pg = 0.35; pb = 0.35; ) : ( pr = 0.35; pg = 0.55; pb = 0.98; ); ) :
+  k == 6 ? ( pr = 0.96; pg = 0.62; pb = 0.18; ) : k == 7 ? ( pr = 0.95; pg = 0.45; pb = 0.30; ) : ( pr = 0.92; pg = 0.92; pb = 0.92; );
+);
+
+// ====================== mouse ======================
 gmd = mouse_cap & 1;
 gmd && !glmd ? (
-  // button just pressed: find a bar under the cursor
   gdrag = -1;
-  gci = 0;
-  loop(NC,
-    gco = ctl + gci * 9;
-    (mouse_x >= gco[0] && mouse_x < gco[0] + gco[2] && mouse_y >= gco[1] && mouse_y < gco[1] + gco[3]) ? (
-      gdrag = gci;
-      (mouse_cap & 4) ? (        // Ctrl+click resets to default
-        slider(gco[6]) = gco[8];
-        sliderchange(2 ^ (gco[6] - 1));
-        slider_automate(2 ^ (gco[6] - 1));
-        gdrag = -1;
-      );
-    );
-    gci += 1;
+  // LCD arrows: step all three tapes together
+  (mouse_y >= 14 && mouse_y < 92) ? (
+    (mouse_x >= 270 && mouse_x < 302) ? ( ml_tape(0, slider1 - 1); ml_tape(1, slider2 - 1); ml_tape(2, slider3 - 1); ) :
+    (mouse_x >= 638 && mouse_x < 670) ? ( ml_tape(0, slider1 + 1); ml_tape(1, slider2 + 1); ml_tape(2, slider3 + 1); );
   );
-
-  // click on a tape's name box: pick an instrument from a menu
+  // tape selectors: arrows and name menu
   gt = 0;
   loop(3,
-    gbx = 20 + gt * 300;
-    (mouse_x >= gbx + 15 && mouse_x < gbx + 265 && mouse_y >= 124 && mouse_y < 148) ? (
-      strcpy(#gm, "");
-      gk = 0;
-      loop(24,
-        gk == slider(gt + 1) ? strcat(#gm, "!");
-        strcat(#gm, folders[gk]);
-        gk < 23 ? strcat(#gm, "|");
-        gk += 1;
+    gbx = 12 + gt * 330;
+    (mouse_y >= 140 && mouse_y < 176) ? (
+      (mouse_x >= gbx + 12 && mouse_x < gbx + 36) ? ml_tape(gt, slider(gt + 1) - 1) :
+      (mouse_x >= gbx + 286 && mouse_x < gbx + 310) ? ml_tape(gt, slider(gt + 1) + 1) :
+      (mouse_x >= gbx + 36 && mouse_x < gbx + 286) ? (
+        strcpy(#gm, "");
+        gk = 0;
+        loop(24,
+          gk == slider(gt + 1) ? strcat(#gm, "!");
+          strcat(#gm, folders[gk]);
+          gk < 23 ? strcat(#gm, "|");
+          gk += 1;
+        );
+        gfx_x = gbx + 36; gfx_y = 176;
+        gsel = gfx_showmenu(#gm);
+        gsel > 0 ? ml_tape(gt, gsel - 1);
+        gmd = 1;
       );
-      gfx_x = gbx + 15; gfx_y = 148;
-      gsel = gfx_showmenu(#gm);
-      gsel > 0 ? (
-        slider(gt + 1) = gsel - 1;
-        sliderchange(2 ^ gt);
-        slider_automate(2 ^ gt);
-      );
-      gmd = 1;   // swallow the click so it does not re-trigger
     );
     gt += 1;
   );
+  // knobs
+  gci = 0;
+  loop(NC,
+    gco = ctl + gci * 9; ml_pos(gci);
+    (mouse_x >= kx - 28 && mouse_x < kx + 28 && mouse_y >= ky - 28 && mouse_y < ky + 24) ? (
+      gnow = time_precise();
+      ((mouse_cap & 4) || (gci == glast_k && gnow - glast_t < 0.45)) ? ( ml_set(gco[6], gco[8]); ) :
+      ( gdrag = gci; gdy0 = mouse_y; gdv0 = slider(gco[6]); );
+      glast_k = gci; glast_t = gnow;
+    );
+    gci += 1;
+  );
 );
-
 gmd && gdrag >= 0 ? (
   gco = ctl + gdrag * 9;
-  gv = gco[4] + (gco[5] - gco[4]) * max(0, min(1, (mouse_x - gco[0]) / gco[2]));
-  gv = floor(gv / gco[7] + 0.5) * gco[7];
-  gv != slider(gco[6]) ? (
-    slider(gco[6]) = gv;
-    sliderchange(2 ^ (gco[6] - 1));
-    slider_automate(2 ^ (gco[6] - 1));
+  gv = gdv0 + (gdy0 - mouse_y) / (mouse_cap & 8 ? 600 : 160) * (gco[5] - gco[4]);
+  gv = max(gco[4], min(gco[5], gv)); gv = floor(gv / gco[7] + 0.5) * gco[7];
+  gv != slider(gco[6]) ? ml_set(gco[6], gv);
+);
+mouse_wheel != 0 ? (
+  gci = 0;
+  loop(NC,
+    gco = ctl + gci * 9; ml_pos(gci);
+    (mouse_x >= kx - 28 && mouse_x < kx + 28 && mouse_y >= ky - 28 && mouse_y < ky + 24) ? (
+      gv = slider(gco[6]) + (mouse_wheel > 0 ? 1 : -1) * max(gco[7], (gco[5] - gco[4]) * 0.04);
+      gv = max(gco[4], min(gco[5], gv)); gv = floor(gv / gco[7] + 0.5) * gco[7]; ml_set(gco[6], gv);
+    );
+    gci += 1;
   );
+  mouse_wheel = 0;
 );
 !gmd ? gdrag = -1;
 glmd = gmd;
 
-gfx_setfont(1, "Arial", 30);
-gfx_set(1, 1, 1, 1);
-gfx_x = 20; gfx_y = 14;
-gfx_drawstr("MELLOTRON");
-gfx_setfont(1, "Arial", 14);
-gfx_set(0.7, 0.7, 0.7, 1);
-gfx_x = 20; gfx_y = 54;
-gfx_drawstr("Three Tape Sampler - click a tape name to choose its instrument, drag the bars to mix (Ctrl+click resets)");
+// ====================== header ======================
+gfx_setfont(1, "Arial", 30, 98);
+gfx_set(0.85, 0.45, 0.25, 1); gfx_x = 20; gfx_y = 14; gfx_drawstr("MELLOTRON");
+gfx_setfont(1, "Arial", 12);
+gfx_set(0.6, 0.6, 0.62, 1); gfx_x = 22; gfx_y = 54; gfx_drawstr("three tapes at once - DecenTron library");
+gfx_x = 22; gfx_y = 70; gfx_drawstr("the display arrows step all three tapes");
 
-gbw = 280; gbh = 190; gby = 90;
+gfx_set(0.055, 0.04, 0.025, 1); gfx_rect(270, 14, 400, 78);
+gfx_set(0.25, 0.2, 0.12, 1); gfx_rect(270, 14, 400, 78, 0);
+gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(270, 14, 32, 78); gfx_rect(638, 14, 32, 78);
+gfx_set(0.95, 0.5, 0.2, 1);
+gfx_triangle(292, 38, 292, 68, 278, 53);
+gfx_triangle(648, 38, 648, 68, 662, 53);
+gfx_setfont(1, "Courier New", 15, 98);
 gt = 0;
 loop(3,
-  gbx = 20 + gt * (gbw + 20);
-
-  gt == 0 ? ( gcr = 0.12; gcg = 0.56; gcb = 0.0;  gidx = slider1; glev = slider4; gpan = slider7; gpk = pk1; );
-  gt == 1 ? ( gcr = 1.0;  gcg = 0.2;  gcb = 0.2;  gidx = slider2; glev = slider5; gpan = slider8; gpk = pk2; );
-  gt == 2 ? ( gcr = 0.0;  gcg = 0.4;  gcb = 1.0;  gidx = slider3; glev = slider6; gpan = slider9; gpk = pk3; );
-
-  gfx_set(0.2, 0.2, 0.2, 1);
-  gfx_rect(gbx, gby, gbw, gbh);
-  gfx_set(0.4, 0.4, 0.4, 1);
-  gfx_rect(gbx, gby, gbw, gbh, 0);
-  gfx_set(gcr, gcg, gcb, 1);
-  gfx_rect(gbx, gby, gbw, 4);
-
-  gfx_set(1, 1, 1, 1);
-  gfx_x = gbx + 15; gfx_y = gby + 14;
-  sprintf(#gs, "TAPE %d", gt + 1);
+  gfx_set(1, 0.72, 0.25, 1);
+  gfx_x = 314; gfx_y = 22 + gt * 22;
+  sprintf(#gs, "%d  %s", gt + 1, folders[slider(gt + 1)]);
   gfx_drawstr(#gs);
-
-  // instrument selector button
-  ghov = (mouse_x >= gbx + 15 && mouse_x < gbx + 265 && mouse_y >= gby + 34 && mouse_y < gby + 58);
-  gfx_set(0.12, 0.12, 0.12, 1);
-  gfx_rect(gbx + 15, gby + 34, 250, 24);
-  ghov ? gfx_set(gcr, gcg, gcb, 1) : gfx_set(0.45, 0.45, 0.45, 1);
-  gfx_rect(gbx + 15, gby + 34, 250, 24, 0);
-  gfx_set(1, 1, 1, 1);
-  gfx_x = gbx + 25; gfx_y = gby + 39;
-  gfx_drawstr(folders[gidx]);
-  gfx_set(0.6, 0.6, 0.6, 1);
-  gfx_x = gbx + 248; gfx_y = gby + 39;
-  gfx_drawstr("v");
-  gfx_set(0.5, 0.5, 0.5, 1);
-  gfx_x = gbx + 170; gfx_y = gby + 14;
-  sprintf(#gs, "%d/%d samples", lcount[gt], NS);
+  gfx_set(0.95, 0.6, 0.2, 1);
+  sprintf(#gs, "%d/%d", lcount[gt], NS);
+  gfx_measurestr(#gs, gw_, gh_); gfx_x = 628 - gw_;
   gfx_drawstr(#gs);
-
-  gfx_set(0.55, 0.55, 0.55, 1);
-  gfx_x = gbx + 15; gfx_y = gby + 66;
-  gfx_drawstr("Level");
-  gfx_set(gcr, gcg, gcb, 0.8);
-  gfx_rect(gbx + 15, gby + 84, glev * 200, 14);
-  gfx_set(0.35, 0.35, 0.35, 1);
-  gfx_rect(gbx + 15, gby + 84, 200, 14, 0);
-  gfx_set(1, 1, 1, 1);
-  gfx_x = gbx + 225; gfx_y = gby + 84;
-  sprintf(#gs, "%d%%", floor(glev * 100 + 0.5));
-  gfx_drawstr(#gs);
-
-  gfx_set(0.55, 0.55, 0.55, 1);
-  gfx_x = gbx + 15; gfx_y = gby + 108;
-  gfx_drawstr("Pan");
-  gfx_set(0.35, 0.35, 0.35, 1);
-  gfx_rect(gbx + 15, gby + 128, 200, 8, 0);
-  gfx_set(0.9, 0.9, 0.9, 1);
-  gfx_rect(gbx + 15 + (gpan + 100) / 200 * 200 - 2, gby + 122, 4, 20);
-  gfx_set(1, 1, 1, 1);
-  gfx_x = gbx + 225; gfx_y = gby + 124;
-  sprintf(#gs, "%d", gpan);
-  gfx_drawstr(#gs);
-
-  gfx_set(0.55, 0.55, 0.55, 1);
-  gfx_x = gbx + 15; gfx_y = gby + 150;
-  gfx_drawstr("Activity");
-  gfx_set(0.3, 0.75, 0.3, 1);
-  gfx_rect(gbx + 15, gby + 168, min(1, gpk * 3) * 200, 10);
-  gfx_set(0.35, 0.35, 0.35, 1);
-  gfx_rect(gbx + 15, gby + 168, 200, 10, 0);
-
   gt += 1;
 );
 
-gfy = 300; gfh = 110; gfw = 860;
-gfx_set(0.2, 0.2, 0.2, 1);
-gfx_rect(20, gfy, gfw, gfh);
-gfx_set(0.4, 0.4, 0.4, 1);
-gfx_rect(20, gfy, gfw, gfh, 0);
-gfx_set(0.8, 0.6, 0.3, 1);
-gfx_rect(20, gfy, gfw, 4);
+// ====================== tape panels ======================
+gt = 0;
+loop(3,
+  gbx = 12 + gt * 330;
+  gt == 0 ? ( pr = 0.30; pg = 0.80; pb = 0.35; gpk = pk1; ) : gt == 1 ? ( pr = 0.95; pg = 0.35; pb = 0.35; gpk = pk2; ) : ( pr = 0.35; pg = 0.55; pb = 0.98; gpk = pk3; );
+  gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(gbx, 108, 322, 220);
+  gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(gbx, 108, 322, 220, 0);
+  gfx_set(pr, pg, pb, 1); gfx_rect(gbx, 108, 322, 2);
+  gfx_setfont(1, "Arial", 12, 98); gfx_x = gbx + 8; gfx_y = 116;
+  sprintf(#gs, "TAPE %d", gt + 1); gfx_drawstr(#gs);
+  // selector cell with arrows
+  gfx_set(0.07, 0.075, 0.085, 1); gfx_rect(gbx + 12, 140, 298, 36);
+  gfx_set(0.157, 0.176, 0.196, 1); gfx_rect(gbx + 12, 140, 24, 36); gfx_rect(gbx + 286, 140, 24, 36);
+  gfx_set(pr, pg, pb, 1);
+  gfx_triangle(gbx + 29, 150, gbx + 29, 166, gbx + 19, 158);
+  gfx_triangle(gbx + 293, 150, gbx + 293, 166, gbx + 303, 158);
+  gfx_setfont(1, "Courier New", 16, 98);
+  gfx_set(1, 1, 1, 1);
+  gfx_measurestr(folders[slider(gt + 1)], gw_, gh_); gfx_x = gbx + 161 - gw_ / 2; gfx_y = 150;
+  gfx_drawstr(folders[slider(gt + 1)]);
+  // activity meter
+  gfx_setfont(1, "Arial", 11);
+  gfx_set(0.62, 0.62, 0.66, 1); gfx_x = gbx + 12; gfx_y = 300; gfx_drawstr("ACTIVITY");
+  gfx_set(0.1, 0.11, 0.12, 1); gfx_rect(gbx + 80, 303, 230, 6);
+  gfx_set(pr, pg, pb, 1); gfx_rect(gbx + 80, 303, min(1, gpk * 3) * 230, 6);
+  gt += 1;
+);
 
-gfx_set(1, 1, 1, 1);
-gfx_x = 35; gfx_y = gfy + 12;
-gfx_drawstr("TAPE CHARACTERISTICS");
+// ====================== tape character and output ======================
+gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(12, 338, 648, 132);
+gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(12, 338, 648, 132, 0);
+gfx_set(0.96, 0.62, 0.18, 1); gfx_rect(12, 338, 648, 2);
+gfx_setfont(1, "Arial", 12, 98); gfx_x = 20; gfx_y = 346; gfx_drawstr("TAPE CHARACTER");
+gfx_set(0.098, 0.106, 0.118, 1); gfx_rect(672, 338, 316, 132);
+gfx_set(0.16, 0.17, 0.19, 1); gfx_rect(672, 338, 316, 132, 0);
+gfx_set(0.92, 0.92, 0.92, 1); gfx_rect(672, 338, 316, 2);
+gfx_x = 680; gfx_y = 346; gfx_drawstr("OUTPUT");
+gfx_set(0.1, 0.11, 0.12, 1); gfx_rect(840, 450, 130, 6);
+gfx_set(0.36, 0.82, 0.5, 1); gfx_rect(840, 450, min(1, pkm) * 130, 6);
 
-gfx_set(0.7, 0.7, 0.7, 1);
-gfx_x = 35; gfx_y = gfy + 40;
-sprintf(#gs, "Wow & Flutter  %d%%", floor(slider10 * 100 + 0.5));
-gfx_drawstr(#gs);
-gfx_set(0.35, 0.35, 0.35, 1);
-gfx_rect(35, gfy + 62, 240, 10, 0);
-gfx_set(0.8, 0.6, 0.3, 1);
-gfx_rect(35, gfy + 62, slider10 * 240, 10);
-
-gfx_set(0.7, 0.7, 0.7, 1);
-gfx_x = 320; gfx_y = gfy + 40;
-sprintf(#gs, "Tape Saturation  %d%%", floor(slider11 * 100 + 0.5));
-gfx_drawstr(#gs);
-gfx_set(0.35, 0.35, 0.35, 1);
-gfx_rect(320, gfy + 62, 240, 10, 0);
-gfx_set(0.8, 0.4, 0.2, 1);
-gfx_rect(320, gfy + 62, slider11 * 240, 10);
-
-gfx_set(0.7, 0.7, 0.7, 1);
-gfx_x = 605; gfx_y = gfy + 40;
-sprintf(#gs, "Master Volume  %d%%", floor(slider12 * 100 + 0.5));
-gfx_drawstr(#gs);
-gfx_set(0.35, 0.35, 0.35, 1);
-gfx_rect(605, gfy + 62, 250, 10, 0);
-gfx_set(0.4, 0.8, 0.4, 1);
-gfx_rect(605, gfy + 62, slider12 / 2 * 250, 10);
-gfx_set(0.9, 0.9, 0.3, 1);
-gfx_rect(605, gfy + 80, min(1, pkm) * 250, 6);
-
+// ====================== knobs ======================
+gci = 0;
+loop(NC,
+  gco = ctl + gci * 9; ml_pos(gci);
+  gv = slider(gco[6]);
+  gci < 6 && gci % 2 == 1 ? sprintf(#gs, "%+d", gv) : sprintf(#gs, "%d%%", floor(gv * 100 + 0.5));
+  gnm = gci < 6 ? (gci % 2 ? "PAN" : "LEVEL") : (gci == 6 ? "WOW and FLUTTER" : (gci == 7 ? "SATURATION" : "MASTER"));
+  gfx_setfont(1, "Arial", 11);
+  gfx_set(0.85, 0.85, 0.85, 1); gfx_measurestr(#gs, gw_, gh_); gfx_x = kx - gw_ / 2; gfx_y = ky - 40; gfx_drawstr(#gs);
+  gfx_set(0.62, 0.62, 0.66, 1); gfx_measurestr(gnm, gw_, gh_); gfx_x = kx - gw_ / 2; gfx_y = ky + 26; gfx_drawstr(gnm);
+  gk_rad = ((gv - gco[4]) / (gco[5] - gco[4]) * 260 - 130) * $pi / 180;
+  gk_from = (gco[4] < 0 && gco[5] > 0) ? ((0 - gco[4]) / (gco[5] - gco[4]) * 260 - 130) * $pi / 180 : -130 * $pi / 180;
+  gfx_set(0.16, 0.17, 0.19, 1);
+  gr_ = 23; loop(5, gfx_arc(kx, ky, gr_, -130 * $pi / 180, 130 * $pi / 180, 1); gr_ -= 0.5; );
+  gfx_set(pr, pg, pb, 1);
+  gr_ = 23; loop(5, gfx_arc(kx, ky, gr_, min(gk_from, gk_rad), max(gk_from, gk_rad), 1); gr_ -= 0.5; );
+  gfx_set(0.07, 0.075, 0.085, 1); gfx_circle(kx, ky, 18, 1, 1);
+  gfx_set(0.2, 0.21, 0.24, 1); gfx_circle(kx, ky, 15, 1, 1);
+  gfx_set(0.96, 0.96, 0.96, 1);
+  gfx_line(kx + sin(gk_rad) * 5, ky - cos(gk_rad) * 5, kx + sin(gk_rad) * 13, ky - cos(gk_rad) * 13, 1);
+  gci += 1;
+);
 gfx_setfont(1, "Arial", 12);
-gfx_set(0.5, 0.5, 0.5, 1);
-gfx_x = 20; gfx_y = 430;
-gfx_drawstr("Each key plays the same note on all three tapes (G2-F5 are the real tape notes). Mix them with level and pan.");
+gfx_set(0.5, 0.5, 0.52, 1); gfx_x = 20; gfx_y = 474;
+gfx_drawstr("Each key plays the same note on all three tapes (G2-F5 are the real tape notes). Click a tape name for a menu; double-click a knob to reset.");
