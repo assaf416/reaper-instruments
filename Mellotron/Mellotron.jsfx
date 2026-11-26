@@ -21,6 +21,7 @@ slider9:30<-100,100,1>-Pan 3
 slider10:0.2<0,1,0.01>-Tape Wow & Flutter
 slider11:0.3<0,1,0.01>-Tape Saturation
 slider12:1<0,2,0.01>-Master Volume
+slider13:0<-100,100,1>-Global Tuning (cents)
 in_pin:none
 out_pin:left output
 out_pin:right output
@@ -74,7 +75,7 @@ pk1 = pk2 = pk3 = pkm = 0;
 
 // --- clickable controls for the graphic UI (hit rect + value range) ---
 // layout per control (9 values): x, y, w, h, min, max, slider#, step, default
-ctl = 1800; NC = 9;
+ctl = 1800; NC = 10;
 gdrag = -1; glmd = 0;
 cn = 0;
 cb = 0;
@@ -94,6 +95,8 @@ co = ctl + 7 * 9;   // saturation
 co[0] = 320; co[1] = 358; co[2] = 240; co[3] = 24; co[4] = 0; co[5] = 1; co[6] = 11; co[7] = 0.01; co[8] = 0.3;
 co = ctl + 8 * 9;   // master volume
 co[0] = 605; co[1] = 358; co[2] = 250; co[3] = 24; co[4] = 0; co[5] = 2; co[6] = 12; co[7] = 0.01; co[8] = 1;
+co = ctl + 9 * 9;   // global tuning (cents)
+co[0] = 340; co[1] = 358; co[2] = 100; co[3] = 24; co[4] = -100; co[5] = 100; co[6] = 13; co[7] = 1; co[8] = 0;
 
 // soft saturation (tanh)
 function sat(x, a)
@@ -105,6 +108,7 @@ function sat(x, a)
 );
 
 @slider
+tune_f = 2 ^ (slider13 / 1200);
 // equal-power pan gains
 pn = slider7 / 100; pl1 = cos((pn + 1) * $pi / 4) * 1.414; pr1 = sin((pn + 1) * $pi / 4) * 1.414;
 pn = slider8 / 100; pl2 = cos((pn + 1) * $pi / 4) * 1.414; pr2 = sin((pn + 1) * $pi / 4) * 1.414;
@@ -246,7 +250,7 @@ loop(NVV,
     tt = vtape[i];
     tt == 0 ? ( o1 += smp; ) : ( tt == 1 ? ( o2 += smp; ) : ( o3 += smp; ) );
 
-    vpos[i] = pos + vrate[i] * wob;
+    vpos[i] = pos + vrate[i] * wob * tune_f;
     vpos[i] >= vlen[i] - 2 ? vact[i] = 0;   // tape has run out
   );
   i += 1;
@@ -280,9 +284,9 @@ function ml_tape(t, v) ( slider(t + 1) = (v + 24) % 24; sliderchange(2 ^ t); sli
 function ml_pos(k) local(t) (
   k < 6 ? ( t = floor(k / 2); kx = 12 + t * 330 + (k % 2 ? 230 : 90); ky = 246; ) :
   k == 6 ? ( kx = 100; ky = 404; ) :
-  k == 7 ? ( kx = 220; ky = 404; ) : ( kx = 790; ky = 404; );
+  k == 7 ? ( kx = 220; ky = 404; ) : k == 8 ? ( kx = 790; ky = 404; ) : ( kx = 340; ky = 404; );
   k < 6 ? ( t = floor(k / 2); t == 0 ? ( pr = 0.30; pg = 0.80; pb = 0.35; ) : t == 1 ? ( pr = 0.95; pg = 0.35; pb = 0.35; ) : ( pr = 0.35; pg = 0.55; pb = 0.98; ); ) :
-  k == 6 ? ( pr = 0.96; pg = 0.62; pb = 0.18; ) : k == 7 ? ( pr = 0.95; pg = 0.45; pb = 0.30; ) : ( pr = 0.92; pg = 0.92; pb = 0.92; );
+  k == 6 ? ( pr = 0.96; pg = 0.62; pb = 0.18; ) : k == 7 ? ( pr = 0.95; pg = 0.45; pb = 0.30; ) : k == 8 ? ( pr = 0.92; pg = 0.92; pb = 0.92; ) : ( pr = 0.96; pg = 0.80; pb = 0.30; );
 );
 
 // ====================== mouse ======================
@@ -424,8 +428,8 @@ gci = 0;
 loop(NC,
   gco = ctl + gci * 9; ml_pos(gci);
   gv = slider(gco[6]);
-  gci < 6 && gci % 2 == 1 ? sprintf(#gs, "%+d", gv) : sprintf(#gs, "%d%%", floor(gv * 100 + 0.5));
-  gnm = gci < 6 ? (gci % 2 ? "PAN" : "LEVEL") : (gci == 6 ? "WOW and FLUTTER" : (gci == 7 ? "SATURATION" : "MASTER"));
+  (gci < 6 && gci % 2 == 1) ? sprintf(#gs, "%+d", gv) : gci == 9 ? sprintf(#gs, "%+d ct", gv) : sprintf(#gs, "%d%%", floor(gv * 100 + 0.5));
+  gnm = gci < 6 ? (gci % 2 ? "PAN" : "LEVEL") : (gci == 6 ? "WOW and FLUTTER" : (gci == 7 ? "SATURATION" : (gci == 8 ? "MASTER" : "TUNING")));
   gfx_setfont(1, "Arial", 11);
   gfx_set(0.85, 0.85, 0.85, 1); gfx_measurestr(#gs, gw_, gh_); gfx_x = kx - gw_ / 2; gfx_y = ky - 40; gfx_drawstr(#gs);
   gfx_set(0.62, 0.62, 0.66, 1); gfx_measurestr(gnm, gw_, gh_); gfx_x = kx - gw_ / 2; gfx_y = ky + 26; gfx_drawstr(gnm);
