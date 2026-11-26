@@ -1,4 +1,4 @@
-﻿desc:Mellotron - Three Tape Sampler (DecenTron) v2.0
+﻿desc:416-Mellotron - Three Tape Sampler (DecenTron) v2.0
 // Real Mellotron tape sounds from the DecenTron library (24 tape sets), three tapes at once.
 // Samples are read from  <REAPER resource path>/Data/DecenTron/<TapeSet>/<Note>.wav
 // (a folder junction to "Documents\DecentSampler\DecenTron 1.0.0\Samples").

@@ -1,5 +1,5 @@
 Version: 1.2
-desc: Tonewheel Organ - Single Manual, custom presets (from Lord of the Rinks by chmaha)
+desc: 416-Organ - Tonewheel Organ, single manual, custom presets (from Lord of the Rinks by chmaha)
 tags: instrument
 import RIControllers.jsfx-inc
 author: chmaha (original), single-manual edition

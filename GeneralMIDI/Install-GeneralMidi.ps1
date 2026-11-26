@@ -23,4 +23,4 @@ New-Item -ItemType Directory -Force $fx | Out-Null
 Copy-Item (Join-Path $here 'GeneralMIDI.jsfx') $fx -Force
 Set-Junction (Join-Path $ReaperResources 'Data\GeneralMIDI') $here
 
-Write-Host "General MIDI installed. In REAPER: FX -> Add -> search 'General MIDI'."
+Write-Host "General MIDI installed. In REAPER: FX -> Add -> search '416-GeneralMIDI'."

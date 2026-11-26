@@ -1,4 +1,4 @@
-desc:Retro Synth - 70s/80s pads, leads and basses with a style preset bank v1.0
+desc:416-Synth - Retro Synth, 70s/80s pads, leads and basses with a style preset bank v1.0
 tags:instrument synthesizer
 // Analog-style 16-voice polysynth: 2 oscillators (saw / pulse+PWM / triangle / sine, band-limited) + sub + noise,
 // 1-4 unison, 4-pole resonant ladder filter with envelope / key tracking / LFO, two ADSR envelopes, LFO,

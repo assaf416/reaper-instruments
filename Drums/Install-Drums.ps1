@@ -28,5 +28,5 @@ Copy-Item (Join-Path $here 'Drums.jsfx') $fx -Force
 Copy-Item (Join-Path $here 'maps\*.txt') $data -Force
 Set-Junction (Join-Path $ReaperResources 'Data\Drumkits') (Join-Path $here 'samples')
 
-Write-Host "Drums installed. In REAPER: FX -> Add -> search 'Drums'."
+Write-Host "Drums installed. In REAPER: FX -> Add -> search '416-Drums'."
 Write-Host "Demo project: $(Join-Path $here 'projects\Drums_Demo.rpp')"

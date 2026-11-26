@@ -62,3 +62,6 @@ REAPER 6+ on Windows (the install scripts are PowerShell). The JSFX plugins them
 ## Demo song
 
 [`DemoSong/`](DemoSong/README.md) is a 24-bar song that plays all the instruments together (drums, bass, guitar with its rig, organ, Rhodes, Mellotron) - open `DemoSong\DemoSong.rpp` to test everything at once.
+
+## Names in REAPER
+Every instrument is listed in REAPER's FX browser with the prefix `416-` (416-Mellotron, 416-Piano, 416-Drums, 416-Guitar, 416-Organ, 416-Synth, 416-GeneralMIDI), so they sort together: FX -> Add -> type `416`. The Tukan rigs keep their own names.

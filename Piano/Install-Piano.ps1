@@ -28,5 +28,5 @@ Copy-Item (Join-Path $here 'Piano.jsfx') $fx -Force
 Copy-Item (Join-Path $here 'maps\*.txt') $data -Force
 Get-ChildItem (Join-Path $here 'samples') -Directory | ForEach-Object { Set-Junction (Join-Path $data $_.Name) $_.FullName }
 
-Write-Host "Piano installed. In REAPER: FX -> Add -> search 'Piano'."
+Write-Host "Piano installed. In REAPER: FX -> Add -> search '416-Piano'."
 Write-Host "Demo project: $(Join-Path $here 'projects\Piano_Demo.rpp')"

@@ -7,5 +7,5 @@ $here = $PSScriptRoot
 $fx = Join-Path $ReaperResources 'Effects\Synth'
 New-Item -ItemType Directory -Force $fx | Out-Null
 Copy-Item (Join-Path $here 'RetroSynth.jsfx') $fx -Force
-Write-Host "Synth installed. In REAPER: FX -> Add -> search 'Retro Synth'."
+Write-Host "Synth installed. In REAPER: FX -> Add -> search '416-Synth'."
 Write-Host "Demo project: $(Join-Path $here 'projects\Synth_Demo.rpp')"

@@ -1,4 +1,4 @@
-desc:General MIDI - Fluid R3 GM2 SoundFont instrument (128 programs, variations, 31 drum kits) v1.0
+desc:416-GeneralMIDI - Fluid R3 GM2 SoundFont instrument (128 programs, variations, 31 drum kits) v1.0
 tags:instrument sampler
 // A General MIDI sound module built from the Fluid R3 GM SoundFont. Every sample of the SoundFont is stored as a WAV file and every
 // preset as a zone map (see Build-GeneralMidi-Assets.ps1); this plugin plays them with key / velocity zones, loop points,

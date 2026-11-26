@@ -30,5 +30,5 @@ Copy-Item (Join-Path $here 'Mellotron.jsfx') $fx -Force
 Copy-Item (Join-Path $here 'scripts\*.lua') $sc -Force
 Set-Junction (Join-Path $ReaperResources 'Data\DecenTron') $samples
 
-Write-Host "Mellotron installed. In REAPER: FX -> Add -> search 'Mellotron'."
+Write-Host "Mellotron installed. In REAPER: FX -> Add -> search '416-Mellotron'."
 Write-Host "Demo project: $(Join-Path $here 'projects\Mellotron_Sampler_Demo.rpp')"

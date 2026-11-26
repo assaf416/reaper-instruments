@@ -13,5 +13,5 @@ New-Item -ItemType Directory -Force $fx | Out-Null
 Copy-Item (Join-Path $here 'OrganSingle.jsfx') $fx -Force
 Copy-Item (Join-Path $here 'original\LordOfTheRinks.jsfx') $fx -Force
 
-Write-Host "Organ installed. In REAPER: FX -> Add -> search 'Tonewheel Organ - Single Manual' (or 'Lord of the Rinks')."
+Write-Host "Organ installed. In REAPER: FX -> Add -> search '416-Organ' (or 'Lord of the Rinks')."
 Write-Host "Demo project: $(Join-Path $here 'projects\Organ_Demo.rpp')"
