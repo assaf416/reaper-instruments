@@ -1,0 +1,229 @@
+// keyboard-selector.jsfx-inc
+// Reusable MIDI keyboard selector and CC mapper for all instruments
+// Include this file in @init section: include "keyboard-selector.jsfx-inc";
+
+// Keyboard definitions
+KEYBOARD_OXYGEN_PRO_MINI = 0;  // Default
+KEYBOARD_CASIO_PRIVIA = 1;
+KEYBOARD_ROLAND_GO3 = 2;
+KEYBOARD_KORG_NANO_K2 = 3;
+KEYBOARD_MAUDIO_AXIOM61 = 4;
+KEYBOARD_MWAVE_SMC = 5;
+
+// Global keyboard state
+function init_keyboard_selector()
+(
+  // Default to M-Audio Oxygen Pro Mini
+  current_keyboard = KEYBOARD_OXYGEN_PRO_MINI;
+
+  // Initialize CC arrays for each keyboard
+  // Each keyboard has 8 primary CCs for knobs/faders
+  memset(keyboard_cc, 0, 100);
+
+  // M-Audio Oxygen Pro Mini (default)
+  oxygen_cc[0] = 7;    // Master Volume
+  oxygen_cc[1] = 1;    // Mod Wheel
+  oxygen_cc[2] = 11;   // Expression
+  oxygen_cc[3] = 20;   // Fader 2
+  oxygen_cc[4] = 21;   // Fader 3
+  oxygen_cc[5] = 22;   // Fader 4
+  oxygen_cc[6] = 23;   // Fader 5
+  oxygen_cc[7] = 24;   // Fader 6
+  oxygen_cc[8] = 25;   // Fader 7
+  oxygen_cc[9] = 26;   // Fader 8
+  oxygen_cc[10] = 74;  // Knob 1
+  oxygen_cc[11] = 73;  // Knob 2
+  oxygen_cc[12] = 71;  // Knob 3
+  oxygen_cc[13] = 5;   // Knob 4
+  oxygen_cc[14] = 50;  // Prev Preset
+  oxygen_cc[15] = 51;  // Next Preset
+
+  // Casio Privia PX-150
+  casio_cc[0] = 7;     // Volume
+  casio_cc[1] = 1;     // Mod Wheel
+  casio_cc[2] = 11;    // Expression Pedal
+  casio_cc[3] = 64;    // Sustain Pedal
+  casio_cc[4] = 7;     // Master (same as vol)
+  casio_cc[5] = 11;    // Control pedal
+  casio_cc[6] = 64;    // Sustain
+  casio_cc[7] = 65;    // Soft Pedal (optional)
+  casio_cc[14] = 50;   // Program Change Down
+  casio_cc[15] = 51;   // Program Change Up
+
+  // Roland GO:3
+  go3_cc[0] = 7;       // Volume
+  go3_cc[1] = 1;       // Knob 1
+  go3_cc[2] = 2;       // Knob 2
+  go3_cc[3] = 11;      // Expression
+  go3_cc[4] = 20;      // Fader 1
+  go3_cc[5] = 21;      // Fader 2
+  go3_cc[6] = 22;      // Fader 3
+  go3_cc[7] = 23;      // Fader 4
+  go3_cc[14] = 50;     // Prev Scene
+  go3_cc[15] = 51;     // Next Scene
+
+  // Korg Nano Kontroller 2
+  korg_cc[0] = 7;      // Fader 1 (Master)
+  korg_cc[1] = 2;      // Fader 2
+  korg_cc[2] = 3;      // Fader 3
+  korg_cc[3] = 4;      // Fader 4
+  korg_cc[4] = 5;      // Fader 5
+  korg_cc[5] = 14;     // Knob 1
+  korg_cc[6] = 15;     // Knob 2
+  korg_cc[7] = 16;     // Knob 3
+  korg_cc[8] = 17;     // Knob 4
+  korg_cc[9] = 18;     // Knob 5
+  korg_cc[10] = 19;    // Knob 6
+  korg_cc[11] = 20;    // Knob 7
+  korg_cc[12] = 21;    // Knob 8
+  korg_cc[14] = 50;    // Pad 1-4 (button mode)
+  korg_cc[15] = 51;    // Pad 5-8
+
+  // M-Audio Axiom 61
+  axiom_cc[0] = 7;     // Master Volume
+  axiom_cc[1] = 1;     // Mod Wheel
+  axiom_cc[2] = 11;    // Expression
+  axiom_cc[3] = 20;    // Fader 2
+  axiom_cc[4] = 21;    // Fader 3
+  axiom_cc[5] = 22;    // Fader 4
+  axiom_cc[6] = 23;    // Fader 5
+  axiom_cc[7] = 24;    // Fader 6
+  axiom_cc[8] = 25;    // Fader 7
+  axiom_cc[9] = 26;    // Fader 8
+  axiom_cc[10] = 74;   // Knob 1
+  axiom_cc[11] = 73;   // Knob 2
+  axiom_cc[12] = 71;   // Knob 3
+  axiom_cc[13] = 5;    // Knob 4
+  axiom_cc[14] = 50;   // Prev Program
+  axiom_cc[15] = 51;   // Next Program
+
+  // M-Wave SMC-Mixer
+  mwave_cc[0] = 7;     // Fader 1 (Master)
+  mwave_cc[1] = 10;    // Fader 2
+  mwave_cc[2] = 12;    // Fader 3
+  mwave_cc[3] = 13;    // Fader 4
+  mwave_cc[4] = 7;     // Master (repeat)
+  mwave_cc[5] = 7;     // Master (repeat)
+  mwave_cc[6] = 7;     // Master (repeat)
+  mwave_cc[7] = 7;     // Master (repeat)
+  mwave_cc[14] = -1;   // No prev (mixing only)
+  mwave_cc[15] = -1;   // No next (mixing only)
+);
+
+// Get CC number for specific keyboard and control
+function get_keyboard_cc(keyboard_id, control_index)
+  local(cc)
+(
+  cc = 0;
+
+  keyboard_id == KEYBOARD_OXYGEN_PRO_MINI ? (
+    cc = oxygen_cc[control_index];
+  ) : keyboard_id == KEYBOARD_CASIO_PRIVIA ? (
+    cc = casio_cc[control_index];
+  ) : keyboard_id == KEYBOARD_ROLAND_GO3 ? (
+    cc = go3_cc[control_index];
+  ) : keyboard_id == KEYBOARD_KORG_NANO_K2 ? (
+    cc = korg_cc[control_index];
+  ) : keyboard_id == KEYBOARD_MAUDIO_AXIOM61 ? (
+    cc = axiom_cc[control_index];
+  ) : keyboard_id == KEYBOARD_MWAVE_SMC ? (
+    cc = mwave_cc[control_index];
+  ) : (
+    cc = oxygen_cc[control_index];  // Default to Oxygen
+  );
+
+  cc;
+);
+
+// Set current keyboard
+function set_keyboard(keyboard_id)
+(
+  current_keyboard = keyboard_id;
+);
+
+// Get CC for master volume (always first)
+function get_master_volume_cc()
+(
+  get_keyboard_cc(current_keyboard, 0);
+);
+
+// Get CC for mod wheel / expression
+function get_mod_wheel_cc()
+(
+  get_keyboard_cc(current_keyboard, 1);
+);
+
+// Get CC for expression pedal
+function get_expression_cc()
+(
+  get_keyboard_cc(current_keyboard, 2);
+);
+
+// Get CC for faders (up to 8 faders, indices 3-10)
+function get_fader_cc(fader_index)
+(
+  get_keyboard_cc(current_keyboard, fader_index + 3);
+);
+
+// Get CC for knobs (up to 4 knobs, indices 10-13)
+function get_knob_cc(knob_index)
+(
+  get_keyboard_cc(current_keyboard, knob_index + 10);
+);
+
+// Get CC for preset switching
+function get_prev_preset_cc()
+(
+  get_keyboard_cc(current_keyboard, 14);
+);
+
+function get_next_preset_cc()
+(
+  get_keyboard_cc(current_keyboard, 15);
+);
+
+// Get keyboard name as string
+function get_keyboard_name(keyboard_id)
+  local(name_ptr)
+(
+  keyboard_id == KEYBOARD_OXYGEN_PRO_MINI ? (
+    sprintf(name_buf, "M-Audio Oxygen Pro Mini");
+  ) : keyboard_id == KEYBOARD_CASIO_PRIVIA ? (
+    sprintf(name_buf, "Casio Privia PX-150");
+  ) : keyboard_id == KEYBOARD_ROLAND_GO3 ? (
+    sprintf(name_buf, "Roland GO:3");
+  ) : keyboard_id == KEYBOARD_KORG_NANO_K2 ? (
+    sprintf(name_buf, "Korg Nano Kontroller 2");
+  ) : keyboard_id == KEYBOARD_MAUDIO_AXIOM61 ? (
+    sprintf(name_buf, "M-Audio Axiom 61");
+  ) : keyboard_id == KEYBOARD_MWAVE_SMC ? (
+    sprintf(name_buf, "M-Wave SMC-Mixer");
+  ) : (
+    sprintf(name_buf, "Unknown");
+  );
+);
+
+// Memory allocation for keyboard state
+// Place this in your @init after including this file:
+// oxygen_cc = 10000;   // 16 CC values
+// casio_cc = 10100;
+// go3_cc = 10200;
+// korg_cc = 10300;
+// axiom_cc = 10400;
+// mwave_cc = 10500;
+// name_buf = 10600;    // String buffer
+// current_keyboard = KEYBOARD_OXYGEN_PRO_MINI;
+
+// Helper: Handle incoming CC messages for keyboard-aware control
+function handle_keyboard_cc(cc_num, cc_value)
+  local(keyboard_id)
+(
+  keyboard_id = current_keyboard;
+
+  // Auto-detect keyboard from CC patterns (optional)
+  // If a keyboard sends a unique CC, we can auto-switch
+
+  // Return 1 if this CC was handled by keyboard selector
+  // Return 0 if it should be passed to instrument
+  0;
+);
